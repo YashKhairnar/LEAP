@@ -62,8 +62,8 @@ class InstructionalActionType(str, Enum):
     CONNECT_COMPARISON_SELECTION = "connect.comparison_selection"
     CONNECT_ANALOGY_MAPPING = "connect.analogy_mapping"
     IMPLEMENT_CODE_COMPLETION = "implement.code_completion"
-    IMPLEMENT_CODE_OUTPUT_PREDICTION = "implement.code_output_prediction"
-    IMPLEMENT_VARIABLE_PURPOSE = "implement.variable_purpose"
+    IMPLEMENT_CODE_DEBUGGING = "implement.code_debugging"
+    IMPLEMENT_CODE_CONSTRUCTION = "implement.code_construction"
     LEARN_TRANSFER_OR_NEW = "learn.transfer_or_new"
     LEARN_DIFFERENCE_EXPLANATION = "learn.difference_explanation"
     LEARN_CONCEPT_BOUNDARY = "learn.concept_boundary"
@@ -166,3 +166,27 @@ class BehaviorEventRecord(BehaviorEventCreate):
     learner_id: str
     sequence_index: int
     created_at: str
+
+
+class ProgressRecord(BaseModel):
+    task: str
+    completed_stages: int = Field(ge=0)
+    total_stages: int = Field(ge=1)
+    task_complete: bool
+    updated_at: str
+
+
+class CodeEvaluationRequest(BaseModel):
+    evaluator_id: Literal[
+        "data_loading", "train_test_split", "tfidf_vectorization",
+        "model_training", "prediction", "evaluation",
+        "cnn_load_images", "cnn_normalize", "cnn_build", "cnn_train",
+        "cnn_predict", "cnn_evaluate", "reg_load_data", "reg_split",
+        "reg_scale", "reg_train", "reg_predict", "reg_evaluate",
+    ]
+    code: str = Field(min_length=1, max_length=4000)
+
+
+class CodeEvaluationResult(BaseModel):
+    correct: bool
+    feedback: str

@@ -88,7 +88,7 @@ export default function SentimentLesson() {
 
   const completeStage = () => {
     const finalStage = stageIndex === sentimentStages.length - 1;
-    recordBehavior("navigation", { direction: finalStage ? "complete_task" : "complete_stage", from_stage: stage.id, to_stage: finalStage ? null : sentimentStages[stageIndex + 1].id });
+    recordBehavior("navigation", { direction: finalStage ? "complete_task" : "complete_stage", from_stage: stage.id, to_stage: finalStage ? null : sentimentStages[stageIndex + 1].id, completed_stages: stageIndex + 1, total_stages: sentimentStages.length });
     setCompletedStages(stageIndex + 1);
     if (finalStage) { setTaskComplete(true); return; }
     setStageIndex((value) => value + 1); setStep(0); setFurthestStep(0); setMastered(emptyMastery()); setConfidence(null); setShowAnalogy(false);

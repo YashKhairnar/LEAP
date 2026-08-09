@@ -13,7 +13,12 @@ export type QuestionItem = {
   explanation: string;
   misconception: string;
   learningObjectives?: string[];
+  answerType?: "choice" | "code";
+  evaluatorId?: CodeEvaluatorId;
+  starterCode?: string;
 };
+
+export type CodeEvaluatorId = "data_loading" | "train_test_split" | "tfidf_vectorization" | "model_training" | "prediction" | "evaluation" | "cnn_load_images" | "cnn_normalize" | "cnn_build" | "cnn_train" | "cnn_predict" | "cnn_evaluate" | "reg_load_data" | "reg_split" | "reg_scale" | "reg_train" | "reg_predict" | "reg_evaluate";
 
 export type StageDefinition = {
   id: string;
@@ -111,8 +116,18 @@ export const sentimentStages: StageDefinition[] = [
   },
 ];
 
+const constructionTasks: Record<string, { evaluatorId: CodeEvaluatorId; prompt: string; starterCode: string; correctAnswer: string; explanation: string }> = {
+  data_loading_and_preparation: { evaluatorId: "data_loading", prompt: "Write Python that loads reviews.csv with pandas and assigns the DataFrame to df.", starterCode: "import pandas as pd\n\n# Load the dataset into df\n", correctAnswer: 'import pandas as pd\ndf = pd.read_csv("reviews.csv")', explanation: "The solution must call pd.read_csv with reviews.csv and store the result in df." },
+  train_test_split: { evaluatorId: "train_test_split", prompt: "Split df['text'] and df['sentiment'] into X_train, X_test, y_train, and y_test, using 20% for testing.", starterCode: "from sklearn.model_selection import train_test_split\n\n# Create the four train/test variables\n", correctAnswer: "X_train, X_test, y_train, y_test = train_test_split(df['text'], df['sentiment'], test_size=0.2, random_state=42)", explanation: "The solution must assign all four outputs and reserve 20% of the data for testing." },
+  tfidf_vectorization: { evaluatorId: "tfidf_vectorization", prompt: "Create a TfidfVectorizer, fit it on X_train, and transform X_test without fitting on the test data.", starterCode: "from sklearn.feature_extraction.text import TfidfVectorizer\n\n# Build train and test TF-IDF matrices\n", correctAnswer: "vectorizer = TfidfVectorizer()\nX_train_tfidf = vectorizer.fit_transform(X_train)\nX_test_tfidf = vectorizer.transform(X_test)", explanation: "Fit the vectorizer only on X_train, then use that fitted vectorizer to transform X_test." },
+  model_training: { evaluatorId: "model_training", prompt: "Create a LogisticRegression model and fit it using X_train_tfidf and y_train.", starterCode: "from sklearn.linear_model import LogisticRegression\n\n# Create and train model\n", correctAnswer: "model = LogisticRegression(max_iter=1000)\nmodel.fit(X_train_tfidf, y_train)", explanation: "The model must be constructed and fitted with the training features and labels." },
+  prediction: { evaluatorId: "prediction", prompt: "Use the fitted model to predict labels for X_test_tfidf and assign them to y_pred.", starterCode: "# Generate held-out predictions\n", correctAnswer: "y_pred = model.predict(X_test_tfidf)", explanation: "The fitted model must predict from the held-out TF-IDF matrix and store the result in y_pred." },
+  evaluation: { evaluatorId: "evaluation", prompt: "Compute accuracy from y_test and y_pred and assign it to accuracy.", starterCode: "from sklearn.metrics import accuracy_score\n\n# Compute the test accuracy\n", correctAnswer: "accuracy = accuracy_score(y_test, y_pred)", explanation: "Accuracy must compare the true held-out labels with the model predictions." },
+};
+
 function buildQuestionBank(stage: StageDefinition): Record<StepId, QuestionItem[]> {
   const q = (id: string, step: StepId, index: number, typeLabel: string, prompt: string, options: string[], correctAnswer: string, explanation: string, misconception = stage.misconception): QuestionItem => ({ id: `${stage.id}.${id}`, step, actionType: INSTRUCTIONAL_ACTIONS[step][index], typeLabel, prompt, options, correctAnswer, explanation, misconception, learningObjectives: stage.objectives });
+  const construction = constructionTasks[stage.id];
   return {
     activate: [
       q("a-concept", "activate", 0, "Java concept", `Which familiar programming idea best prepares you for ${stage.target}?`, [stage.familiar, "A random number generator", "A UI color"], stage.familiar, `${stage.familiar} provides the reusable structure for this stage.`),
@@ -125,9 +140,9 @@ function buildQuestionBank(stage: StageDefinition): Record<StepId, QuestionItem[
       q("c-analogy", "connect", 2, "Analogy mapping", `What is the main point of this analogy: ${stage.analogy}`, [stage.relationship, "Training and testing are identical", "Labels are unnecessary"], stage.relationship, `The analogy highlights that ${stage.relationship}.`),
     ],
     implement: [
+      { id: `${stage.id}.i-construct`, step: "implement", actionType: INSTRUCTIONAL_ACTIONS.implement[2], typeLabel: "Code construction", prompt: construction.prompt, options: [], correctAnswer: construction.correctAnswer, explanation: construction.explanation, misconception: stage.misconception, learningObjectives: stage.objectives, answerType: "code", evaluatorId: construction.evaluatorId, starterCode: construction.starterCode },
       q("i-complete", "implement", 0, "Code completion", stage.operation.prompt, stage.operation.options, stage.operation.correct, stage.operation.explanation),
-      q("i-output", "implement", 1, "Output prediction", stage.outcome.prompt, stage.outcome.options, stage.outcome.correct, stage.outcome.explanation),
-      q("i-variable", "implement", 2, "Variable purpose", stage.variable.prompt, stage.variable.options, stage.variable.correct, stage.variable.explanation),
+      q("i-debug", "implement", 1, "Code debugging", `Which line correctly fixes this stage's core operation?`, stage.operation.options, stage.operation.correct, stage.operation.explanation),
     ],
     learn: [
       q("l-transfer", "learn", 0, "Transfer or new", `What transfers into this stage?`, [stage.relationship, "The final accuracy value", "The student's password"], stage.relationship, `The transferable relationship is that ${stage.relationship}.`),

@@ -3,6 +3,7 @@ const AUTH_KEY = "leap.auth.v1";
 
 export type AuthUser = { user_id: string; email: string; name: string; java_experience: string };
 export type AuthSession = { user: AuthUser };
+export type TaskProgress = { task: string; completed_stages: number; total_stages: number; task_complete: boolean; updated_at: string };
 
 export function getAuth(): AuthSession | null {
   if (typeof window === "undefined") return null;
@@ -25,6 +26,12 @@ export async function validateAuth(): Promise<AuthUser | null> {
   const user = await response.json() as AuthUser;
   setAuth({ user });
   return user;
+}
+
+export async function getTaskProgress(): Promise<TaskProgress[]> {
+  const response = await fetch(`${API_URL}/api/progress`, { credentials: "include", cache: "no-store" });
+  if (!response.ok) return [];
+  return response.json() as Promise<TaskProgress[]>;
 }
 
 export async function authenticate(path: "register" | "login", body: object): Promise<AuthSession> {

@@ -20,6 +20,7 @@ from .models import (
     ContentCreate,
     ContentRecord,
     InteractionCreate,
+    ProgressRecord,
     TransitionCreate,
     TransitionRecord,
     UserRecord,
@@ -139,6 +140,15 @@ def initialize_database() -> None:
                 PRIMARY KEY(learner_id, session_id)
             )
             """
+        )
+        connection.execute(
+            """CREATE TABLE IF NOT EXISTS user_progress (
+                learner_id TEXT NOT NULL, task TEXT NOT NULL,
+                completed_stages INTEGER NOT NULL DEFAULT 0,
+                total_stages INTEGER NOT NULL DEFAULT 6,
+                task_complete INTEGER NOT NULL DEFAULT 0,
+                updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY(learner_id, task))"""
         )
         if not connection.postgres:
             transition_columns = {row["name"] for row in connection.execute("PRAGMA table_info(transitions)").fetchall()}
@@ -275,10 +285,64 @@ def save_behavior_event(event: BehaviorEventCreate, learner_id: str) -> Behavior
             "INSERT INTO behavior_events (event_id, learner_id, session_id, sequence_index, payload) VALUES (?, ?, ?, ?, ?)",
             (event.event_id, learner_id, event.session_id, sequence_index, json.dumps(payload)),
         )
+        direction = event.data.get("direction") if event.event_type == "navigation" else None
+        if direction in {"complete_stage", "complete_task"}:
+            completed_stages = int(event.data.get("completed_stages", 6 if direction == "complete_task" else 1))
+            total_stages = int(event.data.get("total_stages", 6))
+            greatest = "GREATEST" if connection.postgres else "MAX"
+            connection.execute(
+                f"""INSERT INTO user_progress (learner_id, task, completed_stages, total_stages, task_complete)
+                VALUES (?, ?, ?, ?, ?)
+                ON CONFLICT (learner_id, task) DO UPDATE SET
+                    completed_stages = {greatest}(user_progress.completed_stages, excluded.completed_stages),
+                    total_stages = excluded.total_stages,
+                    task_complete = {greatest}(user_progress.task_complete, excluded.task_complete),
+                    updated_at = CURRENT_TIMESTAMP""",
+                (learner_id, event.location.task, completed_stages, total_stages, int(direction == "complete_task")),
+            )
         row = connection.execute(
             "SELECT created_at FROM behavior_events WHERE event_id = ?", (event.event_id,)
         ).fetchone()
     return BehaviorEventRecord(**payload, learner_id=learner_id, sequence_index=sequence_index, created_at=_created_at(row["created_at"]))
+
+
+def list_progress(learner_id: str) -> List[ProgressRecord]:
+    with connect() as connection:
+        rows = connection.execute(
+            "SELECT task, completed_stages, total_stages, task_complete, updated_at FROM user_progress WHERE learner_id = ?",
+            (learner_id,),
+        ).fetchall()
+        if not rows:
+            events = connection.execute(
+                "SELECT payload FROM behavior_events WHERE learner_id = ? ORDER BY sequence_index",
+                (learner_id,),
+            ).fetchall()
+            stage_order = {"data_loading_and_preparation": 1, "train_test_split": 2, "tfidf_vectorization": 3, "model_training": 4, "prediction": 5, "evaluation": 6}
+            reconstructed: dict[str, tuple[int, int, bool]] = {}
+            for event_row in events:
+                payload = json.loads(event_row["payload"])
+                data = payload.get("data", {})
+                direction = data.get("direction")
+                if direction not in {"complete_stage", "complete_task"}:
+                    continue
+                task = payload.get("location", {}).get("task")
+                if not task:
+                    continue
+                complete = direction == "complete_task"
+                completed = int(data.get("completed_stages", 6 if complete else stage_order.get(data.get("from_stage"), 1)))
+                previous = reconstructed.get(task, (0, 6, False))
+                reconstructed[task] = (max(previous[0], completed), int(data.get("total_stages", 6)), previous[2] or complete)
+            for task, (completed, total, complete) in reconstructed.items():
+                connection.execute(
+                    "INSERT INTO user_progress (learner_id, task, completed_stages, total_stages, task_complete) VALUES (?, ?, ?, ?, ?)",
+                    (learner_id, task, completed, total, int(complete)),
+                )
+            if reconstructed:
+                rows = connection.execute(
+                    "SELECT task, completed_stages, total_stages, task_complete, updated_at FROM user_progress WHERE learner_id = ?",
+                    (learner_id,),
+                ).fetchall()
+    return [ProgressRecord(task=row["task"], completed_stages=row["completed_stages"], total_stages=row["total_stages"], task_complete=bool(row["task_complete"]), updated_at=_created_at(row["updated_at"])) for row in rows]
 
 
 def save_transition(transition: TransitionCreate) -> TransitionRecord:

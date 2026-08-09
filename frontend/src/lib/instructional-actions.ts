@@ -11,8 +11,8 @@ export const INSTRUCTIONAL_ACTIONS = {
   ],
   implement: [
     "implement.code_completion",
-    "implement.code_output_prediction",
-    "implement.variable_purpose",
+    "implement.code_debugging",
+    "implement.code_construction",
   ],
   learn: [
     "learn.transfer_or_new",

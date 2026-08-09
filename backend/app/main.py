@@ -17,6 +17,7 @@ from .database import (
     authenticate_user,
     create_user,
     initialize_database,
+    list_progress,
     save_behavior_event,
     save_interaction,
     user_for_token,
@@ -29,10 +30,14 @@ from .models import (
     InteractionCreate,
     LoginRequest,
     PublicAuthResponse,
+    ProgressRecord,
     RegisterRequest,
     TransitionRecord,
     UserRecord,
+    CodeEvaluationRequest,
+    CodeEvaluationResult,
 )
+from .code_sandbox import evaluate_code
 
 
 @asynccontextmanager
@@ -131,6 +136,16 @@ def login(request: LoginRequest, response: Response) -> AuthResponse:
 @app.get("/api/auth/me", response_model=UserRecord)
 def me(user: Annotated[UserRecord, Depends(current_user)]) -> UserRecord:
     return user
+
+
+@app.get("/api/progress", response_model=list[ProgressRecord])
+def progress(user: Annotated[UserRecord, Depends(current_user)]) -> list[ProgressRecord]:
+    return list_progress(user.user_id)
+
+
+@app.post("/api/code/evaluate", response_model=CodeEvaluationResult)
+def code_evaluate(request: CodeEvaluationRequest, _: Annotated[UserRecord, Depends(current_user)]) -> CodeEvaluationResult:
+    return evaluate_code(request.evaluator_id, request.code)
 
 
 @app.post("/api/auth/logout", status_code=status.HTTP_204_NO_CONTENT)
