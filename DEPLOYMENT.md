@@ -27,7 +27,7 @@ Import the same repository and select `frontend` as the Root Directory.
 
 Set:
 
-- `BACKEND_URL`: the Render service origin, for example `https://leap-api.onrender.com`
+- `BACKEND_URL`: the Render service origin, currently `https://leap-api-tdy5.onrender.com`
 
 Do not set `NEXT_PUBLIC_API_URL` in production. The included Next.js rewrite proxies `/api/*`
 through the Vercel origin, allowing the secure authentication cookie to remain first-party.
