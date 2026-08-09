@@ -42,5 +42,6 @@ export async function logout(): Promise<void> {
     await fetch(`${API_URL}/api/auth/logout`, { method: "POST", credentials: "include" });
   } finally {
     clearAuth();
+    window.sessionStorage.removeItem("leap.learning.session.v1");
   }
 }

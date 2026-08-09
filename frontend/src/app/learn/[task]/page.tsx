@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import LogoutButton from "@/components/logout-button";
 
 const paths = {
   cnn: {
@@ -22,7 +23,7 @@ export default async function TaskOverview({ params }: { params: Promise<{ task:
   if (!path) notFound();
 
   return <main className="overview-shell">
-    <header className="topbar"><Link className="brand" href="/"><span>LEAP</span></Link><div className="header-context"><Link className="back-link" href="/">← All learning paths</Link></div><Link className="avatar" href="/login">YS</Link></header>
+    <header className="topbar"><Link className="brand" href="/"><span>LEAP</span></Link><div className="header-context"><Link className="back-link" href="/">← All learning paths</Link></div><div className="account-controls"><LogoutButton /></div></header>
     <section className="overview-hero"><p className="eyebrow">{path.eyebrow}</p><h1>{path.title}</h1><p>{path.description}</p></section>
     <section className="overview-path">
       <div className="overview-heading"><div><p className="eyebrow blue">Predefined path</p><h2>Six stages from data to evaluation</h2></div><span>Not started</span></div>
