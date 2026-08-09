@@ -36,3 +36,11 @@ export async function authenticate(path: "register" | "login", body: object): Pr
   setAuth(result as AuthSession);
   return result as AuthSession;
 }
+
+export async function logout(): Promise<void> {
+  try {
+    await fetch(`${API_URL}/api/auth/logout`, { method: "POST", credentials: "include" });
+  } finally {
+    clearAuth();
+  }
+}

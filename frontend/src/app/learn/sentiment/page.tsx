@@ -2,11 +2,9 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import AdaptiveQuestion from "./adaptive-question";
 import { questionBank, type QuestionItem, type StepId } from "@/lib/question-bank";
 import { enqueueCollection, flushCollectionQueue, learningSessionId } from "@/lib/collection";
-import { getAuth, validateAuth } from "@/lib/auth";
 
 const stages = [["01", "Prepare data"], ["02", "Split data"], ["03", "TF-IDF"], ["04", "Train model"], ["05", "Predict"], ["06", "Evaluate"]];
 const lessonSteps: { id: StepId; label: string }[] = [{ id: "activate", label: "Activate" }, { id: "connect", label: "Connect" }, { id: "implement", label: "Implement" }, { id: "learn", label: "Learn" }, { id: "practice", label: "Practice" }, { id: "review", label: "Review" }];
@@ -37,7 +35,6 @@ const learningObjectivesByStep: Record<StepId, string[]> = {
 };
 
 export default function SentimentLesson() {
-  const router = useRouter();
   const [step, setStep] = useState(0);
   const [furthestStep, setFurthestStep] = useState(0);
   const [mastered, setMastered] = useState<Record<StepId, boolean>>({ activate: false, connect: false, implement: false, learn: false, practice: false, review: false });
@@ -49,12 +46,8 @@ export default function SentimentLesson() {
   const current = lessonSteps[step];
 
   useEffect(() => {
-    if (!getAuth()) { router.replace("/login"); return; }
-    void validateAuth().then((user) => {
-      if (!user) { router.replace("/login"); return; }
-      void flushCollectionQueue().catch((error) => console.warn("Pending learner events will retry later.", error));
-    });
-  }, [router]);
+    void flushCollectionQueue().catch((error) => console.warn("Pending learner events will retry later.", error));
+  }, []);
 
   const recordBehavior = (eventType: "content_exposure" | "confidence_checkpoint" | "navigation", data: Record<string, unknown>, locationStep = current.id) => {
     setEventCount((count) => count + 1);
