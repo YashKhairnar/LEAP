@@ -133,6 +133,7 @@ class TransitionCreate(BaseModel):
     location_after: Location
     event_timestamp: datetime
     selection_policy: str = Field(default="predefined_sequence_v1", min_length=1)
+    presentation_id: Optional[str] = Field(default=None, min_length=1)
 
 
 class TransitionRecord(TransitionCreate):
@@ -151,12 +152,13 @@ class InteractionCreate(BaseModel):
     location_after: Location
     event_timestamp: datetime
     selection_policy: str = Field(default="predefined_sequence_v1", min_length=1)
+    presentation_id: Optional[str] = Field(default=None, min_length=1)
 
 
 class BehaviorEventCreate(BaseModel):
     event_id: str = Field(min_length=1)
     session_id: str = Field(min_length=1)
-    event_type: Literal["content_exposure", "confidence_checkpoint", "navigation"]
+    event_type: Literal["content_presented", "content_exposure", "confidence_checkpoint", "navigation"]
     location: Location
     event_timestamp: datetime
     data: dict[str, Any] = Field(default_factory=dict)

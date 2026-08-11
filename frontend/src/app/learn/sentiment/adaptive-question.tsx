@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type { QuestionItem } from "@/lib/question-bank";
 import { API_URL } from "@/lib/auth";
 
-export default function AdaptiveQuestion({ items, required = true, onAttempt }: { items: QuestionItem[]; required?: boolean; onAttempt: (item: QuestionItem, answer: string, correct: boolean, attempt: number, responseTimeMs: number) => void }) {
+export default function AdaptiveQuestion({ items, required = true, onAttempt, onPresented }: { items: QuestionItem[]; required?: boolean; onAttempt: (item: QuestionItem, answer: string, correct: boolean, attempt: number, responseTimeMs: number, presentationId: string) => void; onPresented: (item: QuestionItem, presentationId: string) => void }) {
   const [itemIndex, setItemIndex] = useState(0);
   const [answer, setAnswer] = useState<string>(items[0]?.starterCode ?? "");
   const [checked, setChecked] = useState(false);
@@ -12,13 +12,20 @@ export default function AdaptiveQuestion({ items, required = true, onAttempt }: 
   const [attempt, setAttempt] = useState(1);
   const [evaluating, setEvaluating] = useState(false);
   const [result, setResult] = useState<{ correct: boolean; feedback: string } | null>(null);
+  const [presentationId, setPresentationId] = useState(() => crypto.randomUUID());
   const shownAt = useRef<number | null>(null);
+  const onPresentedRef = useRef(onPresented);
   const item = items[itemIndex];
   const correct = result?.correct ?? answer === item.correctAnswer;
 
   useEffect(() => {
+    onPresentedRef.current = onPresented;
+  }, [onPresented]);
+
+  useEffect(() => {
     shownAt.current = Date.now();
-  }, [itemIndex]);
+    onPresentedRef.current(items[itemIndex], presentationId);
+  }, [itemIndex, items, presentationId]);
 
   const check = async () => {
     if (!answer.trim()) return;
@@ -39,13 +46,14 @@ export default function AdaptiveQuestion({ items, required = true, onAttempt }: 
     setResult(evaluation);
     setChecked(true);
     if (evaluation.correct) setMastered(true);
-    onAttempt(item, answer, evaluation.correct, attempt, Date.now() - (shownAt.current ?? Date.now()));
+    onAttempt(item, answer, evaluation.correct, attempt, Date.now() - (shownAt.current ?? Date.now()), presentationId);
   };
 
   const tryAnother = () => {
     setItemIndex((itemIndex + 1) % items.length);
     const next = items[(itemIndex + 1) % items.length];
     setAnswer(next.starterCode ?? "");
+    setPresentationId(crypto.randomUUID());
     setChecked(false);
     setResult(null);
     setAttempt(attempt + 1);

@@ -265,6 +265,7 @@ def save_interaction(interaction: InteractionCreate, learner_id: str) -> Transit
             "location_after": interaction.location_after.model_dump(mode="json"),
             "event_timestamp": interaction.event_timestamp.isoformat(),
             "selection_policy": interaction.selection_policy,
+            "presentation_id": interaction.presentation_id,
         }
         connection.execute(
             "INSERT INTO transitions (transition_id, learner_id, session_id, sequence_index, payload) VALUES (?, ?, ?, ?, ?)",

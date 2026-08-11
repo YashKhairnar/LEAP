@@ -35,16 +35,21 @@ export default function SentimentLesson() {
 
   useEffect(() => { void flushCollectionQueue().catch((error) => console.warn("Pending learner events will retry later.", error)); }, []);
 
-  const recordBehavior = (eventType: "content_exposure" | "confidence_checkpoint" | "navigation", data: Record<string, unknown>, locationStep = current.id) => {
+  const recordBehavior = (eventType: "content_presented" | "content_exposure" | "confidence_checkpoint" | "navigation", data: Record<string, unknown>, locationStep = current.id, eventId = crypto.randomUUID()) => {
     setEventCount((count) => count + 1);
     void enqueueCollection({ endpoint: "/api/events", payload: {
-      event_id: crypto.randomUUID(), session_id: sessionId, event_type: eventType,
+      event_id: eventId, session_id: sessionId, event_type: eventType,
       location: { task: "sentiment_classification", stage: stage.id, step: locationStep },
       event_timestamp: new Date().toISOString(), data,
     }}).catch((error) => console.warn("Learner event queued for retry.", error));
   };
 
-  const recordAttempt = (item: QuestionItem, answer: string, correct: boolean, attempt: number, responseTimeMs: number) => {
+  const recordPresentation = (item: QuestionItem, presentationId: string) => {
+    const contentId = `sentiment.${item.id}`;
+    recordBehavior("content_presented", { presentation_id: presentationId, content_id: contentId, action_type: item.actionType, content: { prompt: item.prompt, options: item.options, correct_answer: item.correctAnswer, explanation: item.explanation, misconception: item.misconception, learning_objectives: item.learningObjectives ?? stage.objectives } }, item.step, presentationId);
+  };
+
+  const recordAttempt = (item: QuestionItem, answer: string, correct: boolean, attempt: number, responseTimeMs: number, presentationId: string) => {
     const stepIndex = lessonSteps.findIndex((lessonStep) => lessonStep.id === item.step);
     const isReview = item.step === "review";
     const decision = correct ? (isReview ? "remain_on_step" : "advance_step") : "remain_on_step";
@@ -61,7 +66,7 @@ export default function SentimentLesson() {
       learner_action: { response: answer },
       observation: { correct, score: correct ? 1 : 0, attempt, response_time_ms: responseTimeMs, misconception: correct ? null : item.misconception },
       progression: { decision }, location_after: locationAfter,
-      event_timestamp: new Date().toISOString(), selection_policy: "predefined_sequence_v1",
+      event_timestamp: new Date().toISOString(), selection_policy: "predefined_sequence_v1", presentation_id: presentationId,
     };
     setEventCount((count) => count + 1);
     void enqueueCollection({ endpoint: "/api/interactions", payload: { ...transition, content: {
@@ -108,7 +113,7 @@ export default function SentimentLesson() {
       <div className="transfer-strip"><div><span className="transfer-index">01</span><p><strong>You already know</strong>{stage.familiar}</p></div><div><span className="transfer-index">02</span><p><strong>What transfers</strong>{stage.relationship}</p></div><div><span className="transfer-index">03</span><p><strong>What is new</strong>{stage.target}</p></div></div>
       {(current.id === "connect" || current.id === "implement") && <section className={showAnalogy ? "analogy open" : "analogy"}><button onClick={() => { const opening = !showAnalogy; setShowAnalogy(opening); if (opening) recordBehavior("content_exposure", { content_id: `sentiment.${stage.id}.analogy`, exposure: "opened" }); }}><span className="analogy-icon"><BulbIcon /></span><span><small>Optional instructional content</small>Open the stage analogy</span><ChevronIcon open={showAnalogy} /></button>{showAnalogy && <p>{stage.analogy}</p>}</section>}
       {current.id === "review" && <blockquote className="transfer-statement">“{stage.reviewStatement}”</blockquote>}
-      {!taskComplete && <AdaptiveQuestion key={`${stage.id}.${current.id}`} items={questionBanks[stage.id][current.id]} onAttempt={recordAttempt} />}
+      {!taskComplete && <AdaptiveQuestion key={`${stage.id}.${current.id}`} items={questionBanks[stage.id][current.id]} onAttempt={recordAttempt} onPresented={recordPresentation} />}
       {current.id === "review" && mastered.review && !taskComplete && <fieldset className="confidence-check"><legend>How confident are you in this stage?</legend><div>{["Not yet", "Somewhat", "Confident"].map((level) => <button type="button" className={confidence === level ? "confidence selected" : "confidence"} onClick={() => { setConfidence(level); recordBehavior("confidence_checkpoint", { confidence: level, stage: stage.id }); }} key={level}>{level}</button>)}</div></fieldset>}
       {taskComplete && <section className="task-complete"><CheckIcon /><p className="eyebrow">Task completed</p><h3>Sentiment-classification pipeline mastered</h3><p>You completed all six stages. The full ordered trajectory is ready in the collection backend.</p><Link className="overview-cta" href="/">Return to dashboard</Link></section>}
       {!taskComplete && <footer className="lesson-footer"><button className="text-button" disabled={step === 0} onClick={() => moveTo(step - 1)}>← Previous</button><span>Step {step + 1} of {lessonSteps.length}</span>{step < lessonSteps.length - 1 ? <button className="primary-button" disabled={!mastered[current.id]} onClick={continueLesson}>Continue <span>→</span></button> : <button className="primary-button" disabled={!mastered.review || !confidence} onClick={completeStage}>{stageIndex === 5 ? "Complete task" : "Next stage"} <span>→</span></button>}</footer>}

@@ -30,9 +30,10 @@ async function drainQueue(): Promise<number> {
   const auth = getAuth();
   if (!auth) throw new Error("Sign in before collecting learner events");
   const userId = auth.user.user_id;
-  const queue = readQueue(userId);
   let saved = 0;
-  while (queue.length) {
+  while (true) {
+    const queue = readQueue(userId);
+    if (!queue.length) break;
     const item = queue[0];
     const response = await fetch(`${API_URL}${item.endpoint}`, {
       method: "POST",
@@ -41,8 +42,11 @@ async function drainQueue(): Promise<number> {
       body: JSON.stringify(item.payload),
     });
     if (!response.ok && response.status !== 409) throw new Error(`Collection API returned ${response.status}`);
-    queue.shift();
-    writeQueue(userId, queue);
+    const latestQueue = readQueue(userId);
+    const itemSignature = JSON.stringify(item);
+    const savedIndex = latestQueue.findIndex((candidate) => JSON.stringify(candidate) === itemSignature);
+    if (savedIndex >= 0) latestQueue.splice(savedIndex, 1);
+    writeQueue(userId, latestQueue);
     saved += 1;
   }
   return saved;
