@@ -41,6 +41,27 @@ export type StageDefinition = {
   objectives: string[];
 };
 
+/**
+ * Keep answer order stable for a given question (useful for event replay), while
+ * distributing correct answers across all positions instead of always placing
+ * them first. The authored arrays can therefore stay easy to review.
+ */
+export function shuffleQuestionOptions(id: string, options: string[]): string[] {
+  if (options.length < 2) return [...options];
+  let hash = 2166136261;
+  for (const character of id) {
+    hash ^= character.charCodeAt(0);
+    hash = Math.imul(hash, 16777619);
+  }
+  const shuffled = [...options];
+  for (let index = shuffled.length - 1; index > 0; index -= 1) {
+    hash = Math.imul(hash ^ (hash >>> 13), 1274126177);
+    const swapIndex = (hash >>> 0) % (index + 1);
+    [shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]];
+  }
+  return shuffled;
+}
+
 export const sentimentStages: StageDefinition[] = [
   {
     id: "data_loading_and_preparation", shortLabel: "Prepare data", heading: "From Java objects to a dataset",
@@ -126,18 +147,21 @@ const constructionTasks: Record<string, { evaluatorId: CodeEvaluatorId; prompt: 
 };
 
 function buildQuestionBank(stage: StageDefinition): Record<StepId, QuestionItem[]> {
-  const q = (id: string, step: StepId, index: number, typeLabel: string, prompt: string, options: string[], correctAnswer: string, explanation: string, misconception = stage.misconception): QuestionItem => ({ id: `${stage.id}.${id}`, step, actionType: INSTRUCTIONAL_ACTIONS[step][index], typeLabel, prompt, options, correctAnswer, explanation, misconception, learningObjectives: stage.objectives });
+  const q = (id: string, step: StepId, index: number, typeLabel: string, prompt: string, options: string[], correctAnswer: string, explanation: string, misconception = stage.misconception): QuestionItem => {
+    const questionId = `${stage.id}.${id}`;
+    return { id: questionId, step, actionType: INSTRUCTIONAL_ACTIONS[step][index], typeLabel, prompt, options: shuffleQuestionOptions(questionId, options), correctAnswer, explanation, misconception, learningObjectives: stage.objectives };
+  };
   const construction = constructionTasks[stage.id];
   return {
     activate: [
-      q("a-concept", "activate", 0, "Java concept", `Which familiar programming idea best prepares you for ${stage.target}?`, [stage.familiar, "A random number generator", "A UI color"], stage.familiar, `${stage.familiar} provides the reusable structure for this stage.`),
+      q("a-concept", "activate", 0, "Java concept", `Which familiar programming idea best prepares you for ${stage.target}?`, [stage.familiar, "A method that discards its input after every call", "A scalar value with no relationship to an example"], stage.familiar, `${stage.familiar} provides the reusable structure for this stage.`),
       q("a-output", "activate", 1, "Output prediction", stage.outcome.prompt, stage.outcome.options, stage.outcome.correct, stage.outcome.explanation),
-      q("a-explain", "activate", 2, "Code explanation", `Why is ${stage.familiar} relevant here?`, [stage.relationship, "It removes every label", "It evaluates the final model"], stage.relationship, `The key connection is that ${stage.relationship}.`),
+      q("a-explain", "activate", 2, "Code explanation", `Why is ${stage.familiar} relevant here?`, [stage.relationship, "It guarantees the resulting model will generalize", "It replaces the need to keep features paired with labels"], stage.relationship, `The key connection is that ${stage.relationship}.`),
     ],
     connect: [
-      q("c-match", "connect", 0, "Concept matching", `${stage.familiar} maps most directly to what?`, [stage.target, "An unrelated chart", "A password"], stage.target, `${stage.familiar} transfers to ${stage.target}.`),
-      q("c-compare", "connect", 1, "Comparison", `Which statement best connects the familiar and new representations?`, [stage.relationship, "They have no shared structure", "Both automatically evaluate accuracy"], stage.relationship, `They connect because ${stage.relationship}.`),
-      q("c-analogy", "connect", 2, "Analogy mapping", `What is the main point of this analogy: ${stage.analogy}`, [stage.relationship, "Training and testing are identical", "Labels are unnecessary"], stage.relationship, `The analogy highlights that ${stage.relationship}.`),
+      q("c-match", "connect", 0, "Concept matching", `${stage.familiar} maps most directly to what?`, [stage.target, "The metric used after the pipeline finishes", "The labels without their corresponding features"], stage.target, `${stage.familiar} transfers to ${stage.target}.`),
+      q("c-compare", "connect", 1, "Comparison", `Which statement best connects the familiar and new representations?`, [stage.relationship, "The familiar idea only describes evaluation, not representation", "Both automatically prevent train-test leakage"], stage.relationship, `They connect because ${stage.relationship}.`),
+      q("c-analogy", "connect", 2, "Analogy mapping", `What is the main point of this analogy: ${stage.analogy}`, [stage.relationship, "The same examples should be used for learning and final testing", "The representation makes labels unnecessary during supervised learning"], stage.relationship, `The analogy highlights that ${stage.relationship}.`),
     ],
     implement: [
       { id: `${stage.id}.i-construct`, step: "implement", actionType: INSTRUCTIONAL_ACTIONS.implement[2], typeLabel: "Code construction", prompt: construction.prompt, options: [], correctAnswer: construction.correctAnswer, explanation: construction.explanation, misconception: stage.misconception, learningObjectives: stage.objectives, answerType: "code", evaluatorId: construction.evaluatorId, starterCode: construction.starterCode },
@@ -145,8 +169,8 @@ function buildQuestionBank(stage: StageDefinition): Record<StepId, QuestionItem[
       q("i-debug", "implement", 1, "Code debugging", `Which line correctly fixes this stage's core operation?`, stage.operation.options, stage.operation.correct, stage.operation.explanation),
     ],
     learn: [
-      q("l-transfer", "learn", 0, "Transfer or new", `What transfers into this stage?`, [stage.relationship, "The final accuracy value", "The student's password"], stage.relationship, `The transferable relationship is that ${stage.relationship}.`),
-      q("l-difference", "learn", 1, "Difference", `What is the new ML-specific idea?`, [stage.target, stage.familiar, "A page layout"], stage.target, `${stage.target} is the new representation or operation.`),
+      q("l-transfer", "learn", 0, "Transfer or new", `What transfers into this stage?`, [stage.relationship, "The final metric before any predictions exist", "The assumption that preprocessing can learn from held-out data"], stage.relationship, `The transferable relationship is that ${stage.relationship}.`),
+      q("l-difference", "learn", 1, "Difference", `What is the new ML-specific idea?`, [stage.target, stage.familiar, "A fitted model evaluated on its training examples"], stage.target, `${stage.target} is the new representation or operation.`),
       q("l-boundary", "learn", 2, "Concept boundary", "Which boundary is correct?", stage.boundary.options, stage.boundary.correct, stage.boundary.correct),
     ],
     practice: [
@@ -155,7 +179,7 @@ function buildQuestionBank(stage: StageDefinition): Record<StepId, QuestionItem[
       q("p-order", "practice", 2, "Pipeline ordering", "Which order is correct?", stage.ordering.options, stage.ordering.correct, `The correct pipeline order is ${stage.ordering.correct}.`),
     ],
     review: [
-      q("r-summary", "review", 0, "Concept summary", "Which statement best summarizes this stage?", [stage.reviewStatement, "Labels are no longer needed", "The test set should train the model"], stage.reviewStatement, stage.reviewStatement),
+      q("r-summary", "review", 0, "Concept summary", "Which statement best summarizes this stage?", [stage.reviewStatement, "Once data is transformed, feature-label alignment no longer matters", "Held-out examples may influence fitting as long as their labels are hidden"], stage.reviewStatement, stage.reviewStatement),
       q("r-transfer", "review", 1, "New scenario", stage.transfer.prompt, stage.transfer.options, stage.transfer.correct, `The same principle transfers: ${stage.transfer.correct}.`),
       q("r-check", "review", 2, "Final checkpoint", stage.operation.prompt, stage.operation.options, stage.operation.correct, stage.operation.explanation),
     ],
