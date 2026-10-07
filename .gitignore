@@ -17,5 +17,4 @@ exports/
 # Large research datasets and model artifacts stay local or in external storage.
 LEAP/data/
 LEAP/notebooks/
-backend/datasets/*.csv
 backend/model_artifacts/*.pt
