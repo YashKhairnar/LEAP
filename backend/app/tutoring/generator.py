@@ -160,7 +160,7 @@ def generate_tutor_content(
 ) -> TutorGenerationResponse:
     provider = os.getenv("TUTOR_LLM_PROVIDER", "ollama").lower()
     if provider == "gemini":
-        model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+        model = os.getenv("GEMINI_MODEL", "gemini-3.8-flash")
         endpoint = os.getenv(
             "GEMINI_API_URL",
             "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent",

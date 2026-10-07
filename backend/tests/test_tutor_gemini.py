@@ -37,7 +37,7 @@ class GeminiTutorTests(unittest.TestCase):
                     "content": {"parts": [{"text": json.dumps(generated)}]},
                 }]}).encode())
                 config = {
-                    "TUTOR_LLM_PROVIDER": "gemini", "GEMINI_MODEL": "gemini-2.5-flash",
+                    "TUTOR_LLM_PROVIDER": "gemini", "GEMINI_MODEL": "gemini-3.8-flash",
                     "GEMINI_API_URL": "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent",
                     "GEMINI_API_KEY": "test-secret", "ENVIRONMENT": "production",
                 }
