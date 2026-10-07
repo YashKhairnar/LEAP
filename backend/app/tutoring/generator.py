@@ -59,6 +59,51 @@ class TutorGenerationUnavailable(RuntimeError):
 logger = logging.getLogger(__name__)
 
 
+def _decode_provider_content(message: dict, provider: str) -> dict:
+    """Decode structured JSON while explaining empty/refusal provider responses."""
+    raw_content = message.get("content")
+    if raw_content is None:
+        refusal = message.get("refusal")
+        detail = f" ({refusal})" if refusal else ""
+        raise ValueError(f"{provider} returned no message content{detail}")
+    if isinstance(raw_content, list):
+        # Some OpenAI-compatible providers return content parts instead of a string.
+        raw_content = "".join(
+            part.get("text", "") if isinstance(part, dict) else str(part)
+            for part in raw_content
+        )
+    if not isinstance(raw_content, str) or not raw_content.strip():
+        raise ValueError(f"{provider} returned empty message content")
+    try:
+        decoded = json.loads(raw_content)
+    except json.JSONDecodeError as error:
+        raise ValueError(f"{provider} returned invalid JSON: {error.msg}") from error
+    if not isinstance(decoded, dict):
+        raise ValueError(f"{provider} returned JSON with an unexpected root type")
+    return decoded
+
+
+def _normalize_question_payload(question_payload: dict) -> dict:
+    """Repair harmless answer formatting differences from otherwise valid JSON."""
+    options = question_payload.get("options")
+    expected = question_payload.get("expected_answer")
+    if not isinstance(options, list) or not options or not isinstance(expected, (str, int)):
+        return question_payload
+
+    # Models occasionally return an option number instead of the option text.
+    if isinstance(expected, int) and 0 <= expected < len(options):
+        question_payload["expected_answer"] = options[expected]
+        return question_payload
+
+    if isinstance(expected, str):
+        expected_clean = expected.strip()
+        for option in options:
+            if isinstance(option, str) and option.strip().casefold() == expected_clean.casefold():
+                question_payload["expected_answer"] = option
+                break
+    return question_payload
+
+
 def _lesson_with_fixed_code(lesson: dict, task: str, stage: str) -> GeneratedLessonContent:
     """Server-owned code and experiments win over generated or cached content."""
     canonical = fixed_lesson_code(task, stage)
@@ -248,15 +293,16 @@ def generate_tutor_content(
             choice = outer["choices"][0]
             if choice.get("finish_reason") == "length":
                 raise ValueError("OpenRouter response exceeded OPENROUTER_MAX_TOKENS")
-            generated = json.loads(choice["message"]["content"])
+            generated = _decode_provider_content(choice["message"], provider)
         else:
-            generated = json.loads(outer["message"]["content"])
+            generated = _decode_provider_content(outer["message"], provider)
         if existing_lesson is None:
             lesson = _lesson_with_fixed_code(generated["lesson"], context.task, context.stage)
             question_payload = generated["question"]
         else:
             lesson = existing_lesson
             question_payload = generated
+        question_payload = _normalize_question_payload(question_payload)
         if not str(question_payload.get("hint", "")).strip():
             question_payload["hint"] = "Use the lesson example to reason through the answer."
         content = TutorContent.model_validate(question_payload)
