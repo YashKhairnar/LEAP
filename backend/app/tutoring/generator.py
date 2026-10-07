@@ -37,10 +37,11 @@ TUTOR_SCHEMA = {
             "key_takeaway": {"type": "string", "minLength": 1, "maxLength": 160}
         }, "required": ["title", "introduction", "sections", "code_explanation", "key_takeaway"], "additionalProperties": False},
         "question": {"type": "object", "properties": {
-            "question": {"type": "string"},
+            "question": {"type": "string", "minLength": 1},
             "options": {"type": "array", "items": {"type": "string"}, "minItems": 3, "maxItems": 4},
-            "expected_answer": {"type": "string"}, "hint": {"type": "string"},
-            "explanation": {"type": "string"},
+            "expected_answer": {"type": "string", "minLength": 1},
+            "hint": {"type": "string", "minLength": 1},
+            "explanation": {"type": "string", "minLength": 1},
             "concepts_tested": {"type": "array", "items": {"type": "string"}}
         }, "required": ["question", "options", "expected_answer", "hint", "explanation", "concepts_tested"], "additionalProperties": False},
     },
@@ -252,10 +253,13 @@ def generate_tutor_content(
             generated = json.loads(outer["message"]["content"])
         if existing_lesson is None:
             lesson = _lesson_with_fixed_code(generated["lesson"], context.task, context.stage)
-            content = TutorContent.model_validate(generated["question"])
+            question_payload = generated["question"]
         else:
             lesson = existing_lesson
-            content = TutorContent.model_validate(generated)
+            question_payload = generated
+        if not str(question_payload.get("hint", "")).strip():
+            question_payload["hint"] = "Use the lesson example to reason through the answer."
+        content = TutorContent.model_validate(question_payload)
         if context.analogy_preference in {"everyday", "pure_ml"} and re.search(
             r"\b(?:java|ArrayList|HashMap|System\.out)\b",
             json.dumps({"lesson": lesson.model_dump(), "question": content.model_dump()}), re.IGNORECASE,
