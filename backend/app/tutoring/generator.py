@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import re
 from dataclasses import asdict
@@ -52,6 +53,9 @@ QUESTION_SCHEMA = TUTOR_SCHEMA["properties"]["question"]
 
 class TutorGenerationUnavailable(RuntimeError):
     pass
+
+
+logger = logging.getLogger(__name__)
 
 
 def _lesson_with_fixed_code(lesson: dict, task: str, stage: str) -> GeneratedLessonContent:
@@ -257,7 +261,12 @@ def generate_tutor_content(
             json.dumps({"lesson": lesson.model_dump(), "question": content.model_dump()}), re.IGNORECASE,
         ):
             raise ValueError("Generated content included Java references despite the everyday-example preference. Please try again.")
-    except (HTTPError, URLError, TimeoutError, KeyError, TypeError, ValueError, json.JSONDecodeError) as error:
+    except HTTPError as error:
+        detail = error.read().decode("utf-8", errors="replace")[:1000]
+        logger.error("Tutor generation HTTP failure: provider=%s model=%s status=%s detail=%s", provider, model, error.code, detail)
+        raise TutorGenerationUnavailable(f"LLM provider returned HTTP {error.code}: {detail}") from error
+    except (URLError, TimeoutError, KeyError, TypeError, ValueError, json.JSONDecodeError) as error:
+        logger.exception("Tutor generation failed: provider=%s model=%s endpoint=%s", provider, model, endpoint)
         raise TutorGenerationUnavailable(str(error)) from error
     return TutorGenerationResponse(
         content_instance_id=content_instance_id,

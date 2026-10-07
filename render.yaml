@@ -30,6 +30,6 @@ services:
       - key: OPENROUTER_CHAT_URL
         value: https://openrouter.ai/api/v1/chat/completions
       - key: OPENROUTER_MODEL
-        value: openrouter/free
+        value: openai/gpt-oss-20b
       - key: OPENROUTER_API_KEY
         sync: false
