@@ -247,7 +247,7 @@ def tutor_generate(
     except TutorGenerationUnavailable as error:
         raise HTTPException(
             status_code=503,
-            detail="The tutor model is unavailable. Check the configured LLM provider and backend connection.",
+            detail=f"Tutor generation failed: {error}",
         ) from error
 
 
