@@ -3,16 +3,52 @@ services:
     name: leap-api
     plan: free
     runtime: python
-    rootDir: backend
-    buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: uvicorn backend.app.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health
     envVars:
       - key: PYTHON_VERSION
         value: 3.12.8
       - key: ENVIRONMENT
         value: production
+      - key: WORLD_MODEL_SERVICE_URL
+        fromService:
+          type: pserv
+          name: leap-world-model
+          property: hostport
+      - key: WORLD_MODEL_SERVICE_TOKEN
+        sync: false
+      - key: CODAPI_URL
+        value: https://api.codapi.org/v1/exec
+      - key: CODAPI_TOKEN
+        sync: false
+      - key: CODE_EXECUTION_ENGINE
+        value: codapi
       - key: DATABASE_URL
         sync: false
       - key: FRONTEND_ORIGINS
+        sync: false
+      - key: TUTOR_LLM_PROVIDER
+        value: openrouter
+      - key: OPENROUTER_CHAT_URL
+        value: https://openrouter.ai/api/v1/chat/completions
+      - key: OPENROUTER_MODEL
+        value: openrouter/free
+      - key: OPENROUTER_API_KEY
+        sync: false
+
+  - type: web
+    name: leap-world-model
+    plan: free
+    runtime: python
+    buildCommand: pip install -e './LEAP[models]' && pip install -r model_service/requirements.txt
+    startCommand: uvicorn model_service.app:app --host 0.0.0.0 --port $PORT --workers 1
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.8
+      - key: ENVIRONMENT
+        value: production
+      - key: LEAP_MODEL_ARTIFACT_DIR
+        value: backend/model_artifacts
+      - key: WORLD_MODEL_SERVICE_TOKEN
         sync: false

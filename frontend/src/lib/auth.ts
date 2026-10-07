@@ -1,23 +1,28 @@
 export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? (process.env.NODE_ENV === "production" ? "" : "http://localhost:8000");
-const AUTH_KEY = "leap.auth.v1";
+const AUTH_KEY = "leap.auth.v2";
+const LEGACY_AUTH_KEY = "leap.auth.v1";
 
-export type AuthUser = { user_id: string; email: string; name: string; java_experience: string };
+export type AnalogyPreference = "pure_ml" | "everyday" | "java";
+export type AuthUser = { user_id: string; participant_code: string; java_experience: string; analogy_preference: AnalogyPreference };
 export type AuthSession = { user: AuthUser };
-export type TaskProgress = { task: string; completed_stages: number; total_stages: number; task_complete: boolean; updated_at: string };
+export type TaskProgress = { task: string; completed_stages: number; total_stages: number; task_complete: boolean; current_stage: string | null; current_step: string | null; updated_at: string };
 
 export function getAuth(): AuthSession | null {
   if (typeof window === "undefined") return null;
+  window.localStorage.removeItem(LEGACY_AUTH_KEY);
   const value = window.localStorage.getItem(AUTH_KEY);
   if (!value) return null;
   try { return JSON.parse(value) as AuthSession; } catch { return null; }
 }
 
 export function setAuth(auth: AuthSession): void {
+  window.localStorage.removeItem(LEGACY_AUTH_KEY);
   window.localStorage.setItem(AUTH_KEY, JSON.stringify(auth));
 }
 
 export function clearAuth(): void {
   window.localStorage.removeItem(AUTH_KEY);
+  window.localStorage.removeItem(LEGACY_AUTH_KEY);
 }
 
 export async function validateAuth(): Promise<AuthUser | null> {

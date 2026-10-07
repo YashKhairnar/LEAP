@@ -1,0 +1,17 @@
+{
+  "seed": 42,
+  "concept_labels_path": "data/concepts/processed/concept_labels.jsonl",
+  "vocabulary_path": "configs/concepts/concept_vocabulary_v2.json",
+  "state_model_checkpoint": "outputs/action/checkpoints/experiment_one_100/best_validation.pt",
+  "experiment_name": "concept_probe_actual_state_v1",
+  "state_source": "current",
+  "target_field": "mastery_before",
+  "mask_field": "mastery_mask_before",
+  "batch_size": 32,
+  "epochs": 100,
+  "learning_rate": 0.001,
+  "weight_decay": 0.01,
+  "checkpoint_path": "outputs/concepts/checkpoints/probe_v1/best_validation.pt",
+  "metrics_path": "outputs/concepts/metrics/probe_v1.jsonl",
+  "test_metrics_path": "outputs/concepts/metrics/probe_v1_test.json"
+}

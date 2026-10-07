@@ -1,0 +1,13 @@
+{
+  "code_dim": 256,
+  "metadata_dim": 3,
+  "metadata_hidden_dim": 16,
+  "d_model": 256,
+  "state_dim": 128,
+  "num_layers": 2,
+  "num_heads": 4,
+  "feedforward_dim": 512,
+  "max_attempts": 20,
+  "dropout": 0.1
+}
+

@@ -1,0 +1,7 @@
+{
+  "checkpoint": "Salesforce/codet5p-110m-embedding",
+  "trajectory_path": "data/dcu/processed/trajectories.jsonl",
+  "output_path": "data/dcu/features/code_embeddings.pt",
+  "max_length": 512,
+  "batch_size": 32
+}

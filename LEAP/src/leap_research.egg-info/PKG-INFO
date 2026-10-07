@@ -1,0 +1,12 @@
+Metadata-Version: 2.4
+Name: leap-research
+Version: 0.1.0
+Summary: Learning trajectory research from programming submissions
+Requires-Python: >=3.11
+Requires-Dist: pandas>=2.0
+Requires-Dist: torch>=2.2
+Provides-Extra: models
+Requires-Dist: transformers>=4.40; extra == "models"
+Provides-Extra: dev
+Requires-Dist: pytest>=8; extra == "dev"
+Requires-Dist: ruff>=0.6; extra == "dev"

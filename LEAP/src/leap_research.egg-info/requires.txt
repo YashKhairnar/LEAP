@@ -1,0 +1,9 @@
+pandas>=2.0
+torch>=2.2
+
+[dev]
+pytest>=8
+ruff>=0.6
+
+[models]
+transformers>=4.40

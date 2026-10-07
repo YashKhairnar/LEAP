@@ -1,0 +1,7 @@
+{
+  "checkpoint": "sentence-transformers/all-MiniLM-L6-v2",
+  "observation_data_path": "data/observation/processed/observations.jsonl",
+  "output_path": "data/observation/features/response_embeddings.pt",
+  "max_length": 256,
+  "batch_size": 32
+}

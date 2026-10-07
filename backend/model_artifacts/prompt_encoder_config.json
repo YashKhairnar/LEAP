@@ -1,0 +1,7 @@
+{
+  "checkpoint": "sentence-transformers/all-MiniLM-L6-v2",
+  "action_data_path": "data/action/processed/action_data.jsonl",
+  "output_path": "data/action/features/prompt_embeddings.pt",
+  "max_length": 256,
+  "batch_size": 32
+}

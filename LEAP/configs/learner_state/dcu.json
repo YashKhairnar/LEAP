@@ -1,0 +1,5 @@
+{
+  "input_path": "data/dcu/raw/programming_data.json",
+  "output_directory": "data/dcu/processed",
+  "minimum_attempts": 3
+}

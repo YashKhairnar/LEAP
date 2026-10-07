@@ -1,0 +1,21 @@
+# Workspace-only files; component-specific ignore rules remain in each project.
+.DS_Store
+__pycache__/
+*.py[cod]
+.ruff_cache/
+.pytest_cache/
+.venv/
+venv/
+.env
+.env.*
+!.env.example
+
+# Local participant databases and research exports are never source code.
+backend/data/*.db*
+exports/
+
+# Large research datasets and model artifacts stay local or in external storage.
+LEAP/data/
+LEAP/notebooks/
+backend/datasets/*.csv
+backend/model_artifacts/*.pt

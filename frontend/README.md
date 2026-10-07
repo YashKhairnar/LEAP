@@ -1,36 +1,52 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# LEAP frontend
 
-## Getting Started
+Next.js App Router + React learner interface. Routes stay under `src/app`; learning,
+assessment and collection implementations are grouped under `src/features`.
 
-First, run the development server:
+Signup includes a choice between Java-reference lessons and everyday examples, separate
+from Java experience. The server saves the choice and applies it to generated lessons and
+follow-up questions; executable Python code and final assessments are unchanged.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## Run
+
+From `frontend/`:
+
+```sh
+npm ci
+BACKEND_URL=http://localhost:8000 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open http://localhost:3000. Omit `NEXT_PUBLIC_API_URL` for same-origin API proxying.
+Check existing `.env.local` settings: the default proxy target is the hosted backend,
+so explicitly configure localhost for local work.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Find code
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- `src/features/learning/components/`: introductions, lesson cards, task clients and review.
+- `src/features/learning/lib/`: stage/task metadata and action/question banks.
+- `src/features/assessment/components/`: final ten-question assessment.
+- `src/features/collection/`: event queue, exposure timing and sync status.
+- `src/components/ui/`: shared visual primitives.
+- `src/lib/auth.ts`: shared API/session access.
+- `src/app/globals.css`: current shared styles.
+- `tests/`: timing and queue regression tests.
 
-## Learn More
+Use [the file map](../docs/project-structure.md) for specific edit locations.
+The former UI prompt is now a [historical design brief](../docs/design/lesson-ui-brief.md).
 
-To learn more about Next.js, take a look at the following resources:
+## Checks
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```sh
+npm test
+npm run lint
+npm run typecheck
+npm run build -- --webpack
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Tests use Node 24's native TypeScript support. The webpack option avoids local Turbopack
+sandbox restrictions; the default build script is unchanged. Run type checking after,
+not concurrently with, a build that rewrites `.next` types.
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+See [local development](../docs/local-development.md), [current status](../docs/status.md),
+and [collection safeguards](../docs/collection.md). This folder reorganization does not
+change learner-facing URLs or automatically deploy the application.

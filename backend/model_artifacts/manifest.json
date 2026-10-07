@@ -1,0 +1,61 @@
+{
+  "format_version": 1,
+  "model_version": "experiment-one-100-281-v1",
+  "trained_at": "2026-08-27T02:04:00.088069+00:00",
+  "training_dataset": "281-transitions-processed-v1",
+  "state_dimension": 128,
+  "planner_version": "world_model_one_step_experimental_v1",
+  "text_encoder": "sentence-transformers/all-MiniLM-L6-v2",
+  "artifacts": {
+    "action_checkpoint": {
+      "file": "action_checkpoint.pt",
+      "sha256": "298d52de845cdbb5f984057dc2eaf243933b618e2545e5b5081c9ed57c7618cc",
+      "bytes": 15807619
+    },
+    "temporal_checkpoint": {
+      "file": "temporal_checkpoint.pt",
+      "sha256": "b9a5be912975a23013d4d8801e925a72192b803dec9c9a4b9afeb55c933ab7bf",
+      "bytes": 19496545
+    },
+    "concept_probe_checkpoint": {
+      "file": "concept_probe_checkpoint.pt",
+      "sha256": "b1c54724db9fc93b721ca7c4faa4fb000aa6e243eeb0d97414426d37b302ef8c",
+      "bytes": 35941
+    },
+    "action_vocabularies": {
+      "file": "action_vocabularies.json",
+      "sha256": "341bb80340e971787c3c203d0c2372ddf476b2da2ffecb04df68e23689c4a5e4",
+      "bytes": 7469
+    },
+    "prompt_embedding_store": {
+      "file": "prompt_embedding_store.pt",
+      "sha256": "af428a932e9fc9870ef3b713f5d2e867ac177adb0cf06e6236aff1b282bcc07f",
+      "bytes": 98223
+    },
+    "response_embedding_store": {
+      "file": "response_embedding_store.pt",
+      "sha256": "c14c91b70a99f489ac4c44f81eea9d1f79fb57041a5f2ac63832f8084878143d",
+      "bytes": 189885
+    },
+    "action_config": {
+      "file": "action_config.json",
+      "sha256": "2bbb250399a084c54c6b9f9dc483272a3392f0dd58991c0aa0475c9e56479733",
+      "bytes": 1222
+    },
+    "temporal_config": {
+      "file": "temporal_config.json",
+      "sha256": "72990ea1916b0d77973827f0e4b2b79243c5d6a8f157c3ed1c65003b1670a1b3",
+      "bytes": 214
+    },
+    "prompt_encoder_config": {
+      "file": "prompt_encoder_config.json",
+      "sha256": "b878a8215d12fd2cf0c9d93a5cbe7998d0acf79add62432029f11a5f1fdae597",
+      "bytes": 229
+    },
+    "concept_vocabulary": {
+      "file": "concept_vocabulary.json",
+      "sha256": "0ab0b2e92555d33de7b327e77049d101d7f2ef0ab059a0f64e5d03cce825601e",
+      "bytes": 11882
+    }
+  }
+}

@@ -1,0 +1,243 @@
+{
+  "schema_version": "1.0",
+  "name": "leap_question_action_specifications_v1",
+  "curriculum_boundary": "Java is prior programming knowledge referenced only in prose to bridge into Python. Never output Java source code or Java syntax. Every code snippet and all machine-learning implementation and APIs must be Python.",
+  "actions": {
+    "activate.java_concept_identification": {
+      "pedagogical_phase": "activate",
+      "question_family": "concept_identification",
+      "purpose": "Activate relevant Java knowledge before introducing the ML concept.",
+      "answer_format": "multiple_choice",
+      "instructions": [
+        "Describe the target ML idea without teaching the complete solution.",
+        "Ask which familiar Java concept provides the closest conceptual bridge.",
+        "Provide one clearly best answer and plausible distractors."
+      ],
+      "required_elements": ["ML situation", "Java bridge choices", "one best answer"],
+      "avoid": ["revealing the answer in the stem", "unrelated Java trivia"]
+    },
+    "activate.java_output_prediction": {
+      "pedagogical_phase": "activate",
+      "question_family": "output_prediction",
+      "purpose": "Activate prior procedural knowledge by tracing Python code and connecting its behavior to a familiar Java idea.",
+      "answer_format": "short_answer",
+      "instructions": [
+        "Create a minimal Python snippet related to the target concept.",
+        "Describe the relevant familiar Java idea in prose without showing Java source code.",
+        "Ask the learner to predict its exact output or resulting value.",
+        "Keep the code short enough to trace mentally."
+      ],
+      "required_elements": ["Python code snippet", "prose connection to prior Java knowledge", "single predictable result"],
+      "avoid": ["syntax not needed for the concept", "ambiguous output"]
+    },
+    "activate.java_code_explanation": {
+      "pedagogical_phase": "activate",
+      "question_family": "code_explanation",
+      "purpose": "Explain Python code through a familiar Java concept stated in prose.",
+      "answer_format": "short_explanation",
+      "instructions": [
+        "Show a minimal Python construct that leads into the target ML idea.",
+        "State the related familiar Java concept in prose without displaying Java syntax.",
+        "Ask why the Python construct is relevant to the current ML topic.",
+        "Require a conceptual explanation rather than syntax recall."
+      ],
+      "required_elements": ["Python construct", "prose Java-to-Python connection", "explicit connection question"],
+      "avoid": ["giving the complete connection before asking"]
+    },
+    "connect.comparison_selection": {
+      "pedagogical_phase": "connect",
+      "question_family": "comparison_selection",
+      "purpose": "Make the learner distinguish accurate and inaccurate Java-to-ML analogies.",
+      "answer_format": "multiple_choice",
+      "instructions": [
+        "Present several possible comparisons between a familiar programming idea and the ML concept.",
+        "Ask which comparison is most accurate.",
+        "Make distractors reflect realistic conceptual confusions."
+      ],
+      "required_elements": ["Java side", "ML side", "comparison choices"],
+      "avoid": ["pure vocabulary recall", "multiple equally valid comparisons"]
+    },
+    "connect.concept_matching": {
+      "pedagogical_phase": "connect",
+      "question_family": "concept_matching",
+      "purpose": "Connect programming concepts to their functional ML counterparts.",
+      "answer_format": "matching",
+      "instructions": [
+        "Provide programming concepts and ML concepts in two lists.",
+        "Ask the learner to match items according to their functional roles.",
+        "Use concise items with unambiguous intended matches."
+      ],
+      "required_elements": ["programming concept list", "ML concept list", "matching task"],
+      "avoid": ["duplicate meanings", "matching based only on similar words"]
+    },
+    "connect.analogy_mapping": {
+      "pedagogical_phase": "connect",
+      "question_family": "analogy_mapping",
+      "purpose": "Map the parts and limits of a familiar programming analogy to the ML concept.",
+      "answer_format": "multiple_choice",
+      "instructions": [
+        "Present a concise programming-to-ML analogy.",
+        "Ask which mapping between their parts is accurate.",
+        "Include a distractor that overextends the analogy."
+      ],
+      "required_elements": ["programming side", "ML side", "mapping choices"],
+      "avoid": ["claiming the analogy is exact", "unrelated surface similarities"]
+    },
+    "learn.transfer_or_new": {
+      "pedagogical_phase": "learn",
+      "question_family": "transfer_or_new",
+      "purpose": "Separate knowledge that transfers from programming from genuinely new ML knowledge.",
+      "answer_format": "classification_with_reason",
+      "instructions": [
+        "Present one idea or operation from the current ML topic.",
+        "Ask whether it transfers from prior programming knowledge or must be learned as a new ML concept.",
+        "Require a brief reason."
+      ],
+      "required_elements": ["ML idea", "transfer-or-new decision", "reason"],
+      "avoid": ["treating every analogy as exact"]
+    },
+    "learn.difference_explanation": {
+      "pedagogical_phase": "learn",
+      "question_family": "difference_explanation",
+      "purpose": "Explain the important difference between the familiar programming idea and the ML concept.",
+      "answer_format": "short_explanation",
+      "instructions": [
+        "State a familiar programming idea and its related ML concept.",
+        "Ask for the most important functional difference.",
+        "Require a reason tied to the current pipeline stage."
+      ],
+      "required_elements": ["programming idea", "ML concept", "difference request"],
+      "avoid": ["syntax-only differences", "several unrelated distinctions"]
+    },
+    "learn.concept_boundary": {
+      "pedagogical_phase": "learn",
+      "question_family": "concept_boundary",
+      "purpose": "Identify what the target concept does and does not imply.",
+      "answer_format": "multiple_choice",
+      "instructions": [
+        "Present one accurate boundary and plausible overgeneralizations.",
+        "Ask which statement preserves the boundary of the target concept.",
+        "Keep the distinction focused on the current pipeline stage."
+      ],
+      "required_elements": ["target concept", "boundary choices", "one best answer"],
+      "avoid": ["trivial wording clues", "multiple valid boundaries"]
+    },
+    "practice.error_identification": {
+      "pedagogical_phase": "practice",
+      "question_family": "error_identification",
+      "purpose": "Practice detecting an implementation or pipeline error tied to the target concept.",
+      "answer_format": "error_and_correction",
+      "instructions": [
+        "Create a short faulty ML code or pipeline example.",
+        "Ask the learner to identify the exact error and propose a correction.",
+        "Make the error test the target concept rather than incidental syntax."
+      ],
+      "required_elements": ["faulty example", "identification request", "correction request"],
+      "avoid": ["multiple independent errors", "obvious syntax-only errors"]
+    },
+    "practice.misconception_diagnosis": {
+      "pedagogical_phase": "practice",
+      "question_family": "misconception_diagnosis",
+      "purpose": "Expose and diagnose a plausible misunderstanding of the target concept.",
+      "answer_format": "diagnosis_with_reason",
+      "instructions": [
+        "Present a learner claim or decision containing one plausible misconception.",
+        "Ask what is wrong with the reasoning and why.",
+        "Focus on the conceptual cause, not merely the final answer."
+      ],
+      "required_elements": ["plausible learner claim", "single misconception", "reasoning request"],
+      "avoid": ["ridiculous claims", "more than one misconception"]
+    },
+    "practice.pipeline_ordering": {
+      "pedagogical_phase": "practice",
+      "question_family": "pipeline_ordering",
+      "purpose": "Practice arranging ML operations in a valid leakage-safe order.",
+      "answer_format": "ordered_sequence",
+      "instructions": [
+        "Provide a shuffled list of pipeline operations.",
+        "Ask the learner to place them in the correct order.",
+        "Include only operations relevant to the current stage."
+      ],
+      "required_elements": ["shuffled operations", "ordering request", "unique intended order"],
+      "avoid": ["steps with interchangeable order unless explicitly allowed"]
+    },
+    "implement.code_completion": {
+      "pedagogical_phase": "implement",
+      "question_family": "code_completion",
+      "purpose": "Complete a focused missing part of an ML implementation.",
+      "answer_format": "code_fragment",
+      "instructions": [
+        "Provide a short context-rich code snippet with one meaningful blank.",
+        "Ask for only the missing expression or statement.",
+        "Make the blank directly test the target concept."
+      ],
+      "required_elements": ["code context", "one blank", "clear expected fragment"],
+      "avoid": ["several unrelated blanks", "boilerplate completion"]
+    },
+    "implement.code_construction": {
+      "pedagogical_phase": "implement",
+      "question_family": "code_construction",
+      "purpose": "Construct a small ML implementation from explicit requirements.",
+      "answer_format": "code",
+      "instructions": [
+        "Give a focused implementation goal and necessary variable assumptions.",
+        "Ask the learner to write the relevant code.",
+        "Keep the scope small enough for one response."
+      ],
+      "required_elements": ["implementation goal", "inputs or assumptions", "expected behavior"],
+      "avoid": ["full applications", "unstated dependencies"]
+    },
+    "implement.code_debugging": {
+      "pedagogical_phase": "implement",
+      "question_family": "code_debugging",
+      "purpose": "Repair one conceptually meaningful error in an ML implementation.",
+      "answer_format": "corrected_code",
+      "instructions": [
+        "Provide a short code sample with one error tied to the target concept.",
+        "Ask for the corrected line and a brief reason.",
+        "State any variables or library assumptions needed to interpret the code."
+      ],
+      "required_elements": ["faulty code", "single target error", "correction request"],
+      "avoid": ["syntax-only errors", "multiple independent bugs"]
+    },
+    "review.concept_summary": {
+      "pedagogical_phase": "review",
+      "question_family": "concept_summary",
+      "purpose": "Consolidate the concept in the learner's own words.",
+      "answer_format": "short_summary",
+      "instructions": [
+        "Ask for a concise summary of the target concept and its role in the pipeline.",
+        "Request one key constraint, distinction, or example.",
+        "Assess conceptual understanding rather than memorized wording."
+      ],
+      "required_elements": ["summary request", "role or purpose", "key constraint or example"],
+      "avoid": ["yes-or-no questions", "copying a definition from the prompt"]
+    },
+    "review.novel_transfer": {
+      "pedagogical_phase": "review",
+      "question_family": "novel_transfer",
+      "purpose": "Apply the learned principle to a new dataset or ML problem.",
+      "answer_format": "multiple_choice",
+      "instructions": [
+        "Present a new scenario that preserves the target concept's structure.",
+        "Ask which action or interpretation correctly transfers the principle.",
+        "Use distractors that repeat known misconceptions."
+      ],
+      "required_elements": ["novel scenario", "transfer choices", "one best answer"],
+      "avoid": ["reusing the original scenario", "requiring unrelated domain knowledge"]
+    },
+    "review.confidence_checkpoint": {
+      "pedagogical_phase": "review",
+      "question_family": "confidence_checkpoint",
+      "purpose": "Elicit calibrated confidence together with a brief justification.",
+      "answer_format": "confidence_with_reason",
+      "instructions": [
+        "Ask the learner to select a bounded confidence level.",
+        "Request one reason or uncertainty tied to the target concept.",
+        "Do not imply that confidence is evidence of correctness."
+      ],
+      "required_elements": ["confidence scale", "reason request", "target concept"],
+      "avoid": ["grading confidence as correctness", "unbounded numeric scales"]
+    }
+  }
+}

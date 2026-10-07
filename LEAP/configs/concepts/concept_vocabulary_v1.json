@@ -1,0 +1,86 @@
+{
+  "schema_version": "1.0",
+  "name": "leap_shared_concepts_v1",
+  "capacity": 64,
+  "concepts": [
+    {"index": 0, "id": "data_loading", "description": "Load examples and targets from a data source."},
+    {"index": 1, "id": "labeled_example_representation", "description": "Represent an input together with its supervised label."},
+    {"index": 2, "id": "train_test_separation", "description": "Separate training data from held-out evaluation data."},
+    {"index": 3, "id": "feature_preprocessing", "description": "Transform raw inputs into model-ready features."},
+    {"index": 4, "id": "scaling_and_normalization", "description": "Scale numerical or image features consistently."},
+    {"index": 5, "id": "feature_representation", "description": "Represent an example as features usable by a model."},
+    {"index": 6, "id": "feature_alignment", "description": "Keep training and inference feature spaces aligned."},
+    {"index": 7, "id": "preprocessing_leakage_prevention", "description": "Fit preprocessing only on permitted training data."},
+    {"index": 8, "id": "model_architecture", "description": "Choose and assemble a model structure."},
+    {"index": 9, "id": "supervised_model_training", "description": "Fit a predictive model using labeled examples."},
+    {"index": 10, "id": "parameter_optimization", "description": "Update model parameters from a training objective."},
+    {"index": 11, "id": "model_evaluation", "description": "Measure predictive behavior using appropriate outcomes."},
+    {"index": 12, "id": "generalization", "description": "Reason about performance on unseen examples."},
+    {"index": 13, "id": "held_out_evaluation", "description": "Evaluate without training on the evaluation examples."},
+    {"index": 14, "id": "inference_and_prediction", "description": "Use a fitted model to predict new outputs."},
+    {"index": 15, "id": "evaluation_metrics", "description": "Interpret task-appropriate quantitative metrics."},
+    {"index": 16, "id": "classification", "description": "Predict a discrete class label."},
+    {"index": 17, "id": "regression", "description": "Predict a continuous numerical value."},
+    {"index": 18, "id": "neural_networks", "description": "Understand layered neural models and their training."},
+    {"index": 19, "id": "convolutional_feature_learning", "description": "Learn spatial features using convolutional operations."},
+    {"index": 20, "id": "text_vectorization", "description": "Convert natural-language text into numerical features."}
+  ],
+  "stage_mappings": {
+    "cnn": {
+      "load_images": ["data_loading", "labeled_example_representation"],
+      "normalize_split": ["feature_preprocessing", "scaling_and_normalization", "train_test_separation"],
+      "build_cnn": ["model_architecture", "neural_networks", "convolutional_feature_learning"],
+      "train_network": ["supervised_model_training", "parameter_optimization", "neural_networks"],
+      "evaluate_cnn": ["model_evaluation", "held_out_evaluation", "generalization", "evaluation_metrics", "classification"],
+      "classify_images": ["inference_and_prediction", "classification"]
+    },
+    "regression": {
+      "prepare_housing_data": ["data_loading", "labeled_example_representation"],
+      "scale_features": ["feature_preprocessing", "scaling_and_normalization", "feature_alignment"],
+      "split_housing_data": ["train_test_separation", "generalization"],
+      "train_regression": ["supervised_model_training", "parameter_optimization", "regression"],
+      "evaluate_regression": ["model_evaluation", "held_out_evaluation", "generalization", "evaluation_metrics", "regression"],
+      "predict_prices": ["inference_and_prediction", "regression"]
+    },
+    "sentiment_classification": {
+      "data_loading_and_preparation": ["data_loading", "labeled_example_representation"],
+      "train_test_split": ["train_test_separation", "generalization"],
+      "tfidf_vectorization": ["feature_preprocessing", "feature_representation", "feature_alignment", "preprocessing_leakage_prevention", "text_vectorization"],
+      "model_training": ["supervised_model_training", "parameter_optimization", "classification"],
+      "evaluation": ["model_evaluation", "held_out_evaluation", "evaluation_metrics", "classification"],
+      "prediction": ["inference_and_prediction", "classification"]
+    }
+  },
+  "objective_mappings": {
+    "cnn": {
+      "cnn_load_images": ["data_loading", "labeled_example_representation"],
+      "cnn_normalize_split": ["feature_preprocessing", "scaling_and_normalization", "train_test_separation"],
+      "cnn_build_cnn": ["model_architecture", "neural_networks", "convolutional_feature_learning"],
+      "cnn_train_network": ["supervised_model_training", "parameter_optimization", "neural_networks"],
+      "cnn_evaluate_cnn": ["model_evaluation", "held_out_evaluation", "generalization", "evaluation_metrics", "classification"],
+      "cnn_classify_images": ["inference_and_prediction", "classification"]
+    },
+    "regression": {
+      "regression_prepare_housing_data": ["data_loading", "labeled_example_representation"],
+      "regression_scale_features": ["feature_preprocessing", "scaling_and_normalization", "feature_alignment"],
+      "regression_split_housing_data": ["train_test_separation", "generalization"],
+      "regression_train_regression": ["supervised_model_training", "parameter_optimization", "regression"],
+      "regression_evaluate_regression": ["model_evaluation", "held_out_evaluation", "generalization", "evaluation_metrics", "regression"],
+      "regression_predict_prices": ["inference_and_prediction", "regression"]
+    },
+    "sentiment_classification": {
+      "pandas_data_loading": ["data_loading"],
+      "labeled_example_representation": ["labeled_example_representation"],
+      "train_test_separation": ["train_test_separation"],
+      "generalization": ["generalization"],
+      "tfidf_representation": ["feature_representation", "text_vectorization"],
+      "feature_alignment": ["feature_alignment"],
+      "fit_transform_boundary": ["preprocessing_leakage_prevention"],
+      "supervised_model_fit": ["supervised_model_training", "classification"],
+      "training_parameter_update": ["parameter_optimization"],
+      "classification_metrics": ["evaluation_metrics", "classification"],
+      "held_out_evaluation": ["held_out_evaluation", "model_evaluation"],
+      "held_out_prediction": ["inference_and_prediction", "classification"]
+    }
+  }
+}

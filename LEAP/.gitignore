@@ -1,0 +1,21 @@
+.DS_Store
+.codex-docs/
+.venv/
+venv/
+sandbox/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+
+# Generated research artifacts
+outputs/**
+!outputs/**/.gitkeep
+data/dcu/features/**
+data/dcu/processed/**
+data/action/features/**
+data/action/processed/**
+data/observation/features/**
+data/observation/processed/**
+!data/dcu/features/.gitkeep
+!data/dcu/processed/.gitkeep
