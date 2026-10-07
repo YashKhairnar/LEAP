@@ -171,6 +171,25 @@ def call_docker(files: dict[str, str]) -> dict[str, Any]:
     }
 
 
+def execution_dataset_content(content: str) -> str:
+    """Keep remote execution requests below hosted proxy limits."""
+    limit = int(os.getenv("CODE_EXECUTION_MAX_DATASET_BYTES", "600000"))
+    if len(content.encode("utf-8")) <= limit:
+        return content
+    lines = content.splitlines(keepends=True)
+    if not lines:
+        return content
+    selected = [lines[0]]
+    size = len(selected[0].encode("utf-8"))
+    for line in lines[1:]:
+        line_size = len(line.encode("utf-8"))
+        if size + line_size > limit:
+            break
+        selected.append(line)
+        size += line_size
+    return "".join(selected)
+
+
 def run_code_cell(
     request: CodeExecutionRequest,
     previous_cells: list[str],
@@ -187,11 +206,10 @@ def run_code_cell(
             replayed_cells=len(previous_cells), runtime={"engine": "codapi", "sandbox": "blocked"},
         )
 
-    dataset_content = dataset.path.read_text(encoding="utf-8")
+    dataset_content = execution_dataset_content(dataset.path.read_text(encoding="utf-8"))
     files = {
         "": instrumented_program(previous_cells, request.code),
         dataset.runtime_filename: dataset_content,
-        "dataset.csv": dataset_content,
     }
     started = monotonic()
     try:
