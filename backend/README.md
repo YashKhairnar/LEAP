@@ -26,7 +26,7 @@ automatically; pass `--env-file .env` if using one, and replace sample values. U
 | `main.py` | HTTP routes, authentication dependencies and application lifecycle |
 | `models.py` | Shared validated contracts |
 | `database.py`, `auth.py`, `paths.py` | Persistence, credential primitives and stable asset paths |
-| `tutoring/` | Ollama or OpenRouter generation, fixed lesson code and authored experiments |
+| `tutoring/` | Ollama or Gemini generation, fixed lesson code and authored experiments |
 | `assessments/` | Ten-question banks, unlock rules and server scoring |
 | `collection/` | Mode settings and quality-checked export |
 | `execution/` | Dataset access, executable cells and isolated code evaluator |
@@ -55,8 +55,8 @@ Interactive contracts are at `http://localhost:8000/docs`.
 ## External dependencies and data
 
 Ollama defaults to `http://127.0.0.1:11434/api/chat` with `qwen3:8b`.
-For hosted lesson generation, configure `TUTOR_LLM_PROVIDER=openrouter` and provide
-`OPENROUTER_MODEL` and `OPENROUTER_API_KEY`.
+For hosted lesson generation, configure `TUTOR_LLM_PROVIDER=gemini` and provide
+`GEMINI_MODEL` and `GEMINI_API_KEY`.
 Actual cell execution requires [Docker/Codapi configuration](execution_runtime/README.md).
 Exercise datasets and licenses stay in [datasets/ATTRIBUTION.md](datasets/ATTRIBUTION.md).
 

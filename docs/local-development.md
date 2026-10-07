@@ -7,7 +7,7 @@ terminals for services. No data migration is required for the folder restructure
 
 - Node 24+ for native TypeScript tests.
 - Python 3.12 is the deployment target; use separate API and research environments.
-- Ollama or OpenRouter with the configured model for lesson generation.
+- Ollama locally or Gemini with a configured API key for hosted lesson generation.
 - Docker with the lesson runtime image, or a configured Codapi endpoint, for cells.
 - The world-model service is optional for collection: uniform selection survives its
   outage, but model scoring is unavailable. Generation still requires a configured LLM.

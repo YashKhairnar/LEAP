@@ -28,10 +28,10 @@ services:
       - key: FRONTEND_ORIGINS
         sync: false
       - key: TUTOR_LLM_PROVIDER
-        value: openrouter
-      - key: OPENROUTER_CHAT_URL
-        value: https://openrouter.ai/api/v1/chat/completions
-      - key: OPENROUTER_MODEL
-        value: openai/gpt-oss-20b
-      - key: OPENROUTER_API_KEY
+        value: gemini
+      - key: GEMINI_API_URL
+        value: https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent
+      - key: GEMINI_MODEL
+        value: gemini-2.5-flash
+      - key: GEMINI_API_KEY
         sync: false

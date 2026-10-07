@@ -59,13 +59,28 @@ class TutorGenerationUnavailable(RuntimeError):
 logger = logging.getLogger(__name__)
 
 
-def _decode_provider_content(message: dict, provider: str) -> dict:
+def _gemini_schema(schema: dict) -> dict:
+    """Adapt the small JSON-Schema subset used by Gemini's native API."""
+    converted = {}
+    for key, value in schema.items():
+        if key == "anyOf":
+            converted["type"] = [item["type"] for item in value]
+        elif isinstance(value, dict):
+            converted[key] = _gemini_schema(value)
+        elif isinstance(value, list):
+            converted[key] = [
+                _gemini_schema(item) if isinstance(item, dict) else item
+                for item in value
+            ]
+        else:
+            converted[key] = value
+    return converted
+
+
+def _decode_json_text(raw_content: object, provider: str) -> dict:
     """Decode structured JSON while explaining empty/refusal provider responses."""
-    raw_content = message.get("content")
     if raw_content is None:
-        refusal = message.get("refusal")
-        detail = f" ({refusal})" if refusal else ""
-        raise ValueError(f"{provider} returned no message content{detail}")
+        raise ValueError(f"{provider} returned no message content")
     if isinstance(raw_content, list):
         # Some OpenAI-compatible providers return content parts instead of a string.
         raw_content = "".join(
@@ -81,6 +96,27 @@ def _decode_provider_content(message: dict, provider: str) -> dict:
     if not isinstance(decoded, dict):
         raise ValueError(f"{provider} returned JSON with an unexpected root type")
     return decoded
+
+
+def _decode_provider_content(message: dict, provider: str) -> dict:
+    refusal = message.get("refusal")
+    if message.get("content") is None and refusal:
+        raise ValueError(f"{provider} returned no message content ({refusal})")
+    return _decode_json_text(message.get("content"), provider)
+
+
+def _decode_gemini_content(response: dict) -> dict:
+    candidates = response.get("candidates") or []
+    if not candidates:
+        prompt_feedback = response.get("promptFeedback")
+        raise ValueError(f"gemini returned no candidates: {prompt_feedback or 'unknown response'}")
+    candidate = candidates[0]
+    finish_reason = candidate.get("finishReason")
+    if finish_reason in {"MAX_TOKENS", "SAFETY", "RECITATION", "BLOCKLIST", "PROHIBITED_CONTENT"}:
+        raise ValueError(f"gemini generation stopped with finish reason {finish_reason}")
+    parts = (candidate.get("content") or {}).get("parts") or []
+    text = "".join(part.get("text", "") for part in parts if isinstance(part, dict))
+    return _decode_json_text(text, "gemini")
 
 
 def _normalize_question_payload(question_payload: dict) -> dict:
@@ -123,13 +159,16 @@ def generate_tutor_content(
     content_instance_id: str,
 ) -> TutorGenerationResponse:
     provider = os.getenv("TUTOR_LLM_PROVIDER", "ollama").lower()
-    if provider == "openrouter":
-        model = os.getenv("OPENROUTER_MODEL", "openrouter/free")
-        endpoint = os.getenv("OPENROUTER_CHAT_URL", "https://openrouter.ai/api/v1/chat/completions")
-        timeout = float(os.getenv("OPENROUTER_TIMEOUT_SECONDS", "180"))
-        api_key = os.getenv("OPENROUTER_API_KEY")
+    if provider == "gemini":
+        model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+        endpoint = os.getenv(
+            "GEMINI_API_URL",
+            "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent",
+        ).format(model=model)
+        timeout = float(os.getenv("GEMINI_TIMEOUT_SECONDS", "180"))
+        api_key = os.getenv("GEMINI_API_KEY")
         if os.getenv("ENVIRONMENT", "development").lower() == "production" and not api_key:
-            raise TutorGenerationUnavailable("OPENROUTER_API_KEY is required in production")
+            raise TutorGenerationUnavailable("GEMINI_API_KEY is required in production")
     elif provider == "ollama":
         model = os.getenv("OLLAMA_MODEL", "qwen3:8b")
         endpoint = os.getenv("OLLAMA_CHAT_URL", "http://127.0.0.1:11434/api/chat")
@@ -263,19 +302,19 @@ def generate_tutor_content(
         {"role": "user", "content": "Generate the next tutoring question from this context:\n" + json.dumps(user)},
     ]
     headers = {"Content-Type": "application/json"}
-    if provider == "openrouter":
+    if provider == "gemini":
         payload = {
-            "model": model,
-            "messages": messages,
-            "stream": False,
-            "temperature": 0.7,
-            "max_tokens": int(os.getenv("OPENROUTER_MAX_TOKENS", "4096")),
-            "response_format": {"type": "json_schema", "json_schema": {
-                "name": "leap_tutor", "schema": response_schema, "strict": True,
-            }},
+            "systemInstruction": {"parts": [{"text": system}]},
+            "contents": [{"role": "user", "parts": [{"text": messages[1]["content"]}]}],
+            "generationConfig": {
+                "temperature": 0.7,
+                "maxOutputTokens": int(os.getenv("GEMINI_MAX_OUTPUT_TOKENS", "4096")),
+                "responseMimeType": "application/json",
+                "responseJsonSchema": _gemini_schema(response_schema),
+            },
         }
         if api_key:
-            headers["Authorization"] = f"Bearer {api_key}"
+            headers["x-goog-api-key"] = api_key
     else:
         payload = {
             "model": model,
@@ -289,11 +328,8 @@ def generate_tutor_content(
     try:
         with urlopen(request, timeout=timeout) as response:
             outer = json.loads(response.read().decode())
-        if provider == "openrouter":
-            choice = outer["choices"][0]
-            if choice.get("finish_reason") == "length":
-                raise ValueError("OpenRouter response exceeded OPENROUTER_MAX_TOKENS")
-            generated = _decode_provider_content(choice["message"], provider)
+        if provider == "gemini":
+            generated = _decode_gemini_content(outer)
         else:
             generated = _decode_provider_content(outer["message"], provider)
         if existing_lesson is None:
