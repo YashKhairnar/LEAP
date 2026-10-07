@@ -11,13 +11,10 @@ services:
         value: 3.12.8
       - key: ENVIRONMENT
         value: production
-      - key: WORLD_MODEL_SERVICE_URL
-        fromService:
-          type: pserv
-          name: leap-world-model
-          property: hostport
-      - key: WORLD_MODEL_SERVICE_TOKEN
-        sync: false
+      - key: LEAP_COLLECTION_MODE
+        value: pilot
+      - key: WORLD_MODEL_ENABLED
+        value: false
       - key: CODAPI_URL
         value: https://api.codapi.org/v1/exec
       - key: CODAPI_TOKEN
@@ -35,20 +32,4 @@ services:
       - key: OPENROUTER_MODEL
         value: openrouter/free
       - key: OPENROUTER_API_KEY
-        sync: false
-
-  - type: web
-    name: leap-world-model
-    plan: free
-    runtime: python
-    buildCommand: pip install -e './LEAP[models]' && pip install -r model_service/requirements.txt
-    startCommand: uvicorn model_service.app:app --host 0.0.0.0 --port $PORT --workers 1
-    envVars:
-      - key: PYTHON_VERSION
-        value: 3.12.8
-      - key: ENVIRONMENT
-        value: production
-      - key: LEAP_MODEL_ARTIFACT_DIR
-        value: backend/model_artifacts
-      - key: WORLD_MODEL_SERVICE_TOKEN
         sync: false

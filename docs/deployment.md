@@ -3,11 +3,12 @@
 Repository configuration reviewed 2026-09-14. This guide describes the checked-in setup;
 it does not verify the current health or settings of an external deployment.
 
-The topology is a Vercel frontend, Render application API and private world-model service,
-and Neon PostgreSQL. A configured Qwen generator and an isolated code runtime must also
-be reachable from the backend.
+The topology is a Vercel frontend, Render application API and Neon PostgreSQL. A configured
+hosted generator and an isolated code runtime must also be reachable from the backend. The
+world model is disabled during initial data collection, so the API uses uniform random action
+assignment.
 
-## Backend and private model service
+## Backend service
 
 The root [render.yaml](../render.yaml) builds from the repository root, not a renamed
 service folder. Entry points remain:
@@ -25,21 +26,21 @@ Configure the API environment:
 - `TUTOR_LLM_PROVIDER=ollama` with `OLLAMA_CHAT_URL` and `OLLAMA_MODEL`, or
   `TUTOR_LLM_PROVIDER=openrouter` with `OPENROUTER_MODEL` and `OPENROUTER_API_KEY`.
   The generator must be reachable from Render, not localhost unless co-hosted.
-- `WORLD_MODEL_SERVICE_URL`: private inference-service address.
-- `WORLD_MODEL_SERVICE_TOKEN`: the same strong secret on both services.
+- `WORLD_MODEL_ENABLED=false` during initial collection. When enabled later,
+  `WORLD_MODEL_SERVICE_URL` and `WORLD_MODEL_SERVICE_TOKEN` configure the private inference service.
 - `CODE_EXECUTION_ENGINE=codapi`, `CODAPI_URL`, and token when needed for the checked-in
   hosted setup. Use a properly isolated self-hosted runtime where required.
 
-The Blueprint links the model service address, but it does not provision a Qwen host
-or all code-runtime dependencies. Configure those before calling the deployment complete.
+The Blueprint configures the API service, but it does not provision all code-runtime
+dependencies. Configure those before calling the deployment complete.
 Do not put secrets in committed YAML or examples.
 
-The model service needs the complete checksummed bundle in `backend/model_artifacts/`.
-Use [bundle promotion instructions](../backend/model_artifacts/README.md) only with
-compatible reviewed artifacts and truthful training-dataset labels.
+If the world model is enabled later, its service needs the complete checksummed bundle in
+`backend/model_artifacts/`. Those large artifacts are intentionally excluded from Git and
+must be supplied through external storage or a separate deployment artifact.
 
-API `/health` is not a complete dependency test. The model service has its own `/health`;
-`/model-info` and `/predict-action` require the configured service token.
+API `/health` is not a complete dependency test. If the world model is enabled later,
+its `/health`, `/model-info` and `/predict-action` endpoints also require verification.
 
 ## Frontend
 

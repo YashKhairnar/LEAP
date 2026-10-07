@@ -18,6 +18,8 @@ def plan_next_action(
     observations: list[dict],
     learner_id: str,
 ) -> PlannerResponse:
+    if os.getenv("WORLD_MODEL_ENABLED", "false").lower() != "true":
+        raise WorldModelUnavailable("world model disabled for collection")
     service_url = os.getenv("WORLD_MODEL_SERVICE_URL", "http://127.0.0.1:8001").rstrip("/")
     if "://" not in service_url:
         service_url = f"http://{service_url}"
