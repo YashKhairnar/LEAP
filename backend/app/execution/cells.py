@@ -173,7 +173,7 @@ def call_docker(files: dict[str, str]) -> dict[str, Any]:
 
 def execution_dataset_content(content: str) -> str:
     """Keep remote execution requests below hosted proxy limits."""
-    limit = int(os.getenv("CODE_EXECUTION_MAX_DATASET_BYTES", "200000"))
+    limit = int(os.getenv("CODE_EXECUTION_MAX_DATASET_BYTES", "50000"))
     if len(content.encode("utf-8")) <= limit:
         return content
     lines = content.splitlines(keepends=True)
