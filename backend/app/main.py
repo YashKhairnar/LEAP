@@ -63,6 +63,7 @@ from .models import (
     TutorGenerationRequest,
     TutorGenerationResponse,
     TutorResumeResponse,
+    GeneratedLessonContent,
     UserRecord,
 )
 from .tutoring.generator import TUTOR_PROMPT_VERSION, TutorGenerationUnavailable, generate_tutor_content
@@ -234,10 +235,14 @@ def tutor_generate(
 ) -> TutorGenerationResponse:
     try:
         persisted_lesson = saved_stage_lesson(user.user_id, request.task, request.stage, TUTOR_PROMPT_VERSION)
+        persisted_lesson_model = (
+            GeneratedLessonContent.model_validate(persisted_lesson)
+            if persisted_lesson is not None else None
+        )
         effective_request = request.model_copy(
             # Only reuse server-owned lessons for this learner. A browser cache can
             # belong to a different account or analogy preference.
-            update={"existing_lesson": persisted_lesson,
+            update={"existing_lesson": persisted_lesson_model,
                     "analogy_preference": user.analogy_preference,
                     "java_experience": user.java_experience}
         )
