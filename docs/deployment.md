@@ -25,6 +25,9 @@ Configure the API environment:
 - `FRONTEND_ORIGINS`: exact frontend origins.
 - `TUTOR_LLM_PROVIDER=ollama` with `OLLAMA_CHAT_URL` and `OLLAMA_MODEL`, or
   `TUTOR_LLM_PROVIDER=gemini` with `GEMINI_MODEL` and `GEMINI_API_KEY`.
+- `CODE_EXECUTION_ENGINE=modal` with `MODAL_SANDBOX_URL` and
+  `MODAL_SANDBOX_TOKEN`. Deploy the separate service from `modal_sandbox/`
+  before deploying the Render API.
   The generator must be reachable from Render, not localhost unless co-hosted.
 - `WORLD_MODEL_ENABLED=false` during initial collection. When enabled later,
   `WORLD_MODEL_SERVICE_URL` and `WORLD_MODEL_SERVICE_TOKEN` configure the private inference service.

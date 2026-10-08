@@ -150,6 +150,28 @@ def call_codapi(files: dict[str, str]) -> dict[str, Any]:
         raise RuntimeError(f"Codapi is unavailable: {error}") from error
 
 
+def call_modal(program: str, dataset_filename: str) -> dict[str, Any]:
+    endpoint = os.getenv("MODAL_SANDBOX_URL")
+    token = os.getenv("MODAL_SANDBOX_TOKEN")
+    if not endpoint or not token:
+        raise RuntimeError("MODAL_SANDBOX_URL and MODAL_SANDBOX_TOKEN are required")
+    payload = json.dumps({"program": program, "dataset_filename": dataset_filename}).encode("utf-8")
+    request = Request(
+        endpoint,
+        data=payload,
+        headers={"Content-Type": "application/json", "Authorization": f"Bearer {token}"},
+        method="POST",
+    )
+    try:
+        with urlopen(request, timeout=float(os.getenv("MODAL_SANDBOX_TIMEOUT_SECONDS", "50"))) as response:
+            return json.loads(response.read().decode("utf-8"))
+    except HTTPError as error:
+        detail = error.read().decode("utf-8", errors="replace")
+        raise RuntimeError(f"Modal sandbox returned HTTP {error.code}: {detail[:500]}") from error
+    except (URLError, TimeoutError, OSError, ValueError, json.JSONDecodeError) as error:
+        raise RuntimeError(f"Modal sandbox is unavailable: {error}") from error
+
+
 def call_docker(files: dict[str, str]) -> dict[str, Any]:
     image = os.getenv("CODE_EXECUTION_DOCKER_IMAGE", "leap-python-runtime:latest")
     timeout = float(os.getenv("CODE_EXECUTION_TIMEOUT_SECONDS", "30"))
@@ -232,9 +254,16 @@ def run_code_cell(
                 dataset.runtime_filename: execution_dataset_content(raw_dataset_content, current_limit),
             }
             try:
-                codapi = call_docker(files) if engine == "docker" else call_codapi(files)
+                if engine == "docker":
+                    codapi = call_docker(files)
+                elif engine == "modal":
+                    codapi = call_modal(program, dataset.runtime_filename)
+                else:
+                    codapi = call_codapi(files)
                 break
             except CodapiPayloadTooLarge as error:
+                if engine == "modal":
+                    raise RuntimeError(str(error)) from error
                 if current_limit == dataset_limits[-1]:
                     raise RuntimeError(
                         f"{error}. Reduce the code or number of prior cells before running again."
@@ -271,7 +300,13 @@ def run_code_cell(
         replayed_cells=len(previous_cells),
         runtime={
             "engine": engine,
-            "sandbox": os.getenv("CODE_EXECUTION_DOCKER_IMAGE", "leap-python-runtime:latest") if engine == "docker" else os.getenv("CODAPI_SANDBOX", "python"),
+            "sandbox": (
+                "modal"
+                if engine == "modal"
+                else os.getenv("CODE_EXECUTION_DOCKER_IMAGE", "leap-python-runtime:latest")
+                if engine == "docker"
+                else os.getenv("CODAPI_SANDBOX", "python")
+            ),
             "execution_id": str(codapi.get("id", "")),
         },
     )
