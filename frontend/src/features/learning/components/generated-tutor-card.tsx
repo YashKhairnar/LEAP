@@ -52,10 +52,43 @@ export default function GeneratedTutorCard({ task, stage, step, actionType, less
   const hintUsed = useRef(false);
   const answerRevealed = useRef(false);
   const historyKnown = useRef(true);
+  const prefetched = useRef(new Set<string>());
   const onAttemptRef = useRef(onAttempt);
   const onPresentedRef = useRef(onPresented);
   const onRestoredCorrectRef = useRef(onRestoredCorrect);
   useEffect(() => { onAttemptRef.current = onAttempt; onPresentedRef.current = onPresented; onRestoredCorrectRef.current = onRestoredCorrect; }, [onAttempt, onPresented, onRestoredCorrect]);
+
+  const prefetchNextStep = useCallback(async (lesson: LessonContent) => {
+    const nextStep: InstructionalStep | null = step === "connect" ? "practice" : step === "practice" ? "review" : null;
+    if (reviewOnly || !nextStep) return;
+    const cacheKey = `${task}.${stage}.${nextStep}`;
+    if (prefetched.current.has(cacheKey)) return;
+    prefetched.current.add(cacheKey);
+    try {
+      const candidates = INSTRUCTIONAL_ACTIONS[nextStep].map((candidateAction) => ({
+        action_type: candidateAction,
+        prompt: `${candidateAction}: ${lessonContext}`,
+      }));
+      const planResponse = await fetch(`${API_URL}/api/tutor/plan`, {
+        method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ session_id: window.sessionStorage.getItem("leap.learning.session.v1"), task, stage, step: nextStep, candidates }),
+      });
+      const plan = await planResponse.json() as Record<string, unknown> & { selected_action_type?: InstructionalActionType };
+      if (!planResponse.ok || !plan.selected_action_type) throw new Error(plan.detail ? String(plan.detail) : `Prefetch planner returned ${planResponse.status}`);
+      const generationResponse = await fetch(`${API_URL}/api/tutor/generate`, {
+        method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          task, stage, step: nextStep, action_type: plan.selected_action_type,
+          reference_prompt: lessonContext, learning_objectives: learningObjectives,
+          existing_lesson: lesson, planner_decision: collectionPlannerDecision(plan),
+        }),
+      });
+      if (!generationResponse.ok) throw new Error(`Prefetch generation returned ${generationResponse.status}`);
+    } catch (reason) {
+      prefetched.current.delete(cacheKey);
+      console.warn("Next tutor content prefetch failed; it will generate on demand.", reason);
+    }
+  }, [learningObjectives, lessonContext, reviewOnly, stage, step, task]);
 
   const requestContent = useCallback(async (selectedAction: InstructionalActionType = actionType, plannerDecision?: Record<string, unknown>, resumeExisting = false) => {
     try {
@@ -171,6 +204,7 @@ export default function GeneratedTutorCard({ task, stage, step, actionType, less
     const saving = onAttemptRef.current(item, answer, correct, attempt, duration, presentationId, evidence);
     recordExposure("answer_revealed");
     await saving;
+    if (correct && generated?.lesson) void prefetchNextStep(generated.lesson);
   };
 
   const retryCurrentQuestion = () => {

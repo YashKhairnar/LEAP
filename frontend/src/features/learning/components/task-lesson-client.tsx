@@ -94,7 +94,7 @@ export default function TaskLessonClient({ task, initialReviewStage }: { task: A
   const recordAttempt = async (item: QuestionItem, answer: string, correct: boolean, attempt: number, responseTimeMs: number, presentationId: string, evidence: AttemptEvidence) => {
     const nextStep = steps[Math.min(stepIndex + 1, steps.length - 1)].id;
     const contentId = questionContentId(task.id, item);
-    void enqueueCollection({ endpoint: "/api/interactions", payload: {
+    await enqueueCollection({ endpoint: "/api/interactions", payload: {
       session_id: sessionId,
       content: item.collectionContent ?? { content_id: contentId, task: task.id, stage: stage.id, step: item.step, action_type: item.actionType, prompt: item.prompt, options: item.options, correct_answer: item.correctAnswer, explanation: item.explanation, misconception: item.misconception, learning_objectives: item.learningObjectives ?? [], lesson_content: item.lessonContent, planner_decision: item.plannerDecision, generation_metadata: item.generationMetadata },
       transition_id: crypto.randomUUID(),
