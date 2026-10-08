@@ -40,7 +40,7 @@ export default function GeneratedTutorCard({ task, stage, step, actionType, less
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showHint, setShowHint] = useState(false);
-  const [viewMode, setViewMode] = useState<"split" | "learn" | "practice">("learn");
+  const [viewMode, setViewMode] = useState<"split" | "learn" | "practice">("split");
   const practiceNoticeKey = `leap.practice.personalization-notice.v1.${learner?.user_id ?? "anonymous"}.${task}`;
   const [personalizationNoticeAcknowledged, setPersonalizationNoticeAcknowledged] = useState(() => {
     if (typeof window === "undefined" || reviewOnly || step !== "practice") return true;
