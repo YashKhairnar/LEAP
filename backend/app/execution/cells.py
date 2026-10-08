@@ -33,6 +33,10 @@ class UnsafeCode(ValueError):
     pass
 
 
+class CodapiPayloadTooLarge(RuntimeError):
+    pass
+
+
 def validate_code(code: str) -> None:
     try:
         tree = ast.parse(code)
@@ -128,14 +132,19 @@ def call_codapi(files: dict[str, str]) -> dict[str, Any]:
         "command": "run",
         "files": files,
     }
+    encoded_payload = json.dumps(payload).encode("utf-8")
     request = Request(
-        endpoint, data=json.dumps(payload).encode("utf-8"), headers=headers, method="POST"
+        endpoint, data=encoded_payload, headers=headers, method="POST"
     )
     try:
         with urlopen(request, timeout=float(os.getenv("CODAPI_TIMEOUT_SECONDS", "20"))) as response:
             return json.loads(response.read().decode("utf-8"))
     except HTTPError as error:
         detail = error.read().decode("utf-8", errors="replace")
+        if error.code == 413:
+            raise CodapiPayloadTooLarge(
+                f"Codapi rejected a {len(encoded_payload)}-byte request body"
+            ) from error
         raise RuntimeError(f"Codapi returned {error.code}: {detail[:500]}") from error
     except (URLError, TimeoutError, OSError, ValueError, json.JSONDecodeError) as error:
         raise RuntimeError(f"Codapi is unavailable: {error}") from error
@@ -171,9 +180,9 @@ def call_docker(files: dict[str, str]) -> dict[str, Any]:
     }
 
 
-def execution_dataset_content(content: str) -> str:
+def execution_dataset_content(content: str, limit: int | None = None) -> str:
     """Keep remote execution requests below hosted proxy limits."""
-    limit = int(os.getenv("CODE_EXECUTION_MAX_DATASET_BYTES", "50000"))
+    limit = limit if limit is not None else int(os.getenv("CODE_EXECUTION_MAX_DATASET_BYTES", "12000"))
     if len(content.encode("utf-8")) <= limit:
         return content
     lines = content.splitlines(keepends=True)
@@ -206,15 +215,32 @@ def run_code_cell(
             replayed_cells=len(previous_cells), runtime={"engine": "codapi", "sandbox": "blocked"},
         )
 
-    dataset_content = execution_dataset_content(dataset.path.read_text(encoding="utf-8"))
-    files = {
-        "": instrumented_program(previous_cells, request.code),
-        dataset.runtime_filename: dataset_content,
-    }
+    raw_dataset_content = dataset.path.read_text(encoding="utf-8")
+    program = instrumented_program(previous_cells, request.code)
+    dataset_limit = int(os.getenv("CODE_EXECUTION_MAX_DATASET_BYTES", "12000"))
+    # Codapi rejects oversized JSON bodies at its nginx proxy before the sandbox
+    # starts. Retry with progressively smaller, row-complete fixtures so a long
+    # replay history or a provider-side limit does not make execution unusable.
+    dataset_limits = list(dict.fromkeys((dataset_limit, 12000, 6000, 2000, 500)))
     started = monotonic()
     try:
         engine = os.getenv("CODE_EXECUTION_ENGINE", "docker")
-        codapi = call_docker(files) if engine == "docker" else call_codapi(files)
+        codapi = None
+        for current_limit in dataset_limits:
+            files = {
+                "": program,
+                dataset.runtime_filename: execution_dataset_content(raw_dataset_content, current_limit),
+            }
+            try:
+                codapi = call_docker(files) if engine == "docker" else call_codapi(files)
+                break
+            except CodapiPayloadTooLarge as error:
+                if current_limit == dataset_limits[-1]:
+                    raise RuntimeError(
+                        f"{error}. Reduce the code or number of prior cells before running again."
+                    ) from error
+        if codapi is None:
+            raise RuntimeError("Code sandbox did not return a result")
     except RuntimeError as error:
         codapi = {"ok": False, "stdout": "", "stderr": str(error), "duration": 0}
 
