@@ -4,6 +4,7 @@ import json
 import logging
 import os
 import re
+import time
 from dataclasses import asdict
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
@@ -119,6 +120,55 @@ def _decode_gemini_content(response: dict) -> dict:
     return _decode_json_text(text, "gemini")
 
 
+def _request_gemini(
+    payload: dict,
+    api_key: str,
+    model: str,
+    endpoint_template: str,
+    timeout: float,
+) -> tuple[dict, str, str]:
+    """Retry transient Gemini capacity errors, then use a stable fallback model."""
+    fallback = os.getenv("GEMINI_FALLBACK_MODEL", "gemini-3.5-flash-lite")
+    models = [model] + ([fallback] if fallback and fallback != model else [])
+    retries = max(0, int(os.getenv("GEMINI_RETRIES", "2")))
+    headers = {"Content-Type": "application/json", "x-goog-api-key": api_key}
+
+    for model_index, candidate_model in enumerate(models):
+        endpoint = endpoint_template.format(model=candidate_model)
+        for attempt in range(retries + 1):
+            request = Request(endpoint, data=json.dumps(payload).encode(), headers=headers, method="POST")
+            try:
+                with urlopen(request, timeout=timeout) as response:
+                    return json.loads(response.read().decode()), candidate_model, endpoint
+            except HTTPError as error:
+                detail = error.read().decode("utf-8", errors="replace")[:1000]
+                transient = error.code in {429, 500, 502, 503, 504}
+                if transient and attempt < retries:
+                    delay = min(8, 2 ** attempt)
+                    logger.warning(
+                        "Gemini temporary failure: model=%s status=%s retry_in=%ss detail=%s",
+                        candidate_model, error.code, delay, detail,
+                    )
+                    time.sleep(delay)
+                    continue
+                if transient and model_index < len(models) - 1:
+                    logger.warning(
+                        "Gemini model unavailable; switching from %s to %s: status=%s detail=%s",
+                        candidate_model, models[model_index + 1], error.code, detail,
+                    )
+                    break
+                logger.error(
+                    "Gemini generation HTTP failure: model=%s status=%s detail=%s",
+                    candidate_model, error.code, detail,
+                )
+                raise TutorGenerationUnavailable(
+                    f"LLM provider returned HTTP {error.code}: {detail}"
+                ) from error
+        else:
+            continue
+    raise TutorGenerationUnavailable("Gemini models were temporarily unavailable")
+
+
 def _normalize_question_payload(question_payload: dict) -> dict:
     """Repair harmless answer formatting differences from otherwise valid JSON."""
     options = question_payload.get("options")
@@ -161,14 +211,15 @@ def generate_tutor_content(
     provider = os.getenv("TUTOR_LLM_PROVIDER", "ollama").lower()
     if provider == "gemini":
         model = os.getenv("GEMINI_MODEL", "gemini-3.8-flash")
-        endpoint = os.getenv(
+        endpoint_template = os.getenv(
             "GEMINI_API_URL",
             "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent",
-        ).format(model=model)
+        )
+        endpoint = endpoint_template.format(model=model)
         timeout = float(os.getenv("GEMINI_TIMEOUT_SECONDS", "180"))
         api_key = os.getenv("GEMINI_API_KEY")
-        if os.getenv("ENVIRONMENT", "development").lower() == "production" and not api_key:
-            raise TutorGenerationUnavailable("GEMINI_API_KEY is required in production")
+        if not api_key:
+            raise TutorGenerationUnavailable("GEMINI_API_KEY is required for Gemini generation")
     elif provider == "ollama":
         model = os.getenv("OLLAMA_MODEL", "qwen3:8b")
         endpoint = os.getenv("OLLAMA_CHAT_URL", "http://127.0.0.1:11434/api/chat")
@@ -313,8 +364,6 @@ def generate_tutor_content(
                 "responseJsonSchema": _gemini_schema(response_schema),
             },
         }
-        if api_key:
-            headers["x-goog-api-key"] = api_key
     else:
         payload = {
             "model": model,
@@ -324,13 +373,16 @@ def generate_tutor_content(
             "format": response_schema,
             "options": {"temperature": 0.2},
         }
-    request = Request(endpoint, data=json.dumps(payload).encode(), headers=headers, method="POST")
     try:
-        with urlopen(request, timeout=timeout) as response:
-            outer = json.loads(response.read().decode())
         if provider == "gemini":
+            outer, model, endpoint = _request_gemini(
+                payload, api_key, model, endpoint_template, timeout,
+            )
             generated = _decode_gemini_content(outer)
         else:
+            request = Request(endpoint, data=json.dumps(payload).encode(), headers=headers, method="POST")
+            with urlopen(request, timeout=timeout) as response:
+                outer = json.loads(response.read().decode())
             generated = _decode_provider_content(outer["message"], provider)
         if existing_lesson is None:
             lesson = _lesson_with_fixed_code(generated["lesson"], context.task, context.stage)
