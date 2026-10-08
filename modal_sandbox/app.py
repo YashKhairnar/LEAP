@@ -17,7 +17,7 @@ APP_DIR = Path(__file__).resolve().parent
 DATASET_DIR = APP_DIR.parent / "backend" / "datasets"
 TOKEN_SECRET_NAME = os.getenv("MODAL_SANDBOX_SECRET_NAME", "leap-sandbox-secrets")
 
-app = modal.App("leap-code-sandbox", include_source=False)
+app = modal.App("leap-code-sandbox")
 
 image = (
     modal.Image.debian_slim(python_version="3.12")
