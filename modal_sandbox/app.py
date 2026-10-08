@@ -22,6 +22,8 @@ app = modal.App("leap-code-sandbox", include_source=False)
 image = (
     modal.Image.debian_slim(python_version="3.12")
     .pip_install(
+        "fastapi>=0.115,<1.0",
+        "pydantic>=2.0,<3.0",
         "numpy",
         "pandas",
         "scikit-learn",
