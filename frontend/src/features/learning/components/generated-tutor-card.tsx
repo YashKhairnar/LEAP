@@ -130,6 +130,7 @@ export default function GeneratedTutorCard({ task, stage, step, actionType, less
           setChecked(restoredState?.correct !== null && restoredState?.correct !== undefined);
           setStageLesson(saved.lesson);
           if (restoredState?.correct) onRestoredCorrectRef.current?.(step);
+          void prefetchNextStep(saved.lesson);
           return;
         }
       }
@@ -161,9 +162,10 @@ export default function GeneratedTutorCard({ task, stage, step, actionType, less
       const nextPresentationId = crypto.randomUUID();
       setGenerated({ model: body.model, lesson: body.lesson, content }); setItem(withCollectionContent(nextItem, body.collection_content)); setPresentationId(nextPresentationId);
       setAttempt(1); hintUsed.current = false; answerRevealed.current = false; historyKnown.current = true;
+      void prefetchNextStep(body.lesson);
     } catch (reason) { setError(reason instanceof Error ? reason.message : "The tutor could not generate content."); }
     finally { setLoading(false); }
-  }, [actionType, learningObjectives, lessonContext, lessonKey, stage, step, task, reviewOnly]);
+  }, [actionType, learningObjectives, lessonContext, lessonKey, prefetchNextStep, stage, step, task, reviewOnly]);
 
   useEffect(() => {
     const requestTimer = window.setTimeout(() => void requestContent(actionType, undefined, true), 0);
@@ -204,7 +206,6 @@ export default function GeneratedTutorCard({ task, stage, step, actionType, less
     const saving = onAttemptRef.current(item, answer, correct, attempt, duration, presentationId, evidence);
     recordExposure("answer_revealed");
     await saving;
-    if (correct && generated?.lesson) void prefetchNextStep(generated.lesson);
   };
 
   const retryCurrentQuestion = () => {

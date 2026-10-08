@@ -128,7 +128,7 @@ def _request_gemini(
     timeout: float,
 ) -> tuple[dict, str, str]:
     """Retry transient Gemini capacity errors, then use a stable fallback model."""
-    fallback = os.getenv("GEMINI_FALLBACK_MODEL", "gemini-3.5-flash-lite")
+    fallback = os.getenv("GEMINI_FALLBACK_MODEL", "gemini-3.6-flash")
     models = [model] + ([fallback] if fallback and fallback != model else [])
     retries = max(0, int(os.getenv("GEMINI_RETRIES", "2")))
     headers = {"Content-Type": "application/json", "x-goog-api-key": api_key}
