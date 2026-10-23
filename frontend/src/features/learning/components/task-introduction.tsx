@@ -124,6 +124,11 @@ export default function TaskIntroductionPage({ task, initialView = "introduction
           <p>{task.success}</p>
         </section>
 
+        <section className="assessment-intro-callout" aria-labelledby="starting-assessment-title">
+          <p className="intro-kicker">Before learning · 10 questions</p>
+          <h2 id="starting-assessment-title">Start with a short baseline assessment</h2>
+          <p>This is a starting snapshot, not a pass/fail test. Answer independently; you’ll see the same concepts again after the lesson.</p>
+        </section>
         <TaskAssessment phase="pre" task={task.taskId} />
 
         <footer className="intro-actions">

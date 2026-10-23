@@ -18,7 +18,7 @@ from ..models import (
     TutorGenerationResponse,
 )
 
-TUTOR_PROMPT_VERSION = f"analogy_preference_v14.{EXPERIMENT_VERSION}"
+TUTOR_PROMPT_VERSION = f"analogy_preference_v15.{EXPERIMENT_VERSION}"
 
 TUTOR_SCHEMA = {
     "type": "object",
@@ -304,7 +304,9 @@ def generate_tutor_content(
             "Finally, return key_takeaway as one concrete sentence of at most 18 words summarizing the stage. "
             "Keep the introduction focused, but give section bodies enough context for a novice to understand the purpose and "
             "reasoning without guessing. Avoid repetition and filler. For non-code sections set code and language "
-            "to null; for code sections provide both. "
+            "to null; keep the introduction under 45 words, each prose section body under 80 words, each item under 14 words, "
+            "and each code explanation under 22 words. Introduce at most one new idea per section and do not restate the same "
+            "definition in later sections. For non-code sections set code and language to null; for code sections provide both. "
             "All code must run against the supplied dataset. Use its runtime_filename exactly and do not invent files, "
             "columns, or rows. The available execution packages are pandas, NumPy, scikit-learn, matplotlib, and CPU-only "
             "PyTorch. For the image-classification task, describe and use the supplied PyTorch CNN code; never substitute "

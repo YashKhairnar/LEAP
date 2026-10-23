@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { API_URL, getAuth } from "@/lib/auth";
 import { INSTRUCTIONAL_ACTIONS, type InstructionalActionType, type InstructionalStep } from "@/features/learning/lib/instructional-actions";
-import { collectionPlannerDecision, withCollectionContent, type CollectionContent, type QuestionItem } from "@/features/learning/lib/question-bank";
+import { collectionPlannerDecision, shuffleQuestionOptions, withCollectionContent, type CollectionContent, type QuestionItem } from "@/features/learning/lib/question-bank";
 import { enqueueCollection, learningSessionId } from "@/features/collection/lib/collection";
 import { questionContentId } from "@/features/collection/lib/content-id";
 import { QuestionExposureClock, evidenceKind, type AttemptEvidence } from "@/features/collection/lib/question-exposure";
@@ -16,8 +16,8 @@ type LessonSection = { type: LessonSectionType; title: string; body: string; ite
 type CodeExperiment = { title: string; find: string; replace: string; expected_change: string };
 type LessonContent = { title: string; introduction: string; sections: LessonSection[]; code_explanation?: string[]; try_this?: (CodeExperiment | string)[]; key_takeaway?: string };
 
-export default function GeneratedTutorCard({ task, stage, step, actionType, lessonContext, learningObjectives, onAttempt, onPresented, onRestoredCorrect, reviewOnly = false }: {
-  task: string; stage: string; step: InstructionalStep; actionType: InstructionalActionType; lessonContext: string; learningObjectives: string[];
+export default function GeneratedTutorCard({ task, stage, stageNumber, totalStages = 6, step, actionType, lessonContext, learningObjectives, onAttempt, onPresented, onRestoredCorrect, reviewOnly = false }: {
+  task: string; stage: string; stageNumber?: number; totalStages?: number; step: InstructionalStep; actionType: InstructionalActionType; lessonContext: string; learningObjectives: string[];
   onAttempt: (item: QuestionItem, answer: string, correct: boolean, attempt: number, responseTimeMs: number, presentationId: string, evidence: AttemptEvidence) => Promise<void>;
   onPresented: (item: QuestionItem, presentationId: string) => void;
   onRestoredCorrect?: (step: InstructionalStep) => void;
@@ -40,7 +40,12 @@ export default function GeneratedTutorCard({ task, stage, step, actionType, less
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showHint, setShowHint] = useState(false);
-  const [viewMode, setViewMode] = useState<"split" | "learn" | "practice">("split");
+  const viewModeKey = `leap.learning.view-mode.v1.${learner?.user_id ?? "anonymous"}.${task}.${stage}`;
+  const [viewMode, setViewMode] = useState<"split" | "learn" | "practice">(() => {
+    if (typeof window === "undefined") return "split";
+    const saved = window.localStorage.getItem(viewModeKey);
+    return saved === "split" || saved === "learn" || saved === "practice" ? saved : "split";
+  });
   const practiceNoticeKey = `leap.practice.personalization-notice.v1.${learner?.user_id ?? "anonymous"}.${task}`;
   const [personalizationNoticeAcknowledged, setPersonalizationNoticeAcknowledged] = useState(() => {
     if (typeof window === "undefined" || reviewOnly || step !== "practice") return true;
@@ -56,6 +61,10 @@ export default function GeneratedTutorCard({ task, stage, step, actionType, less
   const onAttemptRef = useRef(onAttempt);
   const onPresentedRef = useRef(onPresented);
   const onRestoredCorrectRef = useRef(onRestoredCorrect);
+  const changeViewMode = (mode: "split" | "learn" | "practice") => {
+    setViewMode(mode);
+    window.localStorage.setItem(viewModeKey, mode);
+  };
   useEffect(() => { onAttemptRef.current = onAttempt; onPresentedRef.current = onPresented; onRestoredCorrectRef.current = onRestoredCorrect; }, [onAttempt, onPresented, onRestoredCorrect]);
 
   const prefetchNextStep = useCallback(async (lesson: LessonContent) => {
@@ -112,7 +121,7 @@ export default function GeneratedTutorCard({ task, stage, step, actionType, less
           const restoredItem: QuestionItem = {
             id: `generated.${saved.content_instance_id}`, step, actionType: restoredAction,
             typeLabel: "LLM-generated question", prompt: saved.content.question,
-            options: saved.content.options, correctAnswer: saved.content.expected_answer,
+            options: shuffleQuestionOptions(`generated.${saved.content_instance_id}`, saved.content.options), correctAnswer: saved.content.expected_answer,
             explanation: saved.content.explanation, misconception: "generated_question_incorrect",
             learningObjectives: saved.content.concepts_tested.length ? saved.content.concepts_tested : learningObjectives,
             lessonContent: saved.lesson, selectionPolicy: "legacy_unknown",
@@ -158,7 +167,7 @@ export default function GeneratedTutorCard({ task, stage, step, actionType, less
       if (!cachedLesson) window.sessionStorage.setItem(lessonKey, JSON.stringify(body.lesson));
       setStageLesson(body.lesson);
       const assignmentPolicy = typeof effectiveDecision?.assignment_policy === "string" ? effectiveDecision.assignment_policy : "uniform_random_v1";
-      const nextItem: QuestionItem = { id: `generated.${body.content_instance_id}`, step, actionType: effectiveAction, typeLabel: "LLM-generated question", prompt: content.question, options: content.options, correctAnswer: content.expected_answer, explanation: content.explanation, misconception: "generated_question_incorrect", learningObjectives: content.concepts_tested.length ? content.concepts_tested : learningObjectives, lessonContent: body.lesson, plannerDecision: effectiveDecision, selectionPolicy: assignmentPolicy, generationMetadata: { schema_version: "stage_sections_question_v3", prompt_version: body.prompt_version, code_version: body.code_version, curriculum_layout: "stage_sections_question_v3", model: body.model, dataset: body.dataset, task, stage, step, selected_action_type: effectiveAction, assignment_policy: assignmentPolicy, selection_probability: effectiveDecision?.selection_probability, content_instance_id: body.content_instance_id, curriculum_context: lessonContext, requested_learning_objectives: learningObjectives, lesson_reused: cachedLesson !== null, generated_at: new Date().toISOString() } };
+      const nextItem: QuestionItem = { id: `generated.${body.content_instance_id}`, step, actionType: effectiveAction, typeLabel: "LLM-generated question", prompt: content.question, options: shuffleQuestionOptions(`generated.${body.content_instance_id}`, content.options), correctAnswer: content.expected_answer, explanation: content.explanation, misconception: "generated_question_incorrect", learningObjectives: content.concepts_tested.length ? content.concepts_tested : learningObjectives, lessonContent: body.lesson, plannerDecision: effectiveDecision, selectionPolicy: assignmentPolicy, generationMetadata: { schema_version: "stage_sections_question_v3", prompt_version: body.prompt_version, code_version: body.code_version, curriculum_layout: "stage_sections_question_v3", model: body.model, dataset: body.dataset, task, stage, step, selected_action_type: effectiveAction, assignment_policy: assignmentPolicy, selection_probability: effectiveDecision?.selection_probability, content_instance_id: body.content_instance_id, curriculum_context: lessonContext, requested_learning_objectives: learningObjectives, lesson_reused: cachedLesson !== null, generated_at: new Date().toISOString() } };
       const nextPresentationId = crypto.randomUUID();
       setGenerated({ model: body.model, lesson: body.lesson, content }); setItem(withCollectionContent(nextItem, body.collection_content)); setPresentationId(nextPresentationId);
       setAttempt(1); hintUsed.current = false; answerRevealed.current = false; historyKnown.current = true;
@@ -270,9 +279,9 @@ export default function GeneratedTutorCard({ task, stage, step, actionType, less
   return <section className="generated-tutor-card" aria-live="polite">
     <header className="card-top-toolbar">
       <div className="card-meta-tags">
-        <span className="lesson-location">{stage.replace(/_/g, " ")}</span>
+        {stageNumber && <span className="lesson-location">Stage {stageNumber} of {totalStages}</span>}
         <span aria-hidden="true">/</span>
-        <strong>{step}</strong>
+        <strong>Step {step === "connect" ? 1 : step === "practice" ? 2 : 3} of 3 · {step === "connect" ? "Bridge" : step === "practice" ? "Practice" : "Check"}</strong>
       </div>
       <div className="view-mode-selector" role="tablist" aria-label="Layout mode">
         <button
@@ -280,7 +289,7 @@ export default function GeneratedTutorCard({ task, stage, step, actionType, less
           role="tab"
           aria-selected={viewMode === "split"}
           className={`view-mode-btn ${viewMode === "split" ? "active" : ""}`}
-          onClick={() => setViewMode("split")}
+          onClick={() => changeViewMode("split")}
         >
           Split view
         </button>
@@ -289,7 +298,7 @@ export default function GeneratedTutorCard({ task, stage, step, actionType, less
           role="tab"
           aria-selected={viewMode === "learn"}
           className={`view-mode-btn ${viewMode === "learn" ? "active" : ""}`}
-          onClick={() => setViewMode("learn")}
+          onClick={() => changeViewMode("learn")}
         >
           Lesson
         </button>
@@ -298,7 +307,7 @@ export default function GeneratedTutorCard({ task, stage, step, actionType, less
           role="tab"
           aria-selected={viewMode === "practice"}
           className={`view-mode-btn ${viewMode === "practice" ? "active" : ""}`}
-          onClick={() => setViewMode("practice")}
+          onClick={() => changeViewMode("practice")}
         >
           Practice
         </button>
@@ -349,7 +358,7 @@ export default function GeneratedTutorCard({ task, stage, step, actionType, less
 
             {viewMode === "learn" && (
               <div className="pane-jump-footer">
-                <button type="button" className="primary-button" onClick={() => setViewMode("practice")}>
+                <button type="button" className="primary-button" onClick={() => changeViewMode("practice")}>
                   {reviewOnly ? "View saved question →" : "Try the practice question →"}
                 </button>
               </div>
@@ -497,7 +506,7 @@ export default function GeneratedTutorCard({ task, stage, step, actionType, less
 
             {viewMode === "practice" && (
               <div className="pane-jump-footer">
-                <button type="button" className="text-button" onClick={() => setViewMode("learn")}>
+                <button type="button" className="text-button" onClick={() => changeViewMode("learn")}>
                   ← Back to Full Lesson Guide
                 </button>
               </div>

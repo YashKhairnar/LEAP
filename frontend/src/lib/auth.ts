@@ -40,9 +40,19 @@ export async function getTaskProgress(): Promise<TaskProgress[]> {
 }
 
 export async function authenticate(path: "register" | "login", body: object): Promise<AuthSession> {
-  const response = await fetch(`${API_URL}/api/auth/${path}`, {
-    method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
-  });
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), 20_000);
+  let response: Response;
+  try {
+    response = await fetch(`${API_URL}/api/auth/${path}`, {
+      method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), signal: controller.signal,
+    });
+  } catch (reason) {
+    if (reason instanceof DOMException && reason.name === "AbortError") throw new Error("Sign-in is taking longer than expected. Please try again.");
+    throw new Error("Unable to reach the sign-in service. Check your connection and try again.");
+  } finally {
+    window.clearTimeout(timeout);
+  }
   const result = await response.json();
   if (!response.ok) throw new Error(result.detail ?? "Authentication failed");
   setAuth(result as AuthSession);
