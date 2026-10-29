@@ -4,7 +4,7 @@ Repository configuration reviewed 2026-09-14. This guide describes the checked-i
 it does not verify the current health or settings of an external deployment.
 
 The topology is a Vercel frontend, Render application API and Neon PostgreSQL. A configured
-hosted generator and an isolated code runtime must also be reachable from the backend. The
+isolated code runtime must also be reachable from the backend. The
 world model is disabled during initial data collection, so the API uses uniform random action
 assignment.
 
@@ -23,12 +23,10 @@ Configure the API environment:
 - `LEAP_COLLECTION_MODE`: explicitly choose development, pilot or study per the
   [collection guide](collection.md). This is a data label, not research approval.
 - `FRONTEND_ORIGINS`: exact frontend origins.
-- `TUTOR_LLM_PROVIDER=ollama` with `OLLAMA_CHAT_URL` and `OLLAMA_MODEL`, or
-  `TUTOR_LLM_PROVIDER=gemini` with `GEMINI_MODEL` and `GEMINI_API_KEY`.
+- Authored lessons and questions are bundled with the backend; no AI model service is required.
 - `CODE_EXECUTION_ENGINE=modal` with `MODAL_SANDBOX_URL` and
   `MODAL_SANDBOX_TOKEN`. Deploy the separate service from `modal_sandbox/`
   before deploying the Render API.
-  The generator must be reachable from Render, not localhost unless co-hosted.
 - `WORLD_MODEL_ENABLED=false` during initial collection. When enabled later,
   `WORLD_MODEL_SERVICE_URL` and `WORLD_MODEL_SERVICE_TOKEN` configure the private inference service.
 - `CODE_EXECUTION_ENGINE=codapi`, `CODAPI_URL`, and token when needed for the checked-in
@@ -57,7 +55,7 @@ Internal Python imports have changed; see the [migration map](project-structure.
 ## Verification before inviting participants
 
 1. Use an explicitly excluded development account; verify registration, login and logout.
-2. Load a task introduction/dataset, generate a lesson and run an executable cell.
+2. Load a task introduction/dataset, open an authored lesson and run an executable cell.
 3. Check that no question presentation is recorded until Practice/Split view exposes it.
 4. Test hints, incorrect answers, retries, reload and offline/reconnect synchronization.
 5. Confirm immutable question records, ordered events and assistance labels in the database.

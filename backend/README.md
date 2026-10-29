@@ -26,7 +26,7 @@ automatically; pass `--env-file .env` if using one, and replace sample values. U
 | `main.py` | HTTP routes, authentication dependencies and application lifecycle |
 | `models.py` | Shared validated contracts |
 | `database.py`, `auth.py`, `paths.py` | Persistence, credential primitives and stable asset paths |
-| `tutoring/` | Ollama or Gemini generation, fixed lesson code and authored experiments |
+| `tutoring/` | Authored lessons and questions, fixed lesson code and authored experiments |
 | `assessments/` | Ten-question banks, unlock rules and server scoring |
 | `collection/` | Mode settings and quality-checked export |
 | `execution/` | Dataset access, executable cells and isolated code evaluator |
@@ -46,23 +46,21 @@ Interactive contracts are at `http://localhost:8000/docs`.
 | `GET /api/progress` | Authenticated learner progress |
 | `GET /api/datasets/{task}` | Dataset metadata and preview |
 | `POST /api/code/evaluate`, `/api/code/run` | Restricted checks and real cell execution |
-| `POST /api/tutor/generate` | Schema-validated lesson/question generation |
+| `POST /api/tutor/generate` | Returns versioned authored lesson/question content |
 | `GET /api/tutor/resume/{task}/{stage}/{step}` | Persisted lesson/question; optional completed-stage review |
-| `POST /api/tutor/plan` | Uniform delivered action plus optional shadow recommendation |
+| `POST /api/tutor/plan` | Uniformly selects among authored instructional actions |
 | `POST /api/interactions`, `/api/events` | Ordered responses and behavior events |
 | `GET /api/assessments/{task}`, `POST /api/assessments/{task}` | Final questions and immutable first submission |
 
 ## External dependencies and data
 
-Ollama defaults to `http://127.0.0.1:11434/api/chat` with `qwen3:8b`.
-For hosted lesson generation, configure `TUTOR_LLM_PROVIDER=gemini` and provide
-`GEMINI_MODEL` and `GEMINI_API_KEY`.
+Lessons and questions are fully authored and require no AI model or model service.
 Actual cell execution requires [Docker/Codapi configuration](execution_runtime/README.md).
 Exercise datasets and licenses stay in [datasets/ATTRIBUTION.md](datasets/ATTRIBUTION.md).
 
-The [private model service](../model_service/README.md) reads promoted weights from
-`backend/model_artifacts/`. Its outage leaves the uniform collection policy available,
-with missing predictions explicitly marked; it does not bypass an unavailable generator.
+The optional [private model service](../model_service/README.md) reads promoted weights from
+`backend/model_artifacts/`. Its outage leaves authored-content delivery and the uniform
+action policy available, with missing predictions explicitly marked.
 
 Local participant data stays in `data/leap.db`. Registration uses random participant
 codes rather than names/emails; internal learner IDs remain sensitive research identifiers.

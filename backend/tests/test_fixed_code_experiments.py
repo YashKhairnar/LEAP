@@ -50,33 +50,14 @@ class FixedCodeExperimentTests(unittest.TestCase):
         self.assertEqual(json.dumps(source), before)
 
     def test_generated_and_reused_lessons_use_server_owned_experiments(self):
-        question = {
-            "question": "What does fitting use?", "options": ["Training examples", "Test examples", "No examples"],
-            "expected_answer": "Training examples", "hint": "Keep testing separate.",
-            "explanation": "Fitting uses the training examples.", "concepts_tested": ["training"],
-        }
-        for reuse in (False, True):
-            with self.subTest(reuse=reuse):
-                source = lesson_with(SECTION_ORDER)
-                context = TutorGenerationRequest(
-                    task="sentiment", stage="model_training", step="connect",
-                    action_type="connect.concept_matching", reference_prompt="Explain training.",
-                    existing_lesson=source if reuse else None,
-                )
-                generated = question if reuse else {"lesson": source, "question": question}
-                response = io.BytesIO(json.dumps({"message": {"content": json.dumps(generated)}}).encode())
-                with patch("app.tutoring.generator.urlopen", return_value=response) as request:
-                    result = generate_tutor_content(context, "test-fixed-experiments")
-                expected = [asdict(item) for item in fixed_code_experiments("sentiment", "model_training")]
-                self.assertEqual(result.lesson.model_dump()["try_this"], expected)
-                self.assertEqual(result.lesson.sections[3].code, fixed_lesson_code("sentiment", "model_training").code)
-                payload = json.loads(request.call_args.args[0].data)
-                if not reuse:
-                    self.assertNotIn("try_this", payload["format"]["properties"]["lesson"]["properties"])
-                supplied_context = json.loads(payload["messages"][1]["content"].split("\n", 1)[1])
-                self.assertEqual(supplied_context["fixed_code_experiments"], expected)
-                if reuse:
-                    self.assertEqual(supplied_context["fixed_stage_lesson"]["try_this"], expected)
+        context = TutorGenerationRequest(
+            task="sentiment", stage="model_training", step="connect",
+            action_type="connect.concept_matching", reference_prompt="Explain training.",
+        )
+        result = generate_tutor_content(context, "test-fixed-experiments")
+        expected = [asdict(item) for item in fixed_code_experiments("sentiment", "model_training")]
+        self.assertEqual(result.lesson.model_dump()["try_this"], expected)
+        self.assertEqual(result.lesson.sections[3].code, fixed_lesson_code("sentiment", "model_training").code)
 
     @unittest.skipUnless(
         all(importlib.util.find_spec(name) for name in ("pandas", "numpy", "sklearn", "torch")),

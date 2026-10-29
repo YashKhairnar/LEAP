@@ -7,10 +7,9 @@ terminals for services. No data migration is required for the folder restructure
 
 - Node 24+ for native TypeScript tests.
 - Python 3.12 is the deployment target; use separate API and research environments.
-- Ollama locally or Gemini with a configured API key for hosted lesson generation.
 - Docker with the lesson runtime image, or a configured Codapi endpoint, for cells.
-- The world-model service is optional for collection: uniform selection survives its
-  outage, but model scoring is unavailable. Generation still requires a configured LLM.
+- The world-model service is optional for collection: uniform selection works without it,
+  but model scoring is unavailable.
 
 ## Backend (port 8000)
 
@@ -44,15 +43,10 @@ An existing `.env.local` containing that public variable overrides the browser t
 Explicitly set the local backend URL: `next.config.ts` otherwise defaults to the hosted
 API. Direct public-URL mode remains supported.
 
-## Generation and Python execution
+## Authored lessons and Python execution
 
-```sh
-ollama pull qwen3:8b
-ollama serve
-```
-
-If Ollama already runs as a service, do not start a second instance. Configure
-`OLLAMA_CHAT_URL`, `OLLAMA_MODEL` and timeout on the backend if changing defaults.
+Lesson explanations and questions are stored in `backend/app/tutoring/authored_content.py`.
+No Ollama, Gemini, API key, or model service is needed for content delivery.
 
 Build the runtime from the repository root:
 

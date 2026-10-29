@@ -47,7 +47,7 @@ class LessonStructureTests(unittest.TestCase):
 
     def test_model_rejects_an_out_of_order_sequence(self):
         wrong_order = ["meaning", "example", "analogy", "code", "result", "why_it_matters"]
-        with self.assertRaisesRegex(ValidationError, "six-part teaching sequence"):
+        with self.assertRaisesRegex(ValidationError, "teaching sequence"):
             GeneratedLessonContent.model_validate(lesson_with(wrong_order))
 
     def experiment_lesson(self, find="model.fit(X, y)", replace="model.fit(X, y)\nprint(model)"):

@@ -74,49 +74,6 @@ class AnalogyPreferenceTests(unittest.TestCase):
         self.assertEqual(session.user.java_experience, "unspecified")
         self.assertEqual(session.user.analogy_preference, "everyday")
 
-    def test_prompt_styles_cover_all_tasks_and_reused_lessons(self):
-        for task, stages in FIXED_LESSON_CODE.items():
-            stage = next(iter(stages))
-            for preference in ("pure_ml", "everyday", "java"):
-                for reuse in (False, True):
-                    with self.subTest(task=task, preference=preference, reuse=reuse):
-                        lesson = lesson_with(SECTION_ORDER)
-                        context = TutorGenerationRequest(task=task, stage=stage, step="connect",
-                            action_type="connect.analogy_mapping", reference_prompt="Use a Java ArrayList as the bridge.",
-                            analogy_preference=preference, java_experience="none", existing_lesson=lesson if reuse else None)
-                        generated = QUESTION if reuse else {"lesson": lesson, "question": QUESTION}
-                        response = io.BytesIO(json.dumps({"message": {"content": json.dumps(generated)}}).encode())
-                        with patch("app.tutoring.generator.urlopen", return_value=response) as call:
-                            result = generate_tutor_content(context, "fixture")
-                        payload = json.loads(call.call_args.args[0].data)
-                        system = payload["messages"][0]["content"]
-                        supplied = json.loads(payload["messages"][1]["content"].split("\n", 1)[1])
-                        self.assertEqual(supplied["learner_preferences"]["analogy_preference"], preference)
-                        self.assertEqual(result.lesson.sections[3].code, fixed_lesson_code(task, stage).code)
-                        if preference in {"pure_ml", "everyday"}:
-                            self.assertIn("opted out of Java references", system)
-                            self.assertNotIn("Java", supplied["reference_prompt"])
-                            self.assertNotIn("ArrayList", supplied["reference_prompt"])
-                            if preference == "pure_ml":
-                                self.assertIn("without analogies", supplied["reference_prompt"])
-                            else:
-                                self.assertIn("everyday-life analogies", supplied["reference_prompt"])
-                        else:
-                            self.assertIn("opted into Java references", system)
-                            self.assertIn("ArrayList", supplied["reference_prompt"])
-
-    def test_everyday_mode_rejects_java_in_generated_lesson_or_followup(self):
-        for reuse in (False, True):
-            lesson = lesson_with(SECTION_ORDER)
-            question = {**QUESTION, "hint": "Think of a Java method."}
-            context = TutorGenerationRequest(task="sentiment", stage="model_training", step="connect",
-                action_type="connect.analogy_mapping", reference_prompt="Explain fitting.",
-                analogy_preference="everyday", existing_lesson=lesson if reuse else None)
-            generated = question if reuse else {"lesson": lesson, "question": question}
-            response = io.BytesIO(json.dumps({"message": {"content": json.dumps(generated)}}).encode())
-            with patch("app.tutoring.generator.urlopen", return_value=response), self.assertRaisesRegex(TutorGenerationUnavailable, "Java references"):
-                generate_tutor_content(context, "fixture")
-
     def test_server_binds_preference_and_reuses_only_its_own_saved_lesson(self):
         user = UserRecord(user_id="everyday-student", participant_code="LP-000000000000",
                           java_experience="none", analogy_preference="everyday")

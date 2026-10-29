@@ -33,7 +33,6 @@ from .database import (
     create_user,
     initialize_database,
     list_progress,
-    list_session_observations,
     resume_tutor_content,
     revoke_token,
     save_behavior_event,
@@ -66,7 +65,10 @@ from .models import (
     GeneratedLessonContent,
     UserRecord,
 )
-from .tutoring.generator import TUTOR_PROMPT_VERSION, TutorGenerationUnavailable, generate_tutor_content
+from .tutoring.authored_content import AUTHORED_CONTENT_VERSION, AuthoredContentUnavailable, authored_tutor_content
+generate_tutor_content = authored_tutor_content
+# Retained as an importable compatibility symbol for collection tests and older
+# integrations; the planner route below never calls it.
 from .planning.client import WorldModelUnavailable, plan_next_action
 
 
@@ -234,7 +236,7 @@ def tutor_generate(
     user: Annotated[UserRecord, Depends(current_user)],
 ) -> TutorGenerationResponse:
     try:
-        persisted_lesson = saved_stage_lesson(user.user_id, request.task, request.stage, TUTOR_PROMPT_VERSION)
+        persisted_lesson = saved_stage_lesson(user.user_id, request.task, request.stage, AUTHORED_CONTENT_VERSION)
         persisted_lesson_model = (
             GeneratedLessonContent.model_validate(persisted_lesson)
             if persisted_lesson is not None else None
@@ -249,10 +251,10 @@ def tutor_generate(
         generated = generate_tutor_content(effective_request, str(uuid4()))
         save_generated_tutor_content(effective_request, generated, user.user_id)
         return generated
-    except TutorGenerationUnavailable as error:
+    except AuthoredContentUnavailable as error:
         raise HTTPException(
             status_code=503,
-            detail=f"Tutor generation failed: {error}",
+            detail=f"Authored tutor content unavailable: {error}",
         ) from error
 
 
@@ -264,7 +266,7 @@ def tutor_resume(
     user: Annotated[UserRecord, Depends(current_user)],
     review: bool = False,
 ) -> TutorResumeResponse:
-    return resume_tutor_content(user.user_id, task, stage, step, TUTOR_PROMPT_VERSION, review=review)
+    return resume_tutor_content(user.user_id, task, stage, step, AUTHORED_CONTENT_VERSION, review=review)
 
 
 @app.post("/api/tutor/plan", response_model=PlannerResponse)
@@ -272,23 +274,16 @@ def tutor_plan(
     request: PlannerRequest,
     user: Annotated[UserRecord, Depends(current_user)],
 ) -> PlannerResponse:
-    observations = list_session_observations(user.user_id, request.session_id)
-    try:
-        model_plan = plan_next_action(request, observations, user.user_id)
-        return randomize_planner_action(model_plan)
-    except WorldModelUnavailable:
-        # Collection uses uniform exploration, not the shadow recommendation.
-        # Keep delivering eligible actions when the optional shadow service fails.
-        count = len(request.candidates)
-        selected = secrets.randbelow(count)
-        return PlannerResponse(
-            planner_version="uniform_collection_fallback_v1", checkpoint="unavailable",
-            selected_action_type=request.candidates[selected].action_type, selected_index=selected,
-            current_state=[], predicted_state=[], candidate_predicted_states=[], candidate_distances=[],
-            initialization="unavailable", initial_state_seed=0, goal_state=[], candidates=request.candidates,
-            assignment_policy="uniform_random_v1", selection_probability=1 / count,
-            action_probabilities=[1 / count] * count, shadow_status="unavailable",
-        )
+    count = len(request.candidates)
+    selected = secrets.randbelow(count)
+    return PlannerResponse(
+        planner_version="authored_uniform_v1", checkpoint="authored",
+        selected_action_type=request.candidates[selected].action_type, selected_index=selected,
+        current_state=[], predicted_state=[], candidate_predicted_states=[], candidate_distances=[],
+        initialization="unavailable", initial_state_seed=0, goal_state=[], candidates=request.candidates,
+        assignment_policy="uniform_random_v1", selection_probability=1 / count,
+        action_probabilities=[1 / count] * count, shadow_status="unavailable",
+    )
 
 
 def randomize_planner_action(model_plan: PlannerResponse) -> PlannerResponse:

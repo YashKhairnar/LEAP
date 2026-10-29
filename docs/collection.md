@@ -23,7 +23,7 @@ records are not relabeled; old records without a mode remain `legacy_unknown`.
   Generated-content metadata includes both values, so analyses can distinguish the
   learner-selected explanation styles. This preference is not a randomized intervention.
 
-- The server saves the exact generated lesson/question and original planner/generator
+- The server saves the exact authored lesson/question and original assignment
   provenance before any response. Resume reuses that immutable content. Metadata-only
   differences from older clients cannot overwrite provenance or block subsequent attempts;
   actual question/lesson changes under the same ID are still rejected.
@@ -94,7 +94,7 @@ checkpoint promotion is performed by this exporter.
 
 1. Approve consent, withdrawal, retention and participant eligibility procedures. Signup
    currently records `draft-research-consent-v1`; changing collection mode does not change it.
-2. Review generated questions/answer keys and the fixed final MCQs for correctness and
+2. Review authored questions/answer keys and the fixed final MCQs for correctness and
    coverage. Add a reviewed baseline and unseen transfer/delayed assessment protocol.
    Final MCQ accuracy alone does not establish learning gain or question-selection benefit.
 3. Define the outcome and comparison policy before model optimization. The existing

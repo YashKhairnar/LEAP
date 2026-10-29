@@ -47,7 +47,7 @@ backend/
 │   ├── database.py      Transactions, persistence and resume state
 │   ├── auth.py          Password and session-token primitives
 │   ├── paths.py         Stable backend asset root
-│   ├── tutoring/        generator.py, lesson_code.py
+│   ├── tutoring/        authored_content.py, generator.py, lesson_code.py
 │   ├── assessments/     bank.py, service.py
 │   ├── collection/      config.py, export.py
 │   ├── execution/       cells.py, sandbox.py, runner.py, datasets.py
@@ -60,7 +60,7 @@ backend/
 └── data/                Local participant database; not source code
 ```
 
-`tutoring/generator.py` owns LLM prompting/validation; `tutoring/lesson_code.py` owns the
+`tutoring/authored_content.py` owns versioned lessons and questions; `tutoring/lesson_code.py` owns the
 fixed code, prerequisites and authored explore-the-code edits. Final MCQs and answer keys
 live in `assessments/bank.py`; scoring lives in `assessments/service.py`. Python packages use
 relative imports so both local `app.main:app` and root-level `backend.app.main:app` work.

@@ -11,7 +11,7 @@ been updated or that published experimental results have been rerun.
 - Three tasks (sentiment, CNN, regression), six stages each; current lesson navigation uses
   Bridge, Apply and Check (`connect`, `practice`, `review`).
 - Task introduction followed by dataset preview; completed-stage review and persisted resume.
-- Six-part generated lessons: meaning, analogy, example, Python code, result, why it matters;
+- Six-part authored lessons: meaning, analogy, example, Python code, result, why it matters;
   code explanations, deterministic exploration edits and short takeaways.
 - Fixed server-owned code and prerequisites, versioned exercise datasets, isolated execution.
 - Ten authored MCQs per task, server-side scoring, immutable first submission, no early
