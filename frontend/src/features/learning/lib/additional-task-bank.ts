@@ -39,7 +39,7 @@ function questions(task: AdditionalTask, stage: StageSpec, step: InstructionalSt
   const base = `${task.id}.${stage.id}.${step}`;
   const make = (index: number, typeLabel: string, prompt: string, options: string[], correctAnswer: string): QuestionItem => {
     const id = `${base}.${index}`;
-    return { id, step, actionType: INSTRUCTIONAL_ACTIONS[step][index], typeLabel, prompt, options: shuffleQuestionOptions(id, options), correctAnswer, explanation: `The key idea is ${correctAnswer}.`, misconception: `${stage.id}_${step}`, learningObjectives: [`${task.id}_${stage.id}`] };
+    return { id, step, actionType: INSTRUCTIONAL_ACTIONS[step][index], typeLabel, prompt, options: shuffleQuestionOptions(id, options, correctAnswer), correctAnswer, explanation: `The key idea is ${correctAnswer}.`, misconception: `${stage.id}_${step}`, learningObjectives: [`${task.id}_${stage.id}`] };
   };
   if (step === "implement") return [
     { ...make(2, "Code construction", stage.constructionPrompt, [], stage.solution), answerType: "code", evaluatorId: stage.evaluatorId, starterCode: stage.starterCode },

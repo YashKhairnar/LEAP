@@ -16,15 +16,41 @@ type LessonSection = { type: LessonSectionType; title: string; body: string; ite
 type CodeExperiment = { title: string; find: string; replace: string; expected_change: string };
 type LessonContent = { title: string; introduction: string; sections: LessonSection[]; code_explanation?: string[]; try_this?: (CodeExperiment | string)[]; key_takeaway?: string };
 
-export default function GeneratedTutorCard({ task, stage, stageNumber, totalStages = 6, step, actionType, lessonContext, learningObjectives, onAttempt, onPresented, onRestoredCorrect, reviewOnly = false }: {
+const JAVA_ANALOGY_EXAMPLES: Record<string, string> = {
+  "sentiment_classification.data_loading_and_preparation": "List<Review> reviews = new ArrayList<>(); reviews.add(new Review(\"Great!\", \"positive\"));",
+  "sentiment_classification.train_test_split": "List<Review> training = reviews.subList(0, 80); List<Review> test = reviews.subList(80, reviews.size());",
+  "sentiment_classification.tfidf_vectorization": "Map<String, Double> weights = new HashMap<>(); weights.put(\"excellent\", 1.2);",
+  "sentiment_classification.model_training": "classifier.fit(trainingFeatures, trainingLabels);",
+  "sentiment_classification.prediction": "String prediction = classifier.predict(reviewFeatures);",
+  "sentiment_classification.evaluation": "double accuracy = (double) correct / total;",
+  "cnn.load_images": "int[] pixels = new int[64]; int digit = 7;",
+  "cnn.normalize_split": "double scaledPixel = pixel / 16.0;",
+  "cnn.build_cnn": "layers.add(new Conv2D(16, 3)); layers.add(new ReLU());",
+  "cnn.train_network": "optimizer.step(); // update the learned weights",
+  "cnn.classify_images": "int predictedDigit = argmax(scores);",
+  "cnn.evaluate_cnn": "double accuracy = (double) correct / total;",
+  "regression.prepare_housing_data": "House house = new House(3, 2, 1800, 25, 325000.0);",
+  "regression.split_housing_data": "List<House> training = houses.subList(0, 80); List<House> test = houses.subList(80, houses.size());",
+  "regression.scale_features": "double scaled = (value - mean) / standardDeviation;",
+  "regression.train_regression": "model.fit(trainingFeatures, trainingPrices);",
+  "regression.predict_prices": "double predictedPrice = model.predict(houseFeatures);",
+  "regression.evaluate_regression": "double mae = Math.abs(actualPrice - predictedPrice);",
+};
+
+export default function GeneratedTutorCard({ task, stage, stageNumber, totalStages = 6, step, actionType, lessonContext, learningObjectives, onAttempt, onPresented, onRestoredCorrect, onContinue, continueDisabled = false, continueLabel = "Continue", confidence, onConfidence, reviewOnly = false }: {
   task: string; stage: string; stageNumber?: number; totalStages?: number; step: InstructionalStep; actionType: InstructionalActionType; lessonContext: string; learningObjectives: string[];
   onAttempt: (item: QuestionItem, answer: string, correct: boolean, attempt: number, responseTimeMs: number, presentationId: string, evidence: AttemptEvidence) => Promise<void>;
   onPresented: (item: QuestionItem, presentationId: string) => void;
   onRestoredCorrect?: (step: InstructionalStep) => void;
+  onContinue?: () => void;
+  continueDisabled?: boolean;
+  continueLabel?: string;
+  confidence?: string | null;
+  onConfidence?: (value: string) => void;
   reviewOnly?: boolean;
 }) {
   const learner = getAuth()?.user;
-  const lessonKey = `leap.generated.lesson.v18.${learner?.user_id ?? "anonymous"}.${learner?.analogy_preference ?? "java"}.${task}.${stage}`;
+  const lessonKey = `leap.generated.lesson.v19.${learner?.user_id ?? "anonymous"}.${learner?.analogy_preference ?? "java"}.${task}.${stage}`;
   const [stageLesson, setStageLesson] = useState<LessonContent | null>(() => {
     if (typeof window === "undefined" || reviewOnly) return null;
     const saved = window.sessionStorage.getItem(lessonKey);
@@ -40,11 +66,13 @@ export default function GeneratedTutorCard({ task, stage, stageNumber, totalStag
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showHint, setShowHint] = useState(false);
-  const viewModeKey = `leap.learning.view-mode.v1.${learner?.user_id ?? "anonymous"}.${task}.${stage}`;
+  const viewModeKey = `leap.learning.view-mode.v2.${learner?.user_id ?? "anonymous"}.${task}`;
   const [viewMode, setViewMode] = useState<"split" | "learn" | "practice">(() => {
     if (typeof window === "undefined") return "split";
     const saved = window.localStorage.getItem(viewModeKey);
-    return saved === "split" || saved === "learn" || saved === "practice" ? saved : "split";
+    return saved === "split" || saved === "learn" || saved === "practice"
+      ? saved
+      : window.matchMedia("(max-width: 900px)").matches ? "practice" : "split";
   });
   const practiceNoticeKey = `leap.practice.personalization-notice.v1.${learner?.user_id ?? "anonymous"}.${task}`;
   const [personalizationNoticeAcknowledged, setPersonalizationNoticeAcknowledged] = useState(() => {
@@ -65,6 +93,12 @@ export default function GeneratedTutorCard({ task, stage, stageNumber, totalStag
     setViewMode(mode);
     window.localStorage.setItem(viewModeKey, mode);
   };
+  useEffect(() => {
+    const saved = window.localStorage.getItem(viewModeKey);
+    if (saved === "split" || saved === "learn" || saved === "practice") {
+      window.setTimeout(() => setViewMode(saved), 0);
+    }
+  }, [viewModeKey]);
   useEffect(() => { onAttemptRef.current = onAttempt; onPresentedRef.current = onPresented; onRestoredCorrectRef.current = onRestoredCorrect; }, [onAttempt, onPresented, onRestoredCorrect]);
 
   const prefetchNextStep = useCallback(async (lesson: LessonContent) => {
@@ -121,7 +155,7 @@ export default function GeneratedTutorCard({ task, stage, stageNumber, totalStag
           const restoredItem: QuestionItem = {
             id: `generated.${saved.content_instance_id}`, step, actionType: restoredAction,
             typeLabel: "LLM-generated question", prompt: saved.content.question,
-            options: shuffleQuestionOptions(`generated.${saved.content_instance_id}`, saved.content.options), correctAnswer: saved.content.expected_answer,
+            options: shuffleQuestionOptions(`generated.${saved.content_instance_id}`, saved.content.options, saved.content.expected_answer), correctAnswer: saved.content.expected_answer,
             explanation: saved.content.explanation, misconception: "generated_question_incorrect",
             learningObjectives: saved.content.concepts_tested.length ? saved.content.concepts_tested : learningObjectives,
             lessonContent: saved.lesson, selectionPolicy: "legacy_unknown",
@@ -167,7 +201,7 @@ export default function GeneratedTutorCard({ task, stage, stageNumber, totalStag
       if (!cachedLesson) window.sessionStorage.setItem(lessonKey, JSON.stringify(body.lesson));
       setStageLesson(body.lesson);
       const assignmentPolicy = typeof effectiveDecision?.assignment_policy === "string" ? effectiveDecision.assignment_policy : "uniform_random_v1";
-      const nextItem: QuestionItem = { id: `generated.${body.content_instance_id}`, step, actionType: effectiveAction, typeLabel: "LLM-generated question", prompt: content.question, options: shuffleQuestionOptions(`generated.${body.content_instance_id}`, content.options), correctAnswer: content.expected_answer, explanation: content.explanation, misconception: "generated_question_incorrect", learningObjectives: content.concepts_tested.length ? content.concepts_tested : learningObjectives, lessonContent: body.lesson, plannerDecision: effectiveDecision, selectionPolicy: assignmentPolicy, generationMetadata: { schema_version: "stage_sections_question_v3", prompt_version: body.prompt_version, code_version: body.code_version, curriculum_layout: "stage_sections_question_v3", model: body.model, dataset: body.dataset, task, stage, step, selected_action_type: effectiveAction, assignment_policy: assignmentPolicy, selection_probability: effectiveDecision?.selection_probability, content_instance_id: body.content_instance_id, curriculum_context: lessonContext, requested_learning_objectives: learningObjectives, lesson_reused: cachedLesson !== null, generated_at: new Date().toISOString() } };
+      const nextItem: QuestionItem = { id: `generated.${body.content_instance_id}`, step, actionType: effectiveAction, typeLabel: "Authored question", prompt: content.question, options: shuffleQuestionOptions(`generated.${body.content_instance_id}`, content.options, content.expected_answer), correctAnswer: content.expected_answer, explanation: content.explanation, misconception: "generated_question_incorrect", learningObjectives: content.concepts_tested.length ? content.concepts_tested : learningObjectives, lessonContent: body.lesson, plannerDecision: effectiveDecision, selectionPolicy: assignmentPolicy, generationMetadata: { schema_version: "stage_sections_question_v3", prompt_version: body.prompt_version, code_version: body.code_version, curriculum_layout: "stage_sections_question_v3", model: body.model, dataset: body.dataset, task, stage, step, selected_action_type: effectiveAction, assignment_policy: assignmentPolicy, selection_probability: effectiveDecision?.selection_probability, content_instance_id: body.content_instance_id, curriculum_context: lessonContext, requested_learning_objectives: learningObjectives, lesson_reused: cachedLesson !== null, generated_at: new Date().toISOString() } };
       const nextPresentationId = crypto.randomUUID();
       setGenerated({ model: body.model, lesson: body.lesson, content }); setItem(withCollectionContent(nextItem, body.collection_content)); setPresentationId(nextPresentationId);
       setAttempt(1); hintUsed.current = false; answerRevealed.current = false; historyKnown.current = true;
@@ -342,8 +376,8 @@ export default function GeneratedTutorCard({ task, stage, stageNumber, totalStag
               {stageLesson.sections.map((section, index) => {
                 const nextSection = stageLesson.sections[index + 1];
                 const previousSection = stageLesson.sections[index - 1];
-                if (section.type === "code" && previousSection?.type === "example") return null;
-                if (section.type === "example" && nextSection?.type === "code") return <div className="example-code-pair" key="example-code-pair">
+                if (section.type === "code" && previousSection?.type === "result") return null;
+                if (section.type === "result" && nextSection?.type === "code") return <div className="result-code-pair" key="result-code-pair">
                   <LessonSectionView section={section} task={task} stage={stage} step={step} />
                   <LessonSectionView section={nextSection} task={task} stage={stage} step={step} codeExplanation={stageLesson.code_explanation} tryThis={stageLesson.try_this} />
                 </div>;
@@ -391,14 +425,14 @@ export default function GeneratedTutorCard({ task, stage, stageNumber, totalStag
             {showPersonalizationNotice && (
               <section className="practice-personalization-notice" aria-labelledby="practice-personalization-title">
                 <span className="practice-notice-label">Before your first practice question</span>
-                <h3 id="practice-personalization-title">How LEAP personalizes your practice</h3>
-                <p>Your response helps LEAP estimate what is clear and where another approach may help. For each practice question, LEAP records:</p>
+                <h3 id="practice-personalization-title">A quick note about practice</h3>
+                <p>Your answers help us see which ideas are clear and which may need another explanation. We record:</p>
                 <ul>
                   <li>Your answer and whether it was correct</li>
                   <li>Your attempt count and whether you opened a hint</li>
                   <li>Your active response time while the question is visible</li>
                 </ul>
-                <p>LEAP uses this learning history to choose how later questions approach the concept. This practice supports your learning; it is separate from the final assessment score.</p>
+                <p>This information can change the style of later practice questions. Practice is separate from the final assessment score.</p>
                 <div className="practice-notice-actions">
                   <button className="primary-button" type="button" onClick={acknowledgePersonalizationNotice}>I understand — start practice</button>
                   <Link href="/privacy" target="_blank">Read the data notice</Link>
@@ -409,7 +443,8 @@ export default function GeneratedTutorCard({ task, stage, stageNumber, totalStag
             {generated && item && !showPersonalizationNotice && (
               <div ref={questionElement}>
                 <div className="generated-question-section">
-                  <span className="question-kicker">CHECK YOUR UNDERSTANDING</span>
+                  <span className="question-kicker">CHECK YOUR ANSWER</span>
+                    <p className="question-context"><strong>Before you answer:</strong> {stageLesson.introduction} Use the lesson above to choose the best answer.</p>
                   <p className="generated-question">{item.prompt}</p>
                 </div>
 
@@ -474,7 +509,7 @@ export default function GeneratedTutorCard({ task, stage, stageNumber, totalStag
                 {showHint && (
                   <div className="hint-card">
                     <div className="hint-header">
-                      <span className="hint-kicker">HINT GUIDANCE</span>
+                      <span className="hint-kicker">HINT</span>
                     </div>
                     <p className="hint-body">{generated.content.hint}</p>
                   </div>
@@ -501,13 +536,25 @@ export default function GeneratedTutorCard({ task, stage, stageNumber, totalStag
                     )}
                   </div>
                 )}
+                {step === "review" && onConfidence && !reviewOnly && (
+                  <fieldset className="confidence-check confidence-check-inline">
+                    <legend>Stage check: How confident are you?</legend>
+                    <div>{["Not yet", "Somewhat", "Confident"].map((level) => <button type="button" className={confidence === level ? "confidence selected" : "confidence"} onClick={() => onConfidence(level)} key={level}>{level}</button>)}</div>
+                  </fieldset>
+                )}
+                {onContinue && !reviewOnly && (
+                  <div className="question-continue">
+                    <button type="button" className="primary-button" disabled={continueDisabled} onClick={onContinue}>{continueLabel} <span aria-hidden="true">→</span></button>
+                    <span>{continueDisabled ? step === "review" ? "Answer the question and complete the stage check to continue." : "Answer correctly to continue." : "Ready for the next step."}</span>
+                  </div>
+                )}
               </div>
             )}
 
             {viewMode === "practice" && (
               <div className="pane-jump-footer">
                 <button type="button" className="text-button" onClick={() => changeViewMode("learn")}>
-                  ← Back to Full Lesson Guide
+                  ← Back to Lesson
                 </button>
               </div>
             )}
@@ -530,6 +577,8 @@ function repeatsCode(body: string, code: string | null): boolean {
 
 function LessonSectionView({ section, task, stage, step, codeExplanation = [], tryThis = [] }: { section: LessonSection; task: string; stage: string; step: InstructionalStep; codeExplanation?: string[]; tryThis?: (CodeExperiment | string)[] }) {
   const isOrderedList = section.type === "pipeline" || section.type === "transformation";
+  const showJavaExample = section.type === "analogy" && getAuth()?.user?.analogy_preference === "java";
+  const javaExample = JAVA_ANALOGY_EXAMPLES[`${task}.${stage}`];
 
   return (
     <section className={`lesson-section lesson-section-${section.type}`}>
@@ -539,12 +588,25 @@ function LessonSectionView({ section, task, stage, step, codeExplanation = [], t
       </h4>
       {section.type === "code" ? (
         <ExecutableLessonCell section={section} task={task} stage={stage} step={step} codeExplanation={codeExplanation} tryThis={tryThis} />
-      ) : (
+      ) : section.type !== "why_it_matters" ? (
         <p className="section-body">{section.body}</p>
+      ) : (
+        <details className="lesson-details">
+          <summary>Why this matters</summary>
+          <p className="section-body">{section.body}</p>
+        </details>
+      )}
+      {showJavaExample && javaExample && (
+        <div className="java-analogy-example">
+          <strong>Small Java example</strong>
+          <pre><code>{javaExample}</code></pre>
+        </div>
       )}
       
-      {section.type !== "code" && section.items.length > 0 && (
-        isOrderedList ? (
+      {section.type !== "code" && section.type !== "why_it_matters" && section.items.length > 0 && (
+        <>
+        <p className="section-list-label">Key points</p>
+        {isOrderedList ? (
           <ol className="section-bullet-list">
             {section.items.map((item) => <li key={item}>{item}</li>)}
           </ol>
@@ -554,7 +616,8 @@ function LessonSectionView({ section, task, stage, step, codeExplanation = [], t
               <li key={item}>{item}</li>
             ))}
           </ul>
-        )
+        )}
+        </>
       )}
       {section.type === "data_preview" && <DatasetLessonPreview task={task} />}
     </section>
@@ -648,10 +711,26 @@ function ExecutableLessonCell({ section, task, stage, step, codeExplanation, try
   const run = async () => {
     setRunning(true); setResult(null); setEditStatus(""); window.sessionStorage.setItem(editorKey, code);
     try {
-      const response = await fetch(`${API_URL}/api/code/run`, {
-        method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ execution_id: crypto.randomUUID(), session_id: window.sessionStorage.getItem("leap.learning.session.v1"), task, stage, step, code }),
-      });
+      let response: Response | null = null;
+      for (let attempt = 0; attempt < 2; attempt += 1) {
+        try {
+          response = await fetch(`${API_URL}/api/code/run`, {
+            method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ execution_id: crypto.randomUUID(), session_id: window.sessionStorage.getItem("leap.learning.session.v1"), task, stage, step, code }),
+          });
+        } catch (reason) {
+          if (attempt === 0) {
+            setEditStatus("The runtime is waking up. Retrying once…");
+            await new Promise((resolve) => window.setTimeout(resolve, 700));
+            continue;
+          }
+          throw reason;
+        }
+        if (response.status < 500 || attempt === 1) break;
+        setEditStatus("The runtime returned a temporary error. Retrying once…");
+        await new Promise((resolve) => window.setTimeout(resolve, 700));
+      }
+      if (!response) throw new Error("The execution runtime did not respond.");
       const body = await response.json() as ExecutionResult & { detail?: string };
       if (!response.ok) throw new Error(body.detail ?? `Execution API returned ${response.status}`);
       setResult(body);
@@ -797,13 +876,13 @@ function DataTable({ columns, rows }: { columns: string[]; rows: Record<string, 
 
 function sectionLabel(type: LessonSection["type"]): string {
   return {
-    meaning: "1. Meaning",
-    concept: "2. Core ML concept",
+    meaning: "1. What this means",
+    concept: "2. Main idea",
     analogy: "2. Analogy",
     example: "3. Example",
-    code: "4. Code",
-    result: "5. Result",
-    why_it_matters: "6. Why it matters",
+    code: "5. Try the code",
+    result: "4. What you should see",
+    why_it_matters: "6. Why this matters",
     concept_bridge: "Concept connection",
     real_life_analogy: "Analogy",
     data_preview: "Dataset preview",

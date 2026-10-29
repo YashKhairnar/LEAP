@@ -57,7 +57,7 @@ class FixedCodeExperimentTests(unittest.TestCase):
         result = generate_tutor_content(context, "test-fixed-experiments")
         expected = [asdict(item) for item in fixed_code_experiments("sentiment", "model_training")]
         self.assertEqual(result.lesson.model_dump()["try_this"], expected)
-        self.assertEqual(result.lesson.sections[3].code, fixed_lesson_code("sentiment", "model_training").code)
+        self.assertEqual(result.lesson.sections[4].code, fixed_lesson_code("sentiment", "model_training").code)
 
     @unittest.skipUnless(
         all(importlib.util.find_spec(name) for name in ("pandas", "numpy", "sklearn", "torch")),

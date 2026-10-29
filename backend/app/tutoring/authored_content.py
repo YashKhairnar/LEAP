@@ -21,7 +21,7 @@ from ..models import (
 )
 from .lesson_code import fixed_code_experiments, fixed_lesson_code
 
-AUTHORED_CONTENT_VERSION = "authored_content_v1"
+AUTHORED_CONTENT_VERSION = "authored_content_v2"
 
 
 class AuthoredContentUnavailable(ValueError):
@@ -34,8 +34,8 @@ STAGES: dict[str, dict[str, object]] = {
         "intro": "A classifier starts with rows that keep each review paired with its known sentiment.",
         "target": "a pandas DataFrame of labeled rows",
         "relationship": "one review becomes one row with an input and a label",
-        "analogy": "A Java list of Review objects becomes a table where each object becomes one row.",
-        "example": "The review column supplies the text feature. The sentiment column supplies the answer the model will learn to predict.",
+        "analogy": "In Java, you might keep Review objects in a List. Here, pandas loads each review into one DataFrame row and keeps its sentiment label beside it.",
+        "example": "The review column is the text input. The sentiment column is the known answer the model will learn to predict.",
         "result": "read_csv creates df, then head displays sample rows and len(df) reports the number of loaded rows.",
         "why": "Every later stage depends on correctly paired review text and sentiment labels.",
         "operation": ("Which call loads the review dataset into a DataFrame?", "pd.read_csv(\"reviews.csv\")", ["pd.read_csv(\"reviews.csv\")", "model.fit(X, y)", "model.predict(X)"], "read_csv reads the CSV into a pandas DataFrame; fitting and prediction happen later."),
@@ -354,8 +354,8 @@ def _lesson(request: TutorGenerationRequest, data: dict[str, object]) -> Generat
         GeneratedLessonSection(type="meaning", title="What this stage means", body=str(data["intro"]), items=[], code=None, language=None),
         GeneratedLessonSection(type=analogy_type, title="Connect the idea", body=analogy_body, items=[], code=None, language=None),
         GeneratedLessonSection(type="example", title="A small example", body=str(data["example"]), items=[], code=None, language=None),
-        GeneratedLessonSection(type="code", title="Run the Python step", body="Run the code and notice which object or output this stage creates.", items=[], code=code.code, language=code.language),
         GeneratedLessonSection(type="result", title="What the code produces", body=str(data["result"]), items=[], code=None, language=None),
+        GeneratedLessonSection(type="code", title="Try the code", body="Run the code and compare what it creates with the Result section above.", items=[], code=code.code, language=code.language),
         GeneratedLessonSection(type="why_it_matters", title="Why it matters", body=str(data["why"]), items=[], code=None, language=None),
     ]
     experiments = fixed_code_experiments(request.task, request.stage)

@@ -23,7 +23,7 @@ generate_tutor_content = authored_tutor_content
 # authored six-section contract; it is not used for model validation or calls.
 TUTOR_SCHEMA = {"properties": {"lesson": {"properties": {
     "sections": {"minItems": 6, "maxItems": 6, "items": {"properties": {
-        "type": {"enum": ["meaning", "analogy", "example", "code", "result", "why_it_matters"]}
+        "type": {"enum": ["meaning", "analogy", "example", "result", "code", "why_it_matters"]}
     }}},
     "code_explanation": {}, "key_takeaway": {},
 }, "required": ["title", "introduction", "sections", "code_explanation", "key_takeaway"]}}}

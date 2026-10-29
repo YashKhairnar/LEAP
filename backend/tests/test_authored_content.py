@@ -52,7 +52,7 @@ class AuthoredContentTests(unittest.TestCase):
                     self.assertEqual(result.model, "authored")
                     self.assertEqual(len(result.lesson.sections), 6)
                     self.assertIn(result.content.expected_answer, result.content.options)
-                    self.assertTrue(result.lesson.sections[3].code)
+                    self.assertTrue(result.lesson.sections[4].code)
 
 
 if __name__ == "__main__":

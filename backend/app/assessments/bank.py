@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 
-VERSION = "task_assessment_v1"
+VERSION = "task_assessment_v2"
 
 
 @dataclass(frozen=True)

@@ -163,7 +163,7 @@ def call_modal(program: str, dataset_filename: str) -> dict[str, Any]:
         method="POST",
     )
     try:
-        with urlopen(request, timeout=float(os.getenv("MODAL_SANDBOX_TIMEOUT_SECONDS", "50"))) as response:
+        with urlopen(request, timeout=float(os.getenv("MODAL_SANDBOX_TIMEOUT_SECONDS", "90"))) as response:
             return json.loads(response.read().decode("utf-8"))
     except HTTPError as error:
         detail = error.read().decode("utf-8", errors="replace")

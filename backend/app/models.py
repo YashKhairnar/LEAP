@@ -294,8 +294,8 @@ class GeneratedLessonContent(BaseModel):
 
     @model_validator(mode="after")
     def validate_sections(self):
-        six_part_order = ["meaning", "analogy", "example", "code", "result", "why_it_matters"]
-        pure_ml_order = ["meaning", "concept", "example", "code", "result", "why_it_matters"]
+        six_part_order = ["meaning", "analogy", "example", "result", "code", "why_it_matters"]
+        pure_ml_order = ["meaning", "concept", "example", "result", "code", "why_it_matters"]
         section_types = [section.type for section in self.sections]
         new_only_types = set(six_part_order) - {"code"}
         if any(section_type in new_only_types or section_type == "concept" for section_type in section_types):

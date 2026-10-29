@@ -31,6 +31,7 @@ export default function TaskLessonClient({ task, initialReviewStage }: { task: A
   const [completedStages, setCompletedStages] = useState(0);
   const [taskComplete, setTaskComplete] = useState(false);
   const [furthestStep, setFurthestStep] = useState(0);
+  const [confidence, setConfidence] = useState<string | null>(null);
   const [progressRestored, setProgressRestored] = useState(false);
   const [reviewStageIndex, setReviewStageIndex] = useState<number | null>(null);
   const [reviewInitialStep, setReviewInitialStep] = useState(0);
@@ -94,6 +95,7 @@ export default function TaskLessonClient({ task, initialReviewStage }: { task: A
   const recordAttempt = async (item: QuestionItem, answer: string, correct: boolean, attempt: number, responseTimeMs: number, presentationId: string, evidence: AttemptEvidence) => {
     const nextStep = steps[Math.min(stepIndex + 1, steps.length - 1)].id;
     const contentId = questionContentId(task.id, item);
+    if (correct) setMastered((current) => ({ ...current, [`${stage.id}.${item.step}`]: true }));
     await enqueueCollection({ endpoint: "/api/interactions", payload: {
       session_id: sessionId,
       content: item.collectionContent ?? { content_id: contentId, task: task.id, stage: stage.id, step: item.step, action_type: item.actionType, prompt: item.prompt, options: item.options, correct_answer: item.correctAnswer, explanation: item.explanation, misconception: item.misconception, learning_objectives: item.learningObjectives ?? [], lesson_content: item.lessonContent, planner_decision: item.plannerDecision, generation_metadata: item.generationMetadata },
@@ -105,7 +107,6 @@ export default function TaskLessonClient({ task, initialReviewStage }: { task: A
       location_after: { task: task.id, stage: stage.id, step: correct ? nextStep : item.step },
       event_timestamp: new Date().toISOString(), selection_policy: item.selectionPolicy ?? "llm_generated_content_v1", presentation_id: presentationId,
     }}).catch((error) => console.warn("Interaction queued for retry.", error));
-    if (correct) setMastered((current) => ({ ...current, [`${stage.id}.${item.step}`]: true }));
   };
 
   const finishStage = () => {
@@ -113,7 +114,7 @@ export default function TaskLessonClient({ task, initialReviewStage }: { task: A
     void enqueueCollection({ endpoint: "/api/events", payload: { event_id: crypto.randomUUID(), session_id: sessionId, event_type: "navigation", location: { task: task.id, stage: stage.id, step: "review" }, event_timestamp: new Date().toISOString(), data: { direction: final ? "complete_task" : "complete_stage", from_stage: stage.id, to_stage: final ? null : task.stages[stageIndex + 1].id, completed_stages: stageIndex + 1, total_stages: task.stages.length } } }).catch(() => undefined);
     setCompletedStages(stageIndex + 1);
     if (final) { setTaskComplete(true); requestAnimationFrame(() => document.getElementById("lesson")?.scrollIntoView({ behavior: "smooth", block: "start" })); return; }
-    setStageIndex((value) => value + 1); setStepIndex(0); setFurthestStep(0); setMastered({});
+    setStageIndex((value) => value + 1); setStepIndex(0); setFurthestStep(0); setMastered({}); setConfidence(null);
     requestAnimationFrame(() => document.getElementById("lesson")?.scrollIntoView({ behavior: "smooth", block: "start" }));
   };
 
@@ -132,10 +133,10 @@ export default function TaskLessonClient({ task, initialReviewStage }: { task: A
     {reviewStageIndex !== null ? <CompletedStageReview key={`${reviewStageIndex}.${reviewInitialStep}`} task={task.id} stage={taskIntroductions[task.id].stages[reviewStageIndex]} stageNumber={reviewStageIndex + 1} progress={overallProgress} taskComplete={taskComplete} onReturn={() => setReviewStageIndex(null)} completedStages={taskIntroductions[task.id].stages.slice(0, completedStages)} initialStepIndex={reviewInitialStep} onSelectStage={(stageId) => { const index = task.stages.findIndex((item) => item.id === stageId); selectStage(index, index < reviewStageIndex ? steps.length - 1 : 0); }} /> :
     <article className="lesson-content" id="lesson" tabIndex={-1}>
       {progressRestored && completedStages > 0 && <CompletedStagePicker stages={taskIntroductions[task.id].stages.slice(0, completedStages)} onSelect={(stageId) => selectStage(task.stages.findIndex((item) => item.id === stageId))} />}
-      {!taskComplete && <header className="lesson-context-header"><div><p className="eyebrow blue">Stage {stageIndex + 1} of {task.stages.length} · {step.label}</p><h2>{stage.title}</h2><p>{stage.intro}</p></div><CircularProgress value={overallProgress} /></header>}
+      {!taskComplete && <header className="lesson-context-header"><div><p className="eyebrow blue">You are here · Stage {stageIndex + 1} of {task.stages.length} · Step {stepIndex + 1} of {steps.length}</p><h2>{stage.title}</h2><p>{stage.intro}</p></div><CircularProgress value={overallProgress} /></header>}
       {!progressRestored && <p className="question-loading">Restoring your saved position…</p>}
-      {progressRestored && !taskComplete && <GeneratedTutorCard key={`${stage.id}.${step.id}`} task={task.id} stage={stage.id} step={step.id} actionType={bank[step.id][0].actionType} lessonContext={`${stage.title}. ${stage.intro} Concept: ${stage.concept}. Expected result: ${stage.result}.`} learningObjectives={bank[step.id][0].learningObjectives ?? []} onAttempt={recordAttempt} onPresented={recordPresentation} onRestoredCorrect={(restoredStep) => setMastered((state) => ({ ...state, [`${stage.id}.${restoredStep}`]: true }))} />}
-      {taskComplete ? <TaskAssessment task={task.id} onReview={(stageId) => selectStage(task.stages.findIndex((item) => item.id === stageId))} /> : <footer className="lesson-footer"><button className="text-button" disabled={stepIndex === 0 && stageIndex === 0} onClick={() => { if (stepIndex > 0) moveStep(stepIndex - 1); else selectStage(stageIndex - 1, steps.length - 1); }}>← Previous</button><span className={!masteredCurrent ? "progression-note" : ""}>{!masteredCurrent ? "Complete the exercise to continue" : `Step ${stepIndex + 1} of ${steps.length}`}</span>{stepIndex < steps.length - 1 ? <button className="primary-button" disabled={!masteredCurrent} onClick={continueStep}>Continue <span>→</span></button> : <button className="primary-button" disabled={!masteredCurrent} onClick={finishStage}>{stageIndex === task.stages.length - 1 ? "Start final assessment" : "Next stage"} <span>→</span></button>}</footer>}
+      {progressRestored && !taskComplete && <GeneratedTutorCard key={`${stage.id}.${step.id}`} task={task.id} stage={stage.id} step={step.id} actionType={bank[step.id][0].actionType} lessonContext={`${stage.title}. ${stage.intro} Concept: ${stage.concept}. Expected result: ${stage.result}.`} learningObjectives={bank[step.id][0].learningObjectives ?? []} onAttempt={recordAttempt} onPresented={recordPresentation} onRestoredCorrect={(restoredStep) => setMastered((state) => ({ ...state, [`${stage.id}.${restoredStep}`]: true }))} onContinue={step.id === "review" ? finishStage : continueStep} continueDisabled={!masteredCurrent || (step.id === "review" && !confidence)} continueLabel={step.id === "review" ? (stageIndex === task.stages.length - 1 ? "Start final assessment" : "Next stage") : "Continue"} confidence={confidence} onConfidence={setConfidence} />}
+      {taskComplete ? <TaskAssessment task={task.id} onReview={(stageId) => selectStage(task.stages.findIndex((item) => item.id === stageId))} /> : <footer className="lesson-footer"><button className="text-button" disabled={stepIndex === 0 && stageIndex === 0} onClick={() => { if (stepIndex > 0) moveStep(stepIndex - 1); else selectStage(stageIndex - 1, steps.length - 1); }}>← Previous</button><span className={!masteredCurrent ? "progression-note" : ""}>{!masteredCurrent ? "Complete the question to continue" : `Step ${stepIndex + 1} of ${steps.length}`}</span><span aria-hidden="true" /></footer>}
     </article>}
   </LearningShell>;
 }

@@ -51,7 +51,7 @@ DATASET_FILES = {
 
 @app.function(
     image=image,
-    timeout=45,
+    timeout=90,
     cpu=1,
     memory=1024,
     block_network=True,
@@ -80,7 +80,7 @@ def execute(request: ExecuteRequest, authorization: str | None = Header(default=
                 cwd=workspace,
                 text=True,
                 capture_output=True,
-                timeout=35,
+                timeout=75,
                 check=False,
             )
         except subprocess.TimeoutExpired as error:

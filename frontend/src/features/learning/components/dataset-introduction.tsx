@@ -71,6 +71,10 @@ export default function DatasetIntroduction({ task }: { task: TaskIntroduction }
       <h1 id="dataset-title">Meet <code>{dataset.runtime_filename}</code></h1>
       <p>{dataset.description}</p>
       <p className="dataset-next-hint">Explore a few rows, then start the lesson when you’re ready.</p>
+      <nav className="dataset-quick-navigation" aria-label="Dataset preview actions">
+        <Link className="text-button" href={`/learn/${task.slug}`}>← Back to overview</Link>
+        <Link className="primary-button" href={`/learn/${task.slug}/lesson`}>Next: start the lesson <span aria-hidden="true">→</span></Link>
+      </nav>
     </header>
 
     <dl className="dataset-facts">

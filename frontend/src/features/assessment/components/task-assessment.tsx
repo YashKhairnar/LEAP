@@ -94,6 +94,10 @@ export default function TaskAssessment({ task, phase = "post", onReview }: { tas
   const revisit = result ? [...new Map(result.questions.filter((question) => !question.correct).map((question) => [question.stage, question])).values()] : [];
 
   return <section className="task-assessment" aria-labelledby="assessment-title">
+    <div className="assessment-mode-banner" role="status">
+      <strong>{isPre ? "STARTING ASSESSMENT" : "FINAL ASSESSMENT"}</strong>
+      <span>{isPre ? "This is before the lesson. It is not a lesson step." : "You finished the lesson. This is the final quiz, not another lesson step."}</span>
+    </div>
     <header className="assessment-header">
       <p className="eyebrow blue">{isPre ? "Before you begin" : assessment.unlocked ? "All six lesson stages completed" : "Assessment preview"}</p>
       <h2 id="assessment-title">{title}</h2>

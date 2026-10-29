@@ -6,7 +6,7 @@ from app.models import GeneratedLessonContent
 from app.tutoring.generator import TUTOR_SCHEMA
 
 
-SECTION_ORDER = ["meaning", "analogy", "example", "code", "result", "why_it_matters"]
+SECTION_ORDER = ["meaning", "analogy", "example", "result", "code", "why_it_matters"]
 
 
 def lesson_with(section_order: list[str]) -> dict:
@@ -46,7 +46,7 @@ class LessonStructureTests(unittest.TestCase):
         self.assertEqual([section.type for section in lesson.sections], SECTION_ORDER)
 
     def test_model_rejects_an_out_of_order_sequence(self):
-        wrong_order = ["meaning", "example", "analogy", "code", "result", "why_it_matters"]
+        wrong_order = ["meaning", "example", "analogy", "result", "code", "why_it_matters"]
         with self.assertRaisesRegex(ValidationError, "teaching sequence"):
             GeneratedLessonContent.model_validate(lesson_with(wrong_order))
 
@@ -74,7 +74,7 @@ class LessonStructureTests(unittest.TestCase):
 
     def test_rejects_ambiguous_edit(self):
         source = self.experiment_lesson()
-        source["sections"][3]["code"] = "model.fit(X, y)\nmodel.fit(X, y)"
+        source["sections"][4]["code"] = "model.fit(X, y)\nmodel.fit(X, y)"
         with self.assertRaisesRegex(ValidationError, "match exactly one location"):
             GeneratedLessonContent.model_validate(source)
 
@@ -88,7 +88,7 @@ class LessonStructureTests(unittest.TestCase):
 
     def test_accepts_multiline_edit_with_indentation(self):
         source = self.experiment_lesson(find="    print(value)", replace="    print(value * 2)")
-        source["sections"][3]["code"] = "for value in [1, 2]:\n    print(value)"
+        source["sections"][4]["code"] = "for value in [1, 2]:\n    print(value)"
         lesson = GeneratedLessonContent.model_validate(source)
         self.assertEqual(lesson.try_this[0].replace, "    print(value * 2)")
 

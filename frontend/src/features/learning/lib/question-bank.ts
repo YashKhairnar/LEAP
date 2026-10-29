@@ -75,7 +75,7 @@ export type StageDefinition = {
  * distributing correct answers across all positions instead of always placing
  * them first. The authored arrays can therefore stay easy to review.
  */
-export function shuffleQuestionOptions(id: string, options: string[]): string[] {
+export function shuffleQuestionOptions(id: string, options: string[], correctAnswer?: string): string[] {
   if (options.length < 2) return [...options];
   let hash = 2166136261;
   for (const character of id) {
@@ -87,6 +87,13 @@ export function shuffleQuestionOptions(id: string, options: string[]): string[] 
     hash = Math.imul(hash ^ (hash >>> 13), 1274126177);
     const swapIndex = (hash >>> 0) % (index + 1);
     [shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]];
+  }
+  if (correctAnswer) {
+    const correctIndex = shuffled.indexOf(correctAnswer);
+    if (correctIndex >= 0) {
+      const targetIndex = (hash >>> 0) % shuffled.length;
+      [shuffled[correctIndex], shuffled[targetIndex]] = [shuffled[targetIndex], shuffled[correctIndex]];
+    }
   }
   return shuffled;
 }
@@ -178,7 +185,7 @@ const constructionTasks: Record<string, { evaluatorId: CodeEvaluatorId; prompt: 
 function buildQuestionBank(stage: StageDefinition): Record<StepId, QuestionItem[]> {
   const q = (id: string, step: StepId, index: number, typeLabel: string, prompt: string, options: string[], correctAnswer: string, explanation: string, misconception = stage.misconception): QuestionItem => {
     const questionId = `${stage.id}.${id}`;
-    return { id: questionId, step, actionType: INSTRUCTIONAL_ACTIONS[step][index], typeLabel, prompt, options: shuffleQuestionOptions(questionId, options), correctAnswer, explanation, misconception, learningObjectives: stage.objectives };
+    return { id: questionId, step, actionType: INSTRUCTIONAL_ACTIONS[step][index], typeLabel, prompt, options: shuffleQuestionOptions(questionId, options, correctAnswer), correctAnswer, explanation, misconception, learningObjectives: stage.objectives };
   };
   const construction = constructionTasks[stage.id];
   return {

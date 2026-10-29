@@ -10,7 +10,7 @@ from unittest.mock import patch
 from pydantic import ValidationError
 
 from app.assessments.bank import QUESTION_BANK, VERSION
-from app.assessments.service import AssessmentSubmission, get_assessment, submit_assessment
+from app.assessments.service import AssessmentSubmission, get_assessment, questions_for_phase, submit_assessment
 from app.database import connect, initialize_database, list_progress
 from app.tutoring.lesson_code import FIXED_LESSON_CODE
 from app.main import app, current_user
@@ -67,6 +67,13 @@ class TaskAssessmentTests(unittest.TestCase):
             for question in public["questions"]:
                 self.assertNotIn("answer", question)
                 self.assertNotIn("explanation", question)
+
+    def test_post_assessment_uses_a_distinct_question_form(self):
+        for task in QUESTION_BANK:
+            pre = questions_for_phase(task, "pre")
+            post = questions_for_phase(task, "post")
+            self.assertEqual({question.id for question in pre}, {question.id for question in post})
+            self.assertNotEqual([question.prompt for question in pre], [question.prompt for question in post])
 
     def test_scores_all_tasks_and_restores_results(self):
         for task in QUESTION_BANK:

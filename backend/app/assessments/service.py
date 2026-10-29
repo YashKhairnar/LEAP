@@ -1,13 +1,13 @@
 """Server-scored, first-submission assessments kept separate from tutor progress."""
 
-from dataclasses import asdict
+from dataclasses import asdict, replace
 from datetime import datetime, timezone
 import json
 from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from .bank import QUESTION_BANK, VERSION, assessment_task
+from .bank import QUESTION_BANK, VERSION, AssessmentQuestion, assessment_task
 from ..database import connect
 from ..tutoring.lesson_code import FIXED_LESSON_CODE
 from ..collection.config import assessment_preview_allowed, collection_mode
@@ -20,6 +20,20 @@ class AssessmentSubmission(BaseModel):
 
 
 AssessmentPhase = Literal["pre", "post"]
+
+
+def questions_for_phase(task: str, phase: AssessmentPhase) -> tuple[AssessmentQuestion, ...]:
+    """Use a clearly different post-assessment form without changing its scoring contract."""
+    questions = QUESTION_BANK[assessment_task(task)]
+    if phase == "pre":
+        return questions
+    return tuple(
+        replace(
+            question,
+            prompt=f"After the lesson, apply the idea: {question.prompt}",
+        )
+        for question in reversed(questions)
+    )
 
 
 def _unlocked(connection, learner_id: str, task: str) -> bool:
@@ -46,7 +60,7 @@ def get_assessment(learner_id: str, task: str, phase: AssessmentPhase = "post") 
     # Never deliver the answer key (including explanations) before submission.
     questions = [
         {key: value for key, value in asdict(question).items() if key not in {"answer", "explanation"}}
-        for question in QUESTION_BANK[task]
+        for question in questions_for_phase(task, phase)
     ] if phase == "pre" or unlocked or assessment_preview_allowed() else []
     return {
         "task": task, "phase": phase, "version": VERSION,
@@ -61,7 +75,7 @@ def submit_assessment(learner_id: str, task: str, submission: AssessmentSubmissi
     task = assessment_task(task)
     if submission.version != VERSION:
         raise ValueError("The assessment has changed. Reload it before submitting.")
-    questions = QUESTION_BANK[task]
+    questions = questions_for_phase(task, phase)
     if set(submission.answers) != {question.id for question in questions}:
         raise ValueError("Answer all 10 questions from this task's assessment.")
     reviews = [
