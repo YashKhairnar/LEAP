@@ -17,6 +17,9 @@ export default function TaskAssessment({ task, phase = "post", onReview }: { tas
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [started, setStarted] = useState(phase === "pre");
+  const [questionIndex, setQuestionIndex] = useState(0);
+  const questionHeading = useRef<HTMLLegendElement>(null);
   const resultHeading = useRef<HTMLHeadingElement>(null);
   const submissionInFlight = useRef(false);
   const draftKey = useRef<string | null>(null);
@@ -84,6 +87,7 @@ export default function TaskAssessment({ task, phase = "post", onReview }: { tas
   };
 
   const isPre = phase === "pre";
+  const taskSlug = task === "sentiment_classification" ? "sentiment" : task;
   const title = isPre ? "Before-learning assessment" : "Final task assessment";
   if (loading) return <p className="question-loading" role="status">Preparing your {isPre ? "starting" : "final"} assessment…</p>;
   if (!assessment) return <section className="task-assessment"><p role="alert">{error}</p><button className="primary-button" type="button" onClick={() => void load()}>Try again</button></section>;
@@ -92,24 +96,33 @@ export default function TaskAssessment({ task, phase = "post", onReview }: { tas
   const result = assessment.result;
   const answered = assessment.questions.filter((question) => answers[question.id] !== undefined).length;
   const revisit = result ? [...new Map(result.questions.filter((question) => !question.correct).map((question) => [question.stage, question])).values()] : [];
+  const currentQuestion = assessment.questions[questionIndex];
+  const moveQuestion = (next: number) => {
+    setQuestionIndex(next);
+    requestAnimationFrame(() => {
+      questionHeading.current?.focus({ preventScroll: true });
+      questionHeading.current?.scrollIntoView({ block: "center", behavior: "smooth" });
+    });
+  };
 
   return <section className="task-assessment" aria-labelledby="assessment-title">
     <div className="assessment-mode-banner" role="status">
       <strong>{isPre ? "STARTING ASSESSMENT" : "FINAL ASSESSMENT"}</strong>
-      <span>{isPre ? "This is before the lesson. It is not a lesson step." : "You finished the lesson. This is the final quiz, not another lesson step."}</span>
+      <span>{isPre ? "A snapshot of what you know before learning." : assessment.unlocked ? "Check what you learned across all six stages." : "Complete all six stages before submitting."}</span>
     </div>
     <header className="assessment-header">
       <p className="eyebrow blue">{isPre ? "Before you begin" : assessment.unlocked ? "All six lesson stages completed" : "Assessment preview"}</p>
       <h2 id="assessment-title">{title}</h2>
-      <p>{isPre ? "Answer these same questions again after learning so we can compare your performance before and after the task." : "Put the whole pipeline together: data, preparation, training, prediction, and evaluation."}</p>
+      <p>{isPre ? "New to machine learning? Some questions may be unfamiliar. Give your best answer." : "Answer independently. You can go back and change your answers before submitting."}</p>
     </header>
     {result ? <>
       <section className="assessment-score" aria-labelledby="assessment-result-title">
-        <div><h3 id="assessment-result-title" ref={resultHeading} tabIndex={-1}>{isPre ? "Starting assessment submitted" : "Assessment submitted"}</h3><p>Your first submission is saved to your account. Review the reasoning below.</p></div>
+        <div><h3 id="assessment-result-title" ref={resultHeading} tabIndex={-1}>{isPre ? "Starting assessment saved" : "Assessment submitted"}</h3><p>{isPre ? "Next, explore the dataset and begin the lesson." : "Your first submission is saved. Review your answers below."}</p></div>
         <strong aria-label={`${result.score} out of ${result.total} correct`}>{result.score}<span> / {result.total}</span><small>{Math.round(result.score / result.total * 100)}% correct</small></strong>
       </section>
       {!isPre && assessment.baseline_score !== null && assessment.baseline_score !== undefined && <p className="assessment-comparison"><strong>Before learning:</strong> {assessment.baseline_score} / {result.total} · <strong>Change:</strong> {result.score - assessment.baseline_score >= 0 ? "+" : ""}{result.score - assessment.baseline_score} points</p>}
       {!isPre && revisit.length > 0 && <aside className="assessment-revisit"><h3>Stages to revisit</h3><div>{revisit.map((question) => <button className="text-button" type="button" key={question.stage} onClick={() => onReview?.(question.stage)}>{question.stage.replaceAll("_", " ")} →</button>)}</div></aside>}
+      {!isPre && <section className="assessment-review-details"><h3>Review answers and explanations</h3>
       <div className="assessment-questions">{result.questions.map((question, index) => <section className="assessment-question assessment-reviewed" key={question.id}>
         <p className={`assessment-question-meta ${question.correct ? "is-correct" : "is-incorrect"}`}>Question {index + 1} · {question.correct ? "Correct" : "Incorrect"} · {question.concept}</p>
         <h3>{question.prompt}</h3>
@@ -117,13 +130,16 @@ export default function TaskAssessment({ task, phase = "post", onReview }: { tas
         <p><strong>Your answer:</strong> {question.options[question.selected]}</p>
         {!question.correct && <p><strong>Correct answer:</strong> {question.options[question.answer]}</p>}
         <p className="assessment-explanation"><strong>Why:</strong> {question.explanation}</p>
-      </section>)}</div>
-      <footer className="assessment-footer"><Link className="primary-button" href={isPre ? `/learn/${task}` : "/"}>{isPre ? "Begin learning" : "Return to dashboard"}</Link></footer>
-    </> : <form onSubmit={submit}>
-      <div className="assessment-instructions"><p><strong>10 questions · one correct answer each · 1 point per question.</strong></p><p>{isPre ? "Answer independently before starting the task. Your first submission is saved as your starting score." : assessment.unlocked ? "Answer independently, then submit all 10 to see your score and explanations. You can change answers before submitting. Your first submission is final; there is no pass/fail cutoff." : "You can preview all questions and select options now. Preview answers are not saved or scored. Complete the six lesson stages to submit your final assessment."}</p></div>
+      </section>)}</div></section>}
+      <footer className="assessment-footer"><Link className="primary-button" href={isPre ? `/learn/${taskSlug}?view=dataset` : "/"}>{isPre ? "Next: explore the dataset →" : "Return to learning paths"}</Link></footer>
+    </> : !started ? <div className="assessment-start">
+      <p>10 questions · one answer each · no time limit</p>
+      <p>{isPre ? "Your starting score helps compare your progress after learning." : "Your first submission is final. Your score and explanations appear afterward."}</p>
+      <button className="primary-button" type="button" onClick={() => setStarted(true)}>Begin {isPre ? "starting" : "final"} assessment →</button>
+    </div> : <form onSubmit={submit}>
       <div className="assessment-progress"><label htmlFor="assessment-progress">{answered} of 10 answered</label><progress id="assessment-progress" max={10} value={answered} /></div>
-      <div className="assessment-questions">{assessment.questions.map((question, index) => <fieldset className="assessment-question" disabled={submitting} key={question.id}>
-        <legend><span className="assessment-question-meta">Question {index + 1} of 10</span><span>{question.prompt}</span></legend>
+      <div className="assessment-questions">{assessment.questions.slice(questionIndex, questionIndex + 1).map((question) => <fieldset className="assessment-question" disabled={submitting} key={question.id}>
+        <legend ref={questionHeading} tabIndex={-1}><span className="assessment-question-meta">Question {questionIndex + 1} of 10</span><span>{question.prompt}</span></legend>
         {question.code && <pre><code>{question.code}</code></pre>}
         <div className="assessment-options">{question.options.map((option, optionIndex) => <label className={`assessment-option ${answers[question.id] === optionIndex ? "is-selected" : ""}`} key={optionIndex}>
           <input type="radio" name={question.id} value={optionIndex} checked={answers[question.id] === optionIndex} onChange={() => choose(question.id, optionIndex)} required />
@@ -131,7 +147,10 @@ export default function TaskAssessment({ task, phase = "post", onReview }: { tas
         </label>)}</div>
       </fieldset>)}</div>
       {error && <p className="assessment-error" role="alert">{error}</p>}
-      <footer className="assessment-footer"><p role="status">{!assessment.unlocked ? "Preview only — your learning progress and assessment score are unchanged." : answered < 10 ? `${10 - answered} unanswered. Complete all questions to submit.` : "All questions answered. Ready to submit?"}</p><button className="primary-button" type="submit" disabled={!assessment.unlocked || submitting || answered !== 10}>{!assessment.unlocked ? "Complete stages to submit" : submitting ? "Saving your assessment…" : isPre ? "Save starting score" : "Submit assessment"}</button></footer>
+      <footer className="assessment-footer">
+        <button className="text-button" type="button" disabled={questionIndex === 0 || submitting} onClick={() => moveQuestion(questionIndex - 1)}>← Previous</button>
+        {questionIndex < assessment.questions.length - 1 ? <button className="primary-button" type="button" disabled={answers[currentQuestion.id] === undefined} onClick={() => moveQuestion(questionIndex + 1)}>Next question →</button> : <button className="primary-button" type="submit" disabled={!assessment.unlocked || submitting || answered !== 10}>{!assessment.unlocked ? "Complete stages to submit" : submitting ? "Saving…" : "Submit assessment"}</button>}
+      </footer>
     </form>}
   </section>;
 }

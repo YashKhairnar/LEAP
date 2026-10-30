@@ -197,7 +197,7 @@ FIXED_CODE_EXPERIMENTS: dict[str, dict[str, tuple[FixedCodeExperiment, ...]]] = 
             "Preview just two reviews",
             'print(df.head())',
             'print(df.head(2))',
-            "The preview shows two reviews instead of five. The total row count stays the same: head() only changes what you display.",
+            "Before you run it, predict whether the Rows: line will change. The preview now shows two reviews instead of five, but Rows: still says 3000, because head() only changes what you display.",
         ),),
         "train_test_split": (FixedCodeExperiment(
             "Reserve 30% for testing",

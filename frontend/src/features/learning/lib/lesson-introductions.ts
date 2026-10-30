@@ -24,6 +24,11 @@ export type TaskIntroduction = {
   level: string;
   duration: string;
   question: string;
+  example: {
+    input: string;
+    output: string;
+    explanation: string;
+  };
   objectives: string[];
   prerequisites: string[];
   tools: string[];
@@ -69,27 +74,37 @@ export const taskIntroductions: Record<TaskSlug, TaskIntroduction> = {
   sentiment: {
     slug: "sentiment", taskId: "sentiment_classification", number: "01",
     title: "Review Sentiment Classification", headline: "From written reviews to meaningful predictions.",
-    description: "Build a complete text-classification pipeline that predicts whether a written review expresses positive or negative sentiment.",
-    purpose: "Sentiment classification is a supervised-learning problem: the model studies reviews with known answers, learns patterns associated with each sentiment, and applies those patterns to new writing. The same prepare, train, predict, and evaluate workflow transfers to spam detection, support-ticket routing, and many other text tasks.",
-    datasetSummary: "You will work with 3,000 labeled sentences from Amazon, IMDb, and Yelp. Each row contains review text, its source, and a known positive or negative label.",
-    success: "You can trace an unseen review from raw text to numeric features, a predicted label, and an evidence-based evaluation of the classifier.",
+    description: "Teach a model to recognize positive and negative reviews, then check how well it handles reviews it has not seen.",
+    purpose: "People can often tell whether a review is positive or negative by reading it. Here, you will teach a computer using reviews with known answers. The model is a program that learns patterns from those examples. Choosing a category like positive or negative is called classification.",
+    datasetSummary: "Your dataset is a collection of 3,000 short review sentences from Amazon, IMDb, and Yelp. Each sentence comes with a label: the known answer, positive or negative.",
+    success: "A small Python program that loads reviews, learns from examples, predicts sentiment for new reviews, and reports how often it is correct.",
     level: "Foundation", duration: "2–3 hours",
-    question: "How can a model learn whether a review is positive or negative?",
-    objectives: ["Prepare labeled reviews and turn text into numeric features.", "Train a classifier and use it to predict sentiment.", "Evaluate predictions on reviews kept separate from training."],
+    question: "How can a computer recognize a positive review?",
+    example: {
+      input: 'A new review: “The food was delicious. I would come back.”',
+      output: "Predicted category: positive",
+      explanation: "This illustrates the task. A model uses what it learned from earlier reviews to choose a category for a new one. Its prediction can still be wrong.",
+    },
+    objectives: ["Explain what the review text and its label tell the model.", "Follow a review from text to a predicted category.", "Check predictions using reviews kept separate from training."],
     prerequisites: ["Familiarity with variables, collections, and function or method calls", "Comfort reading short code examples and simple program output"],
-    tools: ["Python", "pandas", "scikit-learn"], pipeline: ["Written reviews", "TF-IDF + classifier", "Positive or negative"],
+    tools: ["Python", "pandas", "scikit-learn"], pipeline: ["Review text", "Trained model", "Positive or negative"],
     stages: sentimentStages.map((stage, index) => ({ id: stage.id, label: stage.shortLabel, title: stage.heading, summary: stage.intro, ...sentimentBriefs[index] })),
   },
   cnn: {
     slug: "cnn", taskId: "cnn", number: "02",
     title: additionalTasks.cnn.title, headline: "Give pixels a meaning. Teach a network to recognize digits.",
-    description: "Build and train a convolutional neural network that recognizes handwritten digits from grids of pixel values.",
-    purpose: "Image classification asks a model to choose a category from visual input. A CNN learns small local patterns such as edges and curves, combines them into stronger features, and uses those features to recognize a digit it has not seen before.",
-    datasetSummary: "You will use 5,620 labeled handwritten digits from UCI Optical Digits. Every example is an 8 × 8 image stored as 64 intensity values with a label from 0 to 9.",
-    success: "You can explain how an image moves through convolution, training, and inference, then judge the trained network using accuracy on held-out digits.",
+    description: "Teach a neural network to recognize handwritten digits, then check its predictions on new images.",
+    purpose: "Two people can write the same digit in very different ways. Rather than writing rules for every shape, you will train a convolutional neural network, or CNN, on labeled images. It learns useful visual patterns, such as parts of strokes and curves, to help choose a digit from 0 to 9.",
+    datasetSummary: "Your dataset is a collection of 5,620 handwritten-digit images from UCI Optical Digits. Each image is a small 8 × 8 grid of brightness values, paired with the digit it shows.",
+    success: "A small Python program that prepares image data, trains a CNN, predicts digits in new images, and counts how many predictions are correct.",
     level: "Intermediate", duration: "3–4 hours",
-    question: "How does a grid of pixel values become a recognizable digit?",
-    objectives: ["Prepare image tensors and understand convolutional layers.", "Explain how training updates a network’s weights.", "Predict unseen digits and measure classification accuracy."],
+    question: "How can a computer recognize a handwritten digit?",
+    example: {
+      input: "A small grayscale image of a handwritten 7",
+      output: "Predicted digit: 7",
+      explanation: "The computer receives a grid of brightness numbers. The CNN uses learned patterns to choose a digit. Different handwriting can make the choice harder.",
+    },
+    objectives: ["Explain how numbers represent an image.", "Describe how a CNN learns from images with known digit labels.", "Check how often it recognizes new digits correctly."],
     prerequisites: ["Basic arrays, method calls, and program flow", "An understanding of training data, test data, and labels"],
     tools: ["Python", "PyTorch", "UCI Optical Digits"], pipeline: ["8 × 8 digit images", "Convolutional network", "A digit from 0 to 9"],
     stages: additionalStages("cnn", cnnBriefs),
@@ -97,13 +112,18 @@ export const taskIntroductions: Record<TaskSlug, TaskIntroduction> = {
   regression: {
     slug: "regression", taskId: "regression", number: "03",
     title: additionalTasks.regression.title, headline: "Turn property features into a price prediction.",
-    description: "Build a regression pipeline that uses property features to estimate house prices and measures how close those estimates are.",
-    purpose: "Regression predicts a continuous number instead of a category. The model learns how inputs such as size, age, bedrooms, and bathrooms relate to sale price, then estimates a value for a house that was kept out of training.",
-    datasetSummary: "You will work with 2,930 property sales from Ames, Iowa, reduced to four explanatory features and the recorded sale price used as the target.",
-    success: "You can produce prices for held-out houses without data leakage and interpret mean absolute error as the model’s typical prediction distance in price units.",
+    description: "Use details about a house to estimate its price, then measure how far the estimate is from the actual sale price.",
+    purpose: "A larger house may cost more, but size is only one part of its price. You will train a model using past sales and details such as bedrooms, bathrooms, size, and age. Predicting a number, such as a price, is called regression. The goal is a useful estimate, not an exact price for every house.",
+    datasetSummary: "Your dataset is a collection of 2,930 home sales in Ames, Iowa. Each record pairs four house details with its actual sale price.",
+    success: "A small Python program that prepares house records, learns from past sales, estimates prices for new houses, and reports the average size of its errors.",
     level: "Foundation", duration: "2–3 hours",
-    question: "How can we estimate a house price—and measure how far off we are?",
-    objectives: ["Split and scale housing data without using test information.", "Train a regression model to predict numeric prices.", "Measure prediction error with mean absolute error."],
+    question: "How can a computer estimate a house price?",
+    example: {
+      input: "3 bedrooms · 2 bathrooms · 1,800 square feet · 20 years old",
+      output: "An estimated sale price in dollars",
+      explanation: "The house details are the inputs. The price is the number to predict. Later, you will compare estimated prices with actual sale prices to see how close they are.",
+    },
+    objectives: ["Identify the house details used to estimate price.", "Explain how a model learns a pricing rule from past sales.", "Describe prediction errors in dollars."],
     prerequisites: ["Familiarity with variables, collections, and function or method calls", "Comfort reading a table of numeric values"],
     tools: ["Python", "pandas", "scikit-learn"], pipeline: ["Property features", "Linear regression", "An estimated price"],
     stages: additionalStages("regression", regressionBriefs),

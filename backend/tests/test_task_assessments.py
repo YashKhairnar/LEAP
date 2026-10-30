@@ -35,27 +35,29 @@ class TaskAssessmentTests(unittest.TestCase):
                 (learner, task),
             )
 
-    def submission(self, task, correct_count=10):
+    def submission(self, task, correct_count=10, phase="post"):
         return AssessmentSubmission(version=VERSION, answers={
             question.id: question.answer if index < correct_count else (question.answer + 1) % 4
-            for index, question in enumerate(QUESTION_BANK[task])
+            for index, question in enumerate(questions_for_phase(task, phase))
         })
 
     def test_each_task_has_ten_mcqs_covering_every_stage(self):
         self.assertEqual(set(QUESTION_BANK), set(FIXED_LESSON_CODE))
         all_ids = []
-        for task, questions in QUESTION_BANK.items():
-            with self.subTest(task=task):
-                self.assertEqual(len(questions), 10)
-                self.assertEqual({item.stage for item in questions}, set(FIXED_LESSON_CODE[task]))
-                self.assertEqual({item.answer for item in questions}, {0, 1, 2, 3})
-                for question in questions:
-                    all_ids.append(question.id)
-                    self.assertEqual(len(set(question.options)), 4)
-                    self.assertTrue(question.prompt and question.explanation and question.concept)
-                    self.assertIn(question.answer, range(4))
-                    if question.code:
-                        ast.parse(question.code)
+        for task in QUESTION_BANK:
+            for phase in ("pre", "post"):
+                questions = questions_for_phase(task, phase)
+                with self.subTest(task=task, phase=phase):
+                    self.assertEqual(len(questions), 10)
+                    self.assertEqual({item.stage for item in questions}, set(FIXED_LESSON_CODE[task]))
+                    self.assertEqual({item.answer for item in questions}, {0, 1, 2, 3})
+                    for question in questions:
+                        all_ids.append(question.id)
+                        self.assertEqual(len(set(question.options)), 4)
+                        self.assertTrue(question.prompt and question.explanation and question.concept)
+                        self.assertIn(question.answer, range(4))
+                        if question.code:
+                            ast.parse(question.code)
         self.assertEqual(len(all_ids), len(set(all_ids)))
 
     def test_answer_keys_are_hidden_until_submission(self):
@@ -72,8 +74,10 @@ class TaskAssessmentTests(unittest.TestCase):
         for task in QUESTION_BANK:
             pre = questions_for_phase(task, "pre")
             post = questions_for_phase(task, "post")
-            self.assertEqual({question.id for question in pre}, {question.id for question in post})
-            self.assertNotEqual([question.prompt for question in pre], [question.prompt for question in post])
+            self.assertTrue({q.id for q in pre}.isdisjoint(q.id for q in post))
+            self.assertTrue({q.prompt for q in pre}.isdisjoint(q.prompt for q in post))
+            self.assertEqual([q.concept for q in pre], [q.concept for q in post])
+            self.assertEqual([q.stage for q in pre], [q.stage for q in post])
 
     def test_scores_all_tasks_and_restores_results(self):
         for task in QUESTION_BANK:
@@ -88,15 +92,16 @@ class TaskAssessmentTests(unittest.TestCase):
                     self.assertEqual(sum(item["correct"] for item in result["questions"]), score)
                     self.assertEqual(get_assessment(learner, task)["result"], result)
 
-    def test_pre_assessment_uses_same_questions_and_is_available_before_learning(self):
+    def test_pre_assessment_uses_baseline_bank_and_is_available_before_learning(self):
         learner = "pretest-student"
         public = get_assessment(learner, "cnn", "pre")
         self.assertEqual(public["phase"], "pre")
         self.assertTrue(public["unlocked"])
         self.assertEqual([question["id"] for question in public["questions"]], [question.id for question in QUESTION_BANK["cnn"]])
-        result = submit_assessment(learner, "cnn", self.submission("cnn", 6), "pre")
+        result = submit_assessment(learner, "cnn", self.submission("cnn", 6, "pre"), "pre")
         self.assertEqual(result["phase"], "pre")
         self.assertEqual(result["score"], 6)
+        self.assertEqual(result["questions"], [])
         self.assertEqual(get_assessment(learner, "cnn", "pre")["result"], result)
         with connect() as connection:
             self.assertEqual(connection.execute("SELECT COUNT(*) AS count FROM task_pre_assessments").fetchone()["count"], 1)
@@ -104,10 +109,26 @@ class TaskAssessmentTests(unittest.TestCase):
     def test_pre_and_post_assessments_are_stored_separately(self):
         learner = "paired-assessment-student"
         self.unlock(learner, "cnn")
-        pre = submit_assessment(learner, "cnn", self.submission("cnn", 3), "pre")
+        pre = submit_assessment(learner, "cnn", self.submission("cnn", 3, "pre"), "pre")
         post = submit_assessment(learner, "cnn", self.submission("cnn", 9), "post")
         self.assertEqual((pre["phase"], pre["score"]), ("pre", 3))
         self.assertEqual((post["phase"], post["score"]), ("post", 9))
+        self.assertEqual(get_assessment(learner, "cnn")["baseline_score"], 3)
+
+    def test_other_phase_answers_are_rejected(self):
+        for task in QUESTION_BANK:
+            for phase, wrong_phase in (("pre", "post"), ("post", "pre")):
+                with self.subTest(task=task, phase=phase), self.assertRaisesRegex(ValueError, "10 questions"):
+                    submit_assessment("student-a", task, self.submission(task, phase=wrong_phase), phase)
+
+    def test_baseline_answers_remain_private_but_scored_records_are_retained(self):
+        submission = self.submission("cnn", phase="pre")
+        public = submit_assessment("student-a", "cnn", submission, "pre")
+        self.assertEqual(public["questions"], [])
+        self.assertEqual(get_assessment("student-a", "cnn", "pre")["result"], public)
+        with connect() as connection:
+            row = connection.execute("SELECT payload FROM task_pre_assessments WHERE learner_id = ? AND task = ?", ("student-a", "cnn")).fetchone()
+        self.assertEqual(len(json.loads(row["payload"])["questions"]), 10)
 
     def test_first_submission_is_preserved_on_retry_or_changed_answers(self):
         first = submit_assessment("student-a", "cnn", self.submission("cnn", 4))
@@ -147,7 +168,7 @@ class TaskAssessmentTests(unittest.TestCase):
 
     def test_malformed_answers_are_rejected(self):
         answers = self.submission("cnn").answers
-        for invalid in ({}, {**answers, "extra": 0}, {**answers, "cnn-01": -1}, {**answers, "cnn-01": 4}, {**answers, "cnn-01": True}, {**answers, "cnn-01": "1"}):
+        for invalid in ({}, {**answers, "extra": 0}, {**answers, "cnn-post-01": -1}, {**answers, "cnn-post-01": 4}, {**answers, "cnn-post-01": True}, {**answers, "cnn-post-01": "1"}):
             with self.subTest(answers=invalid), self.assertRaises(ValidationError):
                 AssessmentSubmission(version=VERSION, answers=invalid)
         with self.assertRaises(ValidationError):

@@ -1,6 +1,6 @@
 """Server-scored, first-submission assessments kept separate from tutor progress."""
 
-from dataclasses import asdict, replace
+from dataclasses import asdict
 from datetime import datetime, timezone
 import json
 from typing import Annotated, Literal
@@ -8,6 +8,7 @@ from typing import Annotated, Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 from .bank import QUESTION_BANK, VERSION, AssessmentQuestion, assessment_task
+from .final_bank import FINAL_QUESTION_BANK
 from ..database import connect
 from ..tutoring.lesson_code import FIXED_LESSON_CODE
 from ..collection.config import assessment_preview_allowed, collection_mode
@@ -23,17 +24,16 @@ AssessmentPhase = Literal["pre", "post"]
 
 
 def questions_for_phase(task: str, phase: AssessmentPhase) -> tuple[AssessmentQuestion, ...]:
-    """Use a clearly different post-assessment form without changing its scoring contract."""
-    questions = QUESTION_BANK[assessment_task(task)]
-    if phase == "pre":
-        return questions
-    return tuple(
-        replace(
-            question,
-            prompt=f"After the lesson, apply the idea: {question.prompt}",
-        )
-        for question in reversed(questions)
-    )
+    """Select the independently authored form for this phase."""
+    return (QUESTION_BANK if phase == "pre" else FINAL_QUESTION_BANK)[assessment_task(task)]
+
+
+def _public_result(result: dict, phase: AssessmentPhase) -> dict:
+    if phase == "post":
+        return result
+    # Keep the scored research record on the server, but do not teach the
+    # answers through the starting assessment, including its submission response.
+    return {**result, "questions": []}
 
 
 def _unlocked(connection, learner_id: str, task: str) -> bool:
@@ -67,7 +67,7 @@ def get_assessment(learner_id: str, task: str, phase: AssessmentPhase = "post") 
         "unlocked": phase == "pre" or unlocked,
         "preview_allowed": assessment_preview_allowed(),
         "baseline_score": json.loads(baseline_row["payload"])["score"] if baseline_row else None,
-        "questions": questions, "result": json.loads(row["payload"]) if row else None,
+        "questions": questions, "result": _public_result(json.loads(row["payload"]), phase) if row else None,
     }
 
 
@@ -103,4 +103,4 @@ def submit_assessment(learner_id: str, task: str, submission: AssessmentSubmissi
             f"SELECT payload FROM {table} WHERE learner_id = ? AND task = ? AND version = ?",
             (learner_id, task, VERSION),
         ).fetchone()
-    return json.loads(saved["payload"])
+    return _public_result(json.loads(saved["payload"]), phase)

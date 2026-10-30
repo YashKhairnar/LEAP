@@ -92,6 +92,19 @@ checkpoint promotion is performed by this exporter.
 
 ## Before formal collection or claims of improved understanding
 
+The learner flow is starting assessment → dataset preview → six lesson stages → final
+assessment. Within each stage, a learner reads the lesson, selects **Continue to practice**,
+answers three questions, and completes the confidence check. The lesson remains available
+through **Back to Lesson**; there are no layout tabs. Practice styles are sampled uniformly
+at random, and the learner notice states this explicitly.
+
+Assessment version `task_assessment_v3` uses separate authored pre/post item banks with
+matching stage and concept coverage. Final items use different scenarios or calculations;
+equal difficulty has not yet been validated. Starting scores are returned without answer
+reviews, including on submission; the server retains the full scored research record.
+Existing submissions remain stored under their original version and are not reused as
+scores for the new forms.
+
 1. Approve consent, withdrawal, retention and participant eligibility procedures. Signup
    currently records `draft-research-consent-v1`; changing collection mode does not change it.
 2. Review authored questions/answer keys and the fixed final MCQs for correctness and
@@ -99,8 +112,8 @@ checkpoint promotion is performed by this exporter.
    Final MCQ accuracy alone does not establish learning gain or question-selection benefit.
 3. Define the outcome and comparison policy before model optimization. The existing
    handcrafted latent goal is not a validated mastery target and remains shadow-only.
-4. Run a field pilot: open Lesson without Practice (no presentation), reveal Practice,
-   switch tabs, open a hint, answer incorrectly, retry, reload, disconnect/reconnect,
+4. Run a field pilot: read the lesson (no presentation), continue to practice,
+   return to the lesson, open a hint, answer incorrectly, retry, reload, disconnect/reconnect,
    complete a task and submit its assessment. Inspect the exported trace and sync status.
 
 ## Automated checks

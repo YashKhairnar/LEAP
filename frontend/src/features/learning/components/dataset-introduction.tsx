@@ -67,8 +67,8 @@ export default function DatasetIntroduction({ task }: { task: TaskIntroduction }
 
   return <section className="dataset-introduction" aria-labelledby="dataset-title">
     <header className="dataset-introduction-header">
-      <p className="intro-kicker">Step 2 of 2 · Dataset preview</p>
-      <h1 id="dataset-title">Meet <code>{dataset.runtime_filename}</code></h1>
+      <p className="intro-kicker">Before the lesson · Dataset preview</p>
+      <h1 id="dataset-title">Explore the dataset</h1>
       <p>{dataset.description}</p>
       <p className="dataset-next-hint">Explore a few rows, then start the lesson when you’re ready.</p>
       <nav className="dataset-quick-navigation" aria-label="Dataset preview actions">
@@ -102,7 +102,6 @@ export default function DatasetIntroduction({ task }: { task: TaskIntroduction }
       </div>
     </section>
 
-    <p className="dataset-pipeline-note"><strong>How it fits the task:</strong> {task.pipeline.join(" → ")}. The stages transform these raw rows into model-ready inputs while keeping each target aligned with its example.</p>
     <nav className="dataset-navigation" aria-label="Dataset preview navigation">
       <Link className="text-button" href={`/learn/${task.slug}`}>← Back to overview</Link>
       <Link className="primary-button" href={`/learn/${task.slug}/lesson`}>Start learning <span aria-hidden="true">→</span></Link>

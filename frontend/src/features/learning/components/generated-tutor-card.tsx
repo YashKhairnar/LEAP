@@ -9,6 +9,9 @@ import { collectionPlannerDecision, shuffleQuestionOptions, withCollectionConten
 import { enqueueCollection, learningSessionId } from "@/features/collection/lib/collection";
 import { questionContentId } from "@/features/collection/lib/content-id";
 import { QuestionExposureClock, evidenceKind, type AttemptEvidence } from "@/features/collection/lib/question-exposure";
+import { JAVA_ANALOGY_EXAMPLES, stageTerms } from "@/features/learning/lib/learning-support";
+import { initialStageScreen } from "@/features/learning/lib/learning-flow";
+import DigitMatrixExample from "@/features/learning/components/digit-matrix-example";
 
 type TutorContent = { question: string; options: string[]; expected_answer: string; hint: string; explanation: string; concepts_tested: string[] };
 type LessonSectionType = "meaning" | "concept" | "analogy" | "example" | "code" | "result" | "why_it_matters" | "concept_bridge" | "real_life_analogy" | "data_preview" | "pipeline" | "transformation" | "warning" | "metric";
@@ -16,29 +19,8 @@ type LessonSection = { type: LessonSectionType; title: string; body: string; ite
 type CodeExperiment = { title: string; find: string; replace: string; expected_change: string };
 type LessonContent = { title: string; introduction: string; sections: LessonSection[]; code_explanation?: string[]; try_this?: (CodeExperiment | string)[]; key_takeaway?: string };
 
-const JAVA_ANALOGY_EXAMPLES: Record<string, string> = {
-  "sentiment_classification.data_loading_and_preparation": "List<Review> reviews = new ArrayList<>(); reviews.add(new Review(\"Great!\", \"positive\"));",
-  "sentiment_classification.train_test_split": "List<Review> training = reviews.subList(0, 80); List<Review> test = reviews.subList(80, reviews.size());",
-  "sentiment_classification.tfidf_vectorization": "Map<String, Double> weights = new HashMap<>(); weights.put(\"excellent\", 1.2);",
-  "sentiment_classification.model_training": "classifier.fit(trainingFeatures, trainingLabels);",
-  "sentiment_classification.prediction": "String prediction = classifier.predict(reviewFeatures);",
-  "sentiment_classification.evaluation": "double accuracy = (double) correct / total;",
-  "cnn.load_images": "int[] pixels = new int[64]; int digit = 7;",
-  "cnn.normalize_split": "double scaledPixel = pixel / 16.0;",
-  "cnn.build_cnn": "layers.add(new Conv2D(16, 3)); layers.add(new ReLU());",
-  "cnn.train_network": "optimizer.step(); // update the learned weights",
-  "cnn.classify_images": "int predictedDigit = argmax(scores);",
-  "cnn.evaluate_cnn": "double accuracy = (double) correct / total;",
-  "regression.prepare_housing_data": "House house = new House(3, 2, 1800, 25, 325000.0);",
-  "regression.split_housing_data": "List<House> training = houses.subList(0, 80); List<House> test = houses.subList(80, houses.size());",
-  "regression.scale_features": "double scaled = (value - mean) / standardDeviation;",
-  "regression.train_regression": "model.fit(trainingFeatures, trainingPrices);",
-  "regression.predict_prices": "double predictedPrice = model.predict(houseFeatures);",
-  "regression.evaluate_regression": "double mae = Math.abs(actualPrice - predictedPrice);",
-};
-
-export default function GeneratedTutorCard({ task, stage, stageNumber, totalStages = 6, step, actionType, lessonContext, learningObjectives, onAttempt, onPresented, onRestoredCorrect, onContinue, continueDisabled = false, continueLabel = "Continue", confidence, onConfidence, reviewOnly = false }: {
-  task: string; stage: string; stageNumber?: number; totalStages?: number; step: InstructionalStep; actionType: InstructionalActionType; lessonContext: string; learningObjectives: string[];
+export default function GeneratedTutorCard({ task, stage, stageTitle, questionNumber, step, actionType, lessonContext, learningObjectives, onAttempt, onPresented, onRestoredCorrect, onContinue, continueDisabled = false, continueLabel = "Continue", confidence, onConfidence, reviewOnly = false }: {
+  task: string; stage: string; stageTitle?: string; questionNumber?: number; step: InstructionalStep; actionType: InstructionalActionType; lessonContext: string; learningObjectives: string[];
   onAttempt: (item: QuestionItem, answer: string, correct: boolean, attempt: number, responseTimeMs: number, presentationId: string, evidence: AttemptEvidence) => Promise<void>;
   onPresented: (item: QuestionItem, presentationId: string) => void;
   onRestoredCorrect?: (step: InstructionalStep) => void;
@@ -50,7 +32,7 @@ export default function GeneratedTutorCard({ task, stage, stageNumber, totalStag
   reviewOnly?: boolean;
 }) {
   const learner = getAuth()?.user;
-  const lessonKey = `leap.generated.lesson.v19.${learner?.user_id ?? "anonymous"}.${learner?.analogy_preference ?? "java"}.${task}.${stage}`;
+  const lessonKey = `leap.generated.lesson.v20.${learner?.user_id ?? "anonymous"}.${learner?.analogy_preference ?? "java"}.${task}.${stage}`;
   const [stageLesson, setStageLesson] = useState<LessonContent | null>(() => {
     if (typeof window === "undefined" || reviewOnly) return null;
     const saved = window.sessionStorage.getItem(lessonKey);
@@ -66,17 +48,17 @@ export default function GeneratedTutorCard({ task, stage, stageNumber, totalStag
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showHint, setShowHint] = useState(false);
-  const viewModeKey = `leap.learning.view-mode.v2.${learner?.user_id ?? "anonymous"}.${task}`;
-  const [viewMode, setViewMode] = useState<"split" | "learn" | "practice">(() => {
-    if (typeof window === "undefined") return "split";
-    const saved = window.localStorage.getItem(viewModeKey);
-    return saved === "split" || saved === "learn" || saved === "practice"
-      ? saved
-      : window.matchMedia("(max-width: 900px)").matches ? "practice" : "split";
+  // Wrong answers on the current question: the first earns a hint, the second reveals the answer.
+  const [misses, setMisses] = useState(0);
+  const [lessonPartIndex, setLessonPartIndex] = useState(0);
+  const toolbarRef = useRef<HTMLDivElement>(null);
+  const practiceStartedKey = `leap.practice.started.v1.${learner?.user_id ?? "anonymous"}.${task}.${stage}`;
+  const [viewMode, setViewMode] = useState<"learn" | "practice">(() => {
+    return initialStageScreen(step, typeof window !== "undefined" && window.sessionStorage.getItem(practiceStartedKey) === "started");
   });
   const practiceNoticeKey = `leap.practice.personalization-notice.v1.${learner?.user_id ?? "anonymous"}.${task}`;
   const [personalizationNoticeAcknowledged, setPersonalizationNoticeAcknowledged] = useState(() => {
-    if (typeof window === "undefined" || reviewOnly || step !== "practice") return true;
+    if (typeof window === "undefined" || reviewOnly) return true;
     return window.localStorage.getItem(practiceNoticeKey) === "acknowledged";
   });
   const exposureClock = useRef(new QuestionExposureClock());
@@ -89,16 +71,18 @@ export default function GeneratedTutorCard({ task, stage, stageNumber, totalStag
   const onAttemptRef = useRef(onAttempt);
   const onPresentedRef = useRef(onPresented);
   const onRestoredCorrectRef = useRef(onRestoredCorrect);
-  const changeViewMode = (mode: "split" | "learn" | "practice") => {
+  const changeViewMode = (mode: "learn" | "practice") => {
     setViewMode(mode);
-    window.localStorage.setItem(viewModeKey, mode);
+    if (mode === "practice") window.sessionStorage.setItem(practiceStartedKey, "started");
+    requestAnimationFrame(() => {
+      const chips = toolbarRef.current;
+      if (!chips) return;
+      chips.focus({ preventScroll: true });
+      // Keep the step chips visible below the sticky header.
+      const top = chips.getBoundingClientRect().top + window.scrollY - 92;
+      if (window.scrollY > top) window.scrollTo({ top, behavior: "smooth" });
+    });
   };
-  useEffect(() => {
-    const saved = window.localStorage.getItem(viewModeKey);
-    if (saved === "split" || saved === "learn" || saved === "practice") {
-      window.setTimeout(() => setViewMode(saved), 0);
-    }
-  }, [viewModeKey]);
   useEffect(() => { onAttemptRef.current = onAttempt; onPresentedRef.current = onPresented; onRestoredCorrectRef.current = onRestoredCorrect; }, [onAttempt, onPresented, onRestoredCorrect]);
 
   const prefetchNextStep = useCallback(async (lesson: LessonContent) => {
@@ -171,6 +155,7 @@ export default function GeneratedTutorCard({ task, stage, stageNumber, totalStag
           setAnswer(restoredState?.answer ?? "");
           setAttempt(restoredState?.attempt ?? 1);
           setChecked(restoredState?.correct !== null && restoredState?.correct !== undefined);
+          setMisses(restoredState?.correct === false ? Math.min(2, restoredState.attempt) : 0);
           setStageLesson(saved.lesson);
           if (restoredState?.correct) onRestoredCorrectRef.current?.(step);
           void prefetchNextStep(saved.lesson);
@@ -204,7 +189,7 @@ export default function GeneratedTutorCard({ task, stage, stageNumber, totalStag
       const nextItem: QuestionItem = { id: `generated.${body.content_instance_id}`, step, actionType: effectiveAction, typeLabel: "Authored question", prompt: content.question, options: shuffleQuestionOptions(`generated.${body.content_instance_id}`, content.options, content.expected_answer), correctAnswer: content.expected_answer, explanation: content.explanation, misconception: "generated_question_incorrect", learningObjectives: content.concepts_tested.length ? content.concepts_tested : learningObjectives, lessonContent: body.lesson, plannerDecision: effectiveDecision, selectionPolicy: assignmentPolicy, generationMetadata: { schema_version: "stage_sections_question_v3", prompt_version: body.prompt_version, code_version: body.code_version, curriculum_layout: "stage_sections_question_v3", model: body.model, dataset: body.dataset, task, stage, step, selected_action_type: effectiveAction, assignment_policy: assignmentPolicy, selection_probability: effectiveDecision?.selection_probability, content_instance_id: body.content_instance_id, curriculum_context: lessonContext, requested_learning_objectives: learningObjectives, lesson_reused: cachedLesson !== null, generated_at: new Date().toISOString() } };
       const nextPresentationId = crypto.randomUUID();
       setGenerated({ model: body.model, lesson: body.lesson, content }); setItem(withCollectionContent(nextItem, body.collection_content)); setPresentationId(nextPresentationId);
-      setAttempt(1); hintUsed.current = false; answerRevealed.current = false; historyKnown.current = true;
+      setAttempt(1); setMisses(0); hintUsed.current = false; answerRevealed.current = false; historyKnown.current = true;
       void prefetchNextStep(body.lesson);
     } catch (reason) { setError(reason instanceof Error ? reason.message : "The tutor could not generate content."); }
     finally { setLoading(false); }
@@ -245,9 +230,17 @@ export default function GeneratedTutorCard({ task, stage, stageNumber, totalStag
       evidence_kind: evidenceKind(hintUsed.current, answerRevealed.current, historyKnown.current),
       timing_version: "visible_foreground_v1", exposure_id: presentationId };
     setChecked(true);
-    answerRevealed.current = true;
+    const revealsAnswer = correct || misses + 1 >= 2;
+    if (!correct) setMisses((value) => value + 1);
     const saving = onAttemptRef.current(item, answer, correct, attempt, duration, presentationId, evidence);
-    recordExposure("answer_revealed");
+    if (revealsAnswer) {
+      answerRevealed.current = true;
+      recordExposure("answer_revealed");
+    } else {
+      // The first miss shows the hint instead of the answer.
+      hintUsed.current = true;
+      recordExposure("hint_shown_after_incorrect");
+    }
     await saving;
   };
 
@@ -303,62 +296,49 @@ export default function GeneratedTutorCard({ task, stage, stageNumber, totalStag
   }, [item, presentationId, viewMode, checked, loading, reviewOnly, task, stage, step, personalizationNoticeAcknowledged]);
 
   const correct = item ? normalize(answer) === normalize(item.correctAnswer) : false;
-  const showPersonalizationNotice = Boolean(generated && item && !reviewOnly && step === "practice" && !checked && !personalizationNoticeAcknowledged);
+  const showPersonalizationNotice = Boolean(generated && item && !reviewOnly && !checked && !personalizationNoticeAcknowledged);
 
   const acknowledgePersonalizationNotice = () => {
     window.localStorage.setItem(practiceNoticeKey, "acknowledged");
     setPersonalizationNoticeAcknowledged(true);
   };
 
+  const ideaSections = stageLesson?.sections.filter((section) => section.type !== "code" && section.type !== "result") ?? [];
+  const codeSection = stageLesson?.sections.find((section) => section.type === "code") ?? null;
+  const resultSection = stageLesson?.sections.find((section) => section.type === "result") ?? null;
+  const hasExperiments = Boolean(codeSection && stageLesson?.try_this?.some((suggestion) => typeof suggestion !== "string"));
+  const lessonParts: LessonPart[] = ["idea", ...(codeSection ? ["code" as const] : []), ...(hasExperiments ? ["try" as const] : [])];
+  const currentPart = lessonParts[Math.min(lessonPartIndex, lessonParts.length - 1)] ?? "idea";
+  const isLastPart = lessonPartIndex >= lessonParts.length - 1;
+  const revealed = checked && (correct || misses >= 2);
+  const goToPart = (index: number) => { setLessonPartIndex(index); changeViewMode("learn"); };
+
   return <section className="generated-tutor-card" aria-live="polite">
-    <header className="card-top-toolbar">
-      <div className="card-meta-tags">
-        {stageNumber && <span className="lesson-location">Stage {stageNumber} of {totalStages}</span>}
-        <span aria-hidden="true">/</span>
-        <strong>Step {step === "connect" ? 1 : step === "practice" ? 2 : 3} of 3 · {step === "connect" ? "Bridge" : step === "practice" ? "Practice" : "Check"}</strong>
-      </div>
-      <div className="view-mode-selector" role="tablist" aria-label="Layout mode">
-        <button
-          type="button"
-          role="tab"
-          aria-selected={viewMode === "split"}
-          className={`view-mode-btn ${viewMode === "split" ? "active" : ""}`}
-          onClick={() => changeViewMode("split")}
-        >
-          Split view
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={viewMode === "learn"}
-          className={`view-mode-btn ${viewMode === "learn" ? "active" : ""}`}
-          onClick={() => changeViewMode("learn")}
-        >
-          Lesson
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={viewMode === "practice"}
-          className={`view-mode-btn ${viewMode === "practice" ? "active" : ""}`}
-          onClick={() => changeViewMode("practice")}
-        >
-          Practice
-        </button>
-      </div>
-    </header>
+    {stageLesson && <nav className="stage-step-chips" aria-label="Steps in this stage" ref={toolbarRef} tabIndex={-1}>
+      <ol>
+        {lessonParts.map((part, index) => {
+          const current = viewMode === "learn" && currentPart === part;
+          const done = viewMode === "practice" || index < lessonPartIndex;
+          return <li key={part}><button type="button" className={current ? "current" : done ? "done" : ""} aria-current={current ? "step" : undefined} onClick={() => goToPart(index)}>
+            <span aria-hidden="true">{done && !current ? <CheckIcon /> : index + 1}</span>{LESSON_PART_LABELS[part]}
+          </button></li>;
+        })}
+        <li><button type="button" className={viewMode === "practice" ? "current" : ""} aria-current={viewMode === "practice" ? "step" : undefined} onClick={() => changeViewMode("practice")}>
+          <span aria-hidden="true">{lessonParts.length + 1}</span>Check{questionNumber ? ` · ${questionNumber} of 3` : ""}
+        </button></li>
+      </ol>
+    </nav>}
 
     {!stageLesson && loading && (
       <div className="card-loading-state">
         <div className="loading-pulse-line" />
-        <p>{reviewOnly ? "Loading your saved lesson…" : "Preparing lesson and personalized instructional guidance..."}</p>
+        <p>{reviewOnly ? "Loading your saved lesson…" : "Loading your lesson…"}</p>
       </div>
     )}
 
     {!stageLesson && error && (
       <div className="card-error-state">
-        <span className="error-pill">{reviewOnly ? "SAVED LESSON UNAVAILABLE" : "GENERATION ERROR"}</span>
-        <p className="generated-tutor-error">{error}</p>
+        <p className="generated-tutor-error">{reviewOnly ? "This saved lesson isn’t available right now." : "The lesson didn’t load."} {error}</p>
         <button className="alternate-button" onClick={regenerate}>Try again</button>
       </div>
     )}
@@ -367,55 +347,51 @@ export default function GeneratedTutorCard({ task, stage, stageNumber, totalStag
 
     {stageLesson && (
       <div className={`generated-learning-workspace mode-${viewMode}`}>
-        {(viewMode === "split" || viewMode === "learn") && (
+        {viewMode === "learn" && (
           <article className="generated-lesson-pane">
-            <h3 className="lesson-heading">{stageLesson.title}</h3>
-            <p className="lead">{stageLesson.introduction}</p>
-
-            <div className="dynamic-lesson-sections">
-              {stageLesson.sections.map((section, index) => {
-                const nextSection = stageLesson.sections[index + 1];
-                const previousSection = stageLesson.sections[index - 1];
-                if (section.type === "code" && previousSection?.type === "result") return null;
-                if (section.type === "result" && nextSection?.type === "code") return <div className="result-code-pair" key="result-code-pair">
-                  <LessonSectionView section={section} task={task} stage={stage} step={step} />
-                  <LessonSectionView section={nextSection} task={task} stage={stage} step={step} codeExplanation={stageLesson.code_explanation} tryThis={stageLesson.try_this} />
-                </div>;
-                return <LessonSectionView section={section} task={task} stage={stage} step={step} codeExplanation={stageLesson.code_explanation} tryThis={stageLesson.try_this} key={`${section.type}.${index}`} />;
-              })}
-            </div>
-
-            {stageLesson.key_takeaway && <aside className="key-takeaway" aria-label="Key takeaway">
-              <span><svg className="lesson-highlight-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6" /></svg>Key takeaway</span>
-              <p>{stageLesson.key_takeaway}</p>
-            </aside>}
-
-            {viewMode === "learn" && (
-              <div className="pane-jump-footer">
-                <button type="button" className="primary-button" onClick={() => changeViewMode("practice")}>
-                  {reviewOnly ? "View saved question →" : "Try the practice question →"}
-                </button>
+            {currentPart === "idea" && <>
+              <h2 className="lesson-part-title">{stageLesson.title || stageTitle}</h2>
+              <div className="idea-sections">
+                {ideaSections.map((section, index) => <IdeaSection section={section} task={task} stage={stage} step={step} key={`${section.type}.${index}`} />)}
               </div>
-            )}
+              <details className="words-to-know">
+                <summary>Words to know</summary>
+                <p>{stageTerms(task, stage)}</p>
+              </details>
+            </>}
+
+            {currentPart === "code" && codeSection && <>
+              <h2 className="lesson-part-title">Run the code</h2>
+              {resultSection && <p className="lesson-part-intro"><strong>What it produces:</strong> {resultSection.body}</p>}
+              <ExecutableLessonCell section={codeSection} task={task} stage={stage} step={step} codeExplanation={stageLesson.code_explanation ?? []} tryThis={[]} />
+            </>}
+
+            {currentPart === "try" && codeSection && <>
+              <h2 className="lesson-part-title">Try a change</h2>
+              <p className="lesson-part-intro">Make one small edit, run the code again, and see what changes.</p>
+              <ExecutableLessonCell section={codeSection} task={task} stage={stage} step={step} codeExplanation={[]} tryThis={stageLesson.try_this ?? []} showInstruction={false} />
+            </>}
+
+            {isLastPart && stageLesson.key_takeaway && <p className="key-takeaway"><strong>Remember:</strong> {stageLesson.key_takeaway}</p>}
+
+            <div className="lesson-part-nav">
+              {lessonPartIndex > 0 ? <button type="button" className="text-button" onClick={() => goToPart(lessonPartIndex - 1)}>← Back</button> : <span />}
+              {isLastPart
+                ? <button type="button" className="primary-button" onClick={() => changeViewMode("practice")}>{reviewOnly ? "View saved questions" : "Next: check your understanding"} <span aria-hidden="true">→</span></button>
+                : <button type="button" className="primary-button" onClick={() => goToPart(lessonPartIndex + 1)}>{lessonParts[lessonPartIndex + 1] === "code" ? "Next: see the code" : "Next: try a change"} <span aria-hidden="true">→</span></button>}
+            </div>
           </article>
         )}
 
-        {(viewMode === "split" || viewMode === "practice") && (
-          <aside className="generated-question-pane">
-            <div className="question-pane-heading">
-              <div>
-                <span className="pane-label">PRACTICE</span>
-                <span className="attempt-counter">ATTEMPT {attempt}</span>
-              </div>
-              {!reviewOnly && <button className="text-button" onClick={regenerate}>New question</button>}
-            </div>
+        {viewMode === "practice" && (
+          <div className="generated-question-pane">
+            <p className="practice-meta">Practice · doesn’t count toward your score</p>
 
-            {loading && <p className="question-loading">{reviewOnly ? "Loading your saved question…" : "Preparing your next practice question…"}</p>}
-            
+            {loading && <p className="question-loading">{reviewOnly ? "Loading your saved question…" : "Preparing your question…"}</p>}
+
             {error && (
               <div className="card-error-state">
-                <span className="error-pill">ERROR</span>
-                <p className="generated-tutor-error">{error}</p>
+                <p className="generated-tutor-error">The question didn’t load. {error}</p>
                 <button className="alternate-button" onClick={regenerate}>Try again</button>
               </div>
             )}
@@ -432,7 +408,7 @@ export default function GeneratedTutorCard({ task, stage, stageNumber, totalStag
                   <li>Your attempt count and whether you opened a hint</li>
                   <li>Your active response time while the question is visible</li>
                 </ul>
-                <p>This information can change the style of later practice questions. Practice is separate from the final assessment score.</p>
+                <p>Question styles are currently chosen at random. Your responses are collected for research. Practice is separate from the final assessment score.</p>
                 <div className="practice-notice-actions">
                   <button className="primary-button" type="button" onClick={acknowledgePersonalizationNotice}>I understand — start practice</button>
                   <Link href="/privacy" target="_blank">Read the data notice</Link>
@@ -441,129 +417,98 @@ export default function GeneratedTutorCard({ task, stage, stageNumber, totalStag
             )}
 
             {generated && item && !showPersonalizationNotice && (
-              <div ref={questionElement}>
-                <div className="generated-question-section">
-                  <span className="question-kicker">CHECK YOUR ANSWER</span>
-                    <p className="question-context"><strong>Before you answer:</strong> {stageLesson.introduction} Use the lesson above to choose the best answer.</p>
-                  <p className="generated-question">{item.prompt}</p>
-                </div>
+              <div ref={questionElement} className="practice-question">
+                <h3 className="generated-question">{item.prompt}</h3>
 
                 <div className="answers-grid">
                   {item.options.map((option, index) => {
                     const letter = ["A", "B", "C", "D"][index] ?? String.fromCharCode(65 + index);
                     const isSelected = answer === option;
                     let optionStatusClass = "";
-
                     if (checked) {
-                      if (isSelected && correct) {
-                        optionStatusClass = "answer-correct-chosen";
-                      } else if (isSelected && !correct) {
-                        optionStatusClass = "answer-incorrect-chosen";
-                      } else if (!isSelected && option === item.correctAnswer) {
-                        optionStatusClass = "answer-revealed-correct";
-                      } else {
-                        optionStatusClass = "answer-dimmed";
-                      }
+                      if (isSelected) optionStatusClass = correct ? "answer-correct-chosen" : "answer-incorrect-chosen";
+                      else if (revealed && option === item.correctAnswer) optionStatusClass = "answer-revealed-correct";
+                      else if (revealed) optionStatusClass = "answer-dimmed";
                     } else if (isSelected) {
                       optionStatusClass = "selected";
                     }
-
                     return (
-                      <button
-                        type="button"
-                        disabled={checked || reviewOnly}
-                        className={`answer-card ${optionStatusClass}`}
-                        onClick={() => setAnswer(option)}
-                        key={option}
-                      >
+                      <button type="button" disabled={checked || reviewOnly} aria-pressed={isSelected} className={`answer-card ${optionStatusClass}`} onClick={() => setAnswer(option)} key={option}>
                         <span className="answer-letter">{letter}</span>
                         <span className="answer-text">{option}</span>
-                        {checked && option === item.correctAnswer && (
-                          <span className="status-badge correct-badge">CORRECT</span>
-                        )}
-                        {checked && isSelected && !correct && (
-                          <span className="status-badge incorrect-badge">SELECTED</span>
-                        )}
+                        {checked && revealed && option === item.correctAnswer && <span className="status-badge correct-badge">Correct</span>}
+                        {checked && isSelected && !correct && <span className="status-badge incorrect-badge">Not quite</span>}
                       </button>
                     );
                   })}
                 </div>
 
-                <div className="generated-tutor-actions">
-                  <button
-                    className="check-button"
-                    disabled={reviewOnly || !answer.trim() || checked}
-                    onClick={() => void check(performance.now())}
-                  >
-                    {reviewOnly ? "SAVED ANSWER" : checked ? "ANSWER RECORDED" : "CHECK ANSWER"}
-                  </button>
-                  <button
-                    type="button"
-                    className="hint-toggle-button"
-                    onClick={() => { if (!showHint) { hintUsed.current = true; recordExposure("hint_opened"); } setShowHint((value) => !value); }}
-                  >
-                    {showHint ? "HIDE HINT" : "NEED A HINT?"}
-                  </button>
-                </div>
-
-                {showHint && (
-                  <div className="hint-card">
-                    <div className="hint-header">
-                      <span className="hint-kicker">HINT</span>
-                    </div>
-                    <p className="hint-body">{generated.content.hint}</p>
+                {!checked && !reviewOnly && (
+                  <div className="generated-tutor-actions">
+                    <button type="button" className="text-button hint-link" onClick={() => { if (!showHint) { hintUsed.current = true; recordExposure("hint_opened"); } setShowHint((value) => !value); }}>
+                      {showHint ? "Hide hint" : "Show a hint"}
+                    </button>
+                    <button type="button" className="primary-button" disabled={!answer.trim()} onClick={() => void check(performance.now())}>Check answer</button>
                   </div>
                 )}
 
-                {checked && (
-                  <div className={`feedback-card ${correct ? "feedback-correct" : "feedback-incorrect"}`}>
-                    <div className="feedback-header">
-                      <span className={`feedback-tag ${correct ? "tag-success" : "tag-error"}`}>
-                        {correct ? "CORRECT" : "NOT QUITE"}
-                      </span>
-                      {!correct && (
-                        <span className="expected-answer-label">
-                          Expected Answer: <strong>{item.correctAnswer}</strong>
-                        </span>
-                      )}
-                    </div>
-                    <p className="feedback-explanation">{item.explanation}</p>
-                    {!correct && !reviewOnly && (
-                      <div className="feedback-actions">
-                        <button className="alternate-button" type="button" onClick={retryCurrentQuestion}>Try again</button>
-                        <button className="alternate-button" type="button" disabled={loading} onClick={() => void tryAnotherAfterIncorrect()}>{loading ? "Preparing…" : "Try a similar question"}</button>
-                      </div>
-                    )}
+                {showHint && !checked && <p className="hint-card"><strong>Hint:</strong> {generated.content.hint}</p>}
+
+                {checked && correct && (
+                  <div className="feedback-card feedback-correct">
+                    <strong>Correct. Why this works:</strong>
+                    <p>{item.explanation}</p>
                   </div>
                 )}
-                {step === "review" && onConfidence && !reviewOnly && (
+
+                {checked && !correct && !revealed && (
+                  <div className="feedback-card feedback-nudge">
+                    <strong>Not quite. Here’s a nudge.</strong>
+                    <p>{generated.content.hint || "Look back at the main idea of this stage, then try again."}</p>
+                    {!reviewOnly && <button className="primary-button" type="button" onClick={retryCurrentQuestion}>Try again</button>}
+                  </div>
+                )}
+
+                {checked && !correct && revealed && (
+                  <div className="feedback-card feedback-incorrect">
+                    <strong>Not quite. The answer is “{item.correctAnswer}”.</strong>
+                    <p>{item.explanation}</p>
+                    {!reviewOnly && <div className="feedback-actions">
+                      <button className="primary-button" type="button" onClick={retryCurrentQuestion}>Choose the answer</button>
+                      <button className="text-button" type="button" disabled={loading} onClick={() => void tryAnotherAfterIncorrect()}>{loading ? "Preparing…" : "Try a similar question instead"}</button>
+                    </div>}
+                  </div>
+                )}
+
+                {step === "review" && onConfidence && !reviewOnly && checked && correct && (
                   <fieldset className="confidence-check confidence-check-inline">
-                    <legend>Stage check: How confident are you?</legend>
-                    <div>{["Not yet", "Somewhat", "Confident"].map((level) => <button type="button" className={confidence === level ? "confidence selected" : "confidence"} onClick={() => onConfidence(level)} key={level}>{level}</button>)}</div>
+                    <legend>How sure do you feel about this stage?</legend>
+                    <div>{["Not yet", "Somewhat", "Confident"].map((level) => <button type="button" aria-pressed={confidence === level} className={confidence === level ? "confidence selected" : "confidence"} onClick={() => onConfidence(level)} key={level}>{level}</button>)}</div>
                   </fieldset>
                 )}
-                {onContinue && !reviewOnly && (
+
+                {onContinue && !reviewOnly && checked && correct && (
                   <div className="question-continue">
-                    <button type="button" className="primary-button" disabled={continueDisabled} onClick={onContinue}>{continueLabel} <span aria-hidden="true">→</span></button>
-                    <span>{continueDisabled ? step === "review" ? "Answer the question and complete the stage check to continue." : "Answer correctly to continue." : "Ready for the next step."}</span>
+                    {continueDisabled && <span role="status">Choose how sure you feel to continue.</span>}
+                    <button type="button" className="primary-button" disabled={continueDisabled} onClick={onContinue}>{continueLabel === "Continue" ? "Next question" : continueLabel} <span aria-hidden="true">→</span></button>
                   </div>
                 )}
               </div>
             )}
 
-            {viewMode === "practice" && (
-              <div className="pane-jump-footer">
-                <button type="button" className="text-button" onClick={() => changeViewMode("learn")}>
-                  ← Back to Lesson
-                </button>
-              </div>
-            )}
-          </aside>
+            <div className="lesson-part-nav">
+              <button type="button" className="text-button" onClick={() => goToPart(lessonParts.length - 1)}>← Back to the lesson</button>
+            </div>
+          </div>
         )}
       </div>
     )}
   </section>;
 }
+
+type LessonPart = "idea" | "code" | "try";
+const LESSON_PART_LABELS: Record<LessonPart, string> = { idea: "Idea", code: "Code", try: "Try it" };
+function CheckIcon() { return <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m5 10 3 3 7-7" /></svg>; }
 
 function normalize(value: string): string { return value.trim().toLocaleLowerCase(); }
 
@@ -574,6 +519,56 @@ function repeatsCode(body: string, code: string | null): boolean {
   const compactCode = compact(code);
   return compactBody === compactCode || compactBody.includes(compactCode);
 }
+
+// The Idea step gives each kind of section its own visual role; older section types fall back to the plain view.
+function IdeaSection({ section, task, stage, step }: { section: LessonSection; task: string; stage: string; step: InstructionalStep }) {
+  const preference = getAuth()?.user?.analogy_preference;
+  if (section.type === "meaning") return <section className="idea-intro">
+    <p className="idea-lead">{section.body}</p>
+    {section.items.length > 0 && <div className="idea-goals">
+      <h3>In this stage you’ll</h3>
+      <ol>{section.items.map((item, index) => <li key={item}><span aria-hidden="true">{index + 1}</span>{item}</li>)}</ol>
+    </div>}
+  </section>;
+  if (section.type === "analogy" || section.type === "concept" || section.type === "real_life_analogy") {
+    const javaExample = preference === "java" && section.type === "analogy" ? JAVA_ANALOGY_EXAMPLES[`${task}.${stage}`] : undefined;
+    const label = section.type === "concept" ? "In machine learning terms" : preference === "java" ? "If you know Java" : "Think of it like this";
+    return <section className="idea-card idea-card-analogy">
+      <h3><LightbulbIcon />{label}</h3>
+      <p>{section.body}</p>
+      {javaExample && <figure className="idea-java">
+        <pre><code>{javaExample.code}</code></pre>
+        <figcaption>{javaExample.explanation}</figcaption>
+      </figure>}
+    </section>;
+  }
+  if (section.type === "example") {
+    // Items written as "a | b | c" become table rows (a leading "# " row names the columns); anything else is a caption.
+    const header = section.items[0]?.startsWith("# ") ? section.items[0].slice(2).split(" | ") : ["Column", "Value", "What it is"];
+    const body = section.items.filter((item) => !item.startsWith("# "));
+    const rows = body.filter((item) => item.split(" | ").length === 3).map((item) => item.split(" | "));
+    const notes = body.filter((item) => item.split(" | ").length !== 3);
+    return <section className="idea-card idea-card-example">
+      <h3><TableIcon />Worked example</h3>
+      <p>{section.body}</p>
+      {rows.length > 0 && <div className="idea-example-table"><table>
+        <thead><tr>{header.map((label) => <th scope="col" key={label}>{label}</th>)}</tr></thead>
+        <tbody>{rows.map(([column, value, role]) => <tr key={column}><th scope="row"><code>{column}</code></th><td>{value}</td><td>{role}</td></tr>)}</tbody>
+      </table></div>}
+      {notes.map((note) => <p className="idea-example-note" key={note}>{note}</p>)}
+      {task === "cnn" && stage === "load_images" && <DigitMatrixExample />}
+    </section>;
+  }
+  if (section.type === "why_it_matters") return <section className="idea-card idea-card-why">
+    <h3><AlertIcon />Why it matters</h3>
+    <p>{section.body}</p>
+  </section>;
+  return <LessonSectionView section={section} task={task} stage={stage} step={step} />;
+}
+
+function LightbulbIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18h6m-5 3h4M8 14a6 6 0 1 1 8 0c-1 1-1 2-1 2H9s0-1-1-2Z" /></svg>; }
+function TableIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M3 10h18M9 10v10" /></svg>; }
+function AlertIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 9v4m0 4h.01M10.3 3.9 2.4 17.5A2 2 0 0 0 4.1 20.5h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" /></svg>; }
 
 function LessonSectionView({ section, task, stage, step, codeExplanation = [], tryThis = [] }: { section: LessonSection; task: string; stage: string; step: InstructionalStep; codeExplanation?: string[]; tryThis?: (CodeExperiment | string)[] }) {
   const isOrderedList = section.type === "pipeline" || section.type === "transformation";
@@ -588,24 +583,19 @@ function LessonSectionView({ section, task, stage, step, codeExplanation = [], t
       </h4>
       {section.type === "code" ? (
         <ExecutableLessonCell section={section} task={task} stage={stage} step={step} codeExplanation={codeExplanation} tryThis={tryThis} />
-      ) : section.type !== "why_it_matters" ? (
-        <p className="section-body">{section.body}</p>
       ) : (
-        <details className="lesson-details">
-          <summary>Why this matters</summary>
-          <p className="section-body">{section.body}</p>
-        </details>
+        <p className="section-body">{section.body}</p>
       )}
       {showJavaExample && javaExample && (
         <div className="java-analogy-example">
           <strong>Small Java example</strong>
-          <pre><code>{javaExample}</code></pre>
+          <pre><code>{javaExample.code}</code></pre>
+          <p>{javaExample.explanation}</p>
         </div>
       )}
       
       {section.type !== "code" && section.type !== "why_it_matters" && section.items.length > 0 && (
         <>
-        <p className="section-list-label">Key points</p>
         {isOrderedList ? (
           <ol className="section-bullet-list">
             {section.items.map((item) => <li key={item}>{item}</li>)}
@@ -652,7 +642,7 @@ function DatasetLessonPreview({ task }: { task: string }) {
   </div>;
 }
 
-function ExecutableLessonCell({ section, task, stage, step, codeExplanation, tryThis }: { section: LessonSection; task: string; stage: string; step: InstructionalStep; codeExplanation: string[]; tryThis: (CodeExperiment | string)[] }) {
+function ExecutableLessonCell({ section, task, stage, step, codeExplanation, tryThis, showInstruction = true }: { section: LessonSection; task: string; stage: string; step: InstructionalStep; codeExplanation: string[]; tryThis: (CodeExperiment | string)[]; showInstruction?: boolean }) {
   const editorKey = `leap.code.v1.${task}.${stage}`;
   const [code, setCode] = useState(() => typeof window === "undefined" ? section.code ?? "" : window.sessionStorage.getItem(editorKey) ?? section.code ?? "");
   const [dataset, setDataset] = useState<DatasetInfo | null>(null);
@@ -664,7 +654,7 @@ function ExecutableLessonCell({ section, task, stage, step, codeExplanation, try
   const [editStatus, setEditStatus] = useState("");
   const experiments = tryThis.filter((suggestion): suggestion is CodeExperiment => typeof suggestion !== "string");
   const instruction = repeatsCode(section.body, section.code)
-    ? "Run this focused stage code, then compare its output or new state with the Result section below."
+    ? "Run the code, then check that the output matches what this step describes."
     : section.body;
 
   useEffect(() => {
@@ -741,7 +731,7 @@ function ExecutableLessonCell({ section, task, stage, step, codeExplanation, try
 
   return (
     <div className="code-learning-unit">
-      <p className="section-body code-purpose">{instruction}</p>
+      {showInstruction && <p className="section-body code-purpose">{instruction}</p>}
       <div className="executable-cell">
       <div className="code-heading">
         <div className="code-heading-left">
@@ -824,8 +814,8 @@ function ExecutableLessonCell({ section, task, stage, step, codeExplanation, try
             </li>;
           })}</ol>
         </section>}
-        {tryThis.length > 0 && <details className="try-this" open>
-          <summary>Try this · explore the code</summary>
+        {tryThis.length > 0 && <section className="try-this">
+          <h5>Try this · explore the code</h5>
           {experiments.length > 0 ? <>
             <p>Apply an edit below to the cell above, then select Run code. Use Reset before trying another edit.</p>
             <ol className="code-experiments">{experiments.map((experiment, index) => {
@@ -847,7 +837,7 @@ function ExecutableLessonCell({ section, task, stage, step, codeExplanation, try
               </li>;
             })}</ol>
           </> : <p>Exact code edits aren’t available for this saved lesson.</p>}
-        </details>}
+        </section>}
       </div>}
     </div>
   );
@@ -876,13 +866,13 @@ function DataTable({ columns, rows }: { columns: string[]; rows: Record<string, 
 
 function sectionLabel(type: LessonSection["type"]): string {
   return {
-    meaning: "1. What this means",
-    concept: "2. Main idea",
-    analogy: "2. Analogy",
-    example: "3. Example",
-    code: "5. Try the code",
-    result: "4. What you should see",
-    why_it_matters: "6. Why this matters",
+    meaning: "Main idea",
+    concept: "Another way to understand it",
+    analogy: "An analogy",
+    example: "A small example",
+    code: "Try the code",
+    result: "Expected result",
+    why_it_matters: "Why this matters",
     concept_bridge: "Concept connection",
     real_life_analogy: "Analogy",
     data_preview: "Dataset preview",

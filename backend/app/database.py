@@ -617,6 +617,16 @@ def saved_stage_lesson(learner_id: str, task: str, stage: str, prompt_version: s
     return payload.get("lesson")
 
 
+def count_tutor_question_instances(learner_id: str, task: str, stage: str, step: str) -> int:
+    """How many questions this learner has been given for one step, across retries."""
+    with connect() as connection:
+        row = connection.execute(
+            "SELECT COUNT(*) AS seen FROM tutor_question_instances WHERE learner_id = ? AND task = ? AND stage = ? AND step = ?",
+            (learner_id, task, stage, step),
+        ).fetchone()
+    return int(row["seen"])
+
+
 def save_generated_tutor_content(
     context: TutorGenerationRequest,
     generated: TutorGenerationResponse,

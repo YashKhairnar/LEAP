@@ -30,6 +30,7 @@ from .tutoring.lesson_code import fixed_lesson_prerequisites
 from .database import (
     IntegrityErrors,
     authenticate_user,
+    count_tutor_question_instances,
     create_user,
     initialize_database,
     list_progress,
@@ -248,7 +249,8 @@ def tutor_generate(
                     "analogy_preference": user.analogy_preference,
                     "java_experience": user.java_experience}
         )
-        generated = generate_tutor_content(effective_request, str(uuid4()))
+        seen = count_tutor_question_instances(user.user_id, request.task, request.stage, request.step)
+        generated = generate_tutor_content(effective_request, str(uuid4()), variant=seen)
         save_generated_tutor_content(effective_request, generated, user.user_id)
         return generated
     except AuthoredContentUnavailable as error:

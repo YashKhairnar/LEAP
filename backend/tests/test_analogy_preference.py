@@ -80,7 +80,7 @@ class AnalogyPreferenceTests(unittest.TestCase):
         request = TutorGenerationRequest(task="sentiment", stage="model_training", step="connect",
             action_type="connect.analogy_mapping", reference_prompt="Explain training.",
             analogy_preference="java", java_experience="advanced", existing_lesson=lesson_with(SECTION_ORDER))
-        def fake_generation(context, instance_id):
+        def fake_generation(context, instance_id, variant=0):
             return TutorGenerationResponse(content_instance_id=instance_id, model="fixture", prompt_version=TUTOR_PROMPT_VERSION,
                 code_version="fixture", dataset={}, lesson=lesson_with(SECTION_ORDER), content=QUESTION)
         with patch("app.main.generate_tutor_content", side_effect=fake_generation) as generator:

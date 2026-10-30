@@ -17,5 +17,5 @@ export async function generateMetadata({ params }: { params: Promise<{ task: str
 export default async function TaskPage({ params, searchParams }: { params: Promise<{ task: string }>; searchParams: Promise<{ view?: string }> }) {
   const task = await getTask(params);
   const { view } = await searchParams;
-  return <TaskIntroductionPage key={`${task.slug}.${view ?? "introduction"}`} task={task} initialView={view === "assessment" ? "assessment" : view === "dataset" ? "dataset" : "introduction"} />;
+  return <TaskIntroductionPage key={`${task.slug}.${view ?? "introduction"}`} task={task} initialView={view === "starting-assessment" ? "starting-assessment" : view === "assessment" ? "assessment" : view === "dataset" ? "dataset" : "introduction"} />;
 }

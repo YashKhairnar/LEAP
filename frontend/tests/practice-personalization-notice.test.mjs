@@ -8,7 +8,7 @@ const component = await readFile(
 );
 
 test("the personalization notice gates only the learner's first practice question per task", () => {
-  assert.match(component, /step === "practice"/);
+  assert.doesNotMatch(component, /showPersonalizationNotice = .*step ===/);
   assert.match(component, /personalization-notice\.v1\.\$\{learner\?\.user_id/);
   assert.match(component, /generated && item && !showPersonalizationNotice/);
   assert.match(component, /I understand — start practice/);
@@ -20,4 +20,6 @@ test("the notice accurately names the learning signals used for personalization"
   assert.match(component, /active response time while the question is visible/i);
   assert.match(component, /separate from the final assessment score/i);
   assert.match(component, /href="\/privacy"/);
+  assert.match(component, /styles are currently chosen at random/);
+  assert.doesNotMatch(component, /information can change the style/);
 });

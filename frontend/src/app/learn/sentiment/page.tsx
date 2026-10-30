@@ -9,5 +9,5 @@ export const metadata: Metadata = {
 
 export default async function SentimentOverview({ searchParams }: { searchParams: Promise<{ view?: string }> }) {
   const { view } = await searchParams;
-  return <TaskIntroductionPage task={taskIntroductions.sentiment} initialView={view === "assessment" ? "assessment" : view === "dataset" ? "dataset" : "introduction"} />;
+  return <TaskIntroductionPage key={view ?? "introduction"} task={taskIntroductions.sentiment} initialView={view === "starting-assessment" ? "starting-assessment" : view === "assessment" ? "assessment" : view === "dataset" ? "dataset" : "introduction"} />;
 }
