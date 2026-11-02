@@ -20,11 +20,12 @@ type LessonSection = { type: LessonSectionType; title: string; body: string; ite
 type CodeExperiment = { title: string; find: string; replace: string; expected_change: string };
 type LessonContent = { title: string; introduction: string; sections: LessonSection[]; code_explanation?: string[]; try_this?: (CodeExperiment | string)[]; key_takeaway?: string };
 
-export default function GeneratedTutorCard({ task, stage, stageTitle, questionNumber, step, actionType, lessonContext, learningObjectives, onAttempt, onPresented, onRestoredCorrect, onContinue, continueDisabled = false, continueLabel = "Continue", confidence, onConfidence, reviewOnly = false }: {
+export default function GeneratedTutorCard({ task, stage, stageTitle, questionNumber, step, actionType, lessonContext, learningObjectives, onAttempt, onPresented, onRestoredCorrect, onPrevious, onContinue, continueDisabled = false, continueLabel = "Continue", confidence, onConfidence, reviewOnly = false }: {
   task: string; stage: string; stageTitle?: string; questionNumber?: number; step: InstructionalStep; actionType: InstructionalActionType; lessonContext: string; learningObjectives: string[];
   onAttempt: (item: QuestionItem, answer: string, correct: boolean, attempt: number, responseTimeMs: number, presentationId: string, evidence: AttemptEvidence) => Promise<void>;
   onPresented: (item: QuestionItem, presentationId: string) => void;
   onRestoredCorrect?: (step: InstructionalStep) => void;
+  onPrevious?: () => void;
   onContinue?: () => void;
   continueDisabled?: boolean;
   continueLabel?: string;
@@ -446,9 +447,12 @@ export default function GeneratedTutorCard({ task, stage, stageTitle, questionNu
 
                 {!checked && !reviewOnly && (
                   <div className="generated-tutor-actions">
-                    <button type="button" className="text-button hint-link" onClick={() => { if (!showHint) { hintUsed.current = true; recordExposure("hint_opened"); } setShowHint((value) => !value); }}>
-                      {showHint ? "Hide hint" : "Show a hint"}
-                    </button>
+                    <div className="question-secondary-actions">
+                      {onPrevious && <button type="button" className="text-button previous-question-button" onClick={onPrevious}>← Previous question</button>}
+                      <button type="button" className="text-button hint-link" onClick={() => { if (!showHint) { hintUsed.current = true; recordExposure("hint_opened"); } setShowHint((value) => !value); }}>
+                        {showHint ? "Hide hint" : "Show a hint"}
+                      </button>
+                    </div>
                     <button type="button" className="primary-button" disabled={!answer.trim()} onClick={() => void check(performance.now())}>Check answer</button>
                   </div>
                 )}
