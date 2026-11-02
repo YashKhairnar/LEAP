@@ -12,6 +12,7 @@ import { QuestionExposureClock, evidenceKind, type AttemptEvidence } from "@/fea
 import { JAVA_ANALOGY_EXAMPLES, stageTerms } from "@/features/learning/lib/learning-support";
 import { initialStageScreen } from "@/features/learning/lib/learning-flow";
 import DigitMatrixExample from "@/features/learning/components/digit-matrix-example";
+import StageAnimation from "@/features/learning/components/lesson-animations";
 
 type TutorContent = { question: string; options: string[]; expected_answer: string; hint: string; explanation: string; concepts_tested: string[] };
 type LessonSectionType = "meaning" | "concept" | "analogy" | "example" | "code" | "result" | "why_it_matters" | "concept_bridge" | "real_life_analogy" | "data_preview" | "pipeline" | "transformation" | "warning" | "metric";
@@ -557,6 +558,7 @@ function IdeaSection({ section, task, stage, step }: { section: LessonSection; t
       </table></div>}
       {notes.map((note) => <p className="idea-example-note" key={note}>{note}</p>)}
       {task === "cnn" && stage === "load_images" && <DigitMatrixExample />}
+      <StageAnimation task={task} stage={stage} />
     </section>;
   }
   if (section.type === "why_it_matters") return <section className="idea-card idea-card-why">
