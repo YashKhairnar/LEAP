@@ -9,12 +9,12 @@ import { learningSessionId, enqueueCollection } from "@/features/collection/lib/
 import type { InstructionalStep } from "@/features/learning/lib/instructional-actions";
 import { questionContentId } from "@/features/collection/lib/content-id";
 import GeneratedTutorCard from "@/features/learning/components/generated-tutor-card";
-import { getTaskProgress } from "@/lib/auth";
+import { getTaskProgress, hasStartingAssessment } from "@/lib/auth";
 import { flushCollectionQueue } from "@/features/collection/lib/collection";
 import LearningShell from "@/features/learning/components/learning-shell";
 import CompletedStageReview from "@/features/learning/components/completed-stage-review";
 import CompletedStagePicker from "@/features/learning/components/completed-stage-picker";
-import TaskAssessment, { AssessmentNavigation } from "@/features/assessment/components/task-assessment";
+import TaskAssessment, { AssessmentNavigation, StartingAssessmentNavigation } from "@/features/assessment/components/task-assessment";
 import { taskIntroductions } from "@/features/learning/lib/lesson-introductions";
 
 const steps: { id: InstructionalStep; label: string }[] = [
@@ -32,6 +32,7 @@ export default function TaskLessonClient({ task, initialReviewStage }: { task: A
   const [furthestStep, setFurthestStep] = useState(0);
   const [confidence, setConfidence] = useState<string | null>(null);
   const [progressRestored, setProgressRestored] = useState(false);
+  const [baselineComplete, setBaselineComplete] = useState(false);
   const [reviewStageIndex, setReviewStageIndex] = useState<number | null>(null);
   const [reviewInitialStep, setReviewInitialStep] = useState(0);
   const [sessionId] = useState(() => typeof window === "undefined" ? "" : learningSessionId());
@@ -42,8 +43,12 @@ export default function TaskLessonClient({ task, initialReviewStage }: { task: A
 
   useEffect(() => {
     let active = true;
-    void flushCollectionQueue().catch(() => undefined).then(() => getTaskProgress()).then((records) => {
+    void flushCollectionQueue().catch(() => undefined).then(() => Promise.all([
+      getTaskProgress(),
+      hasStartingAssessment(task.id).catch(() => false),
+    ])).then(([records, startingAssessmentComplete]) => {
       if (!active) return;
+      setBaselineComplete(startingAssessmentComplete);
       const saved = records.find((record) => record.task === task.id);
       if (saved) {
         const savedStage = task.stages.findIndex((item) => item.id === saved.current_stage);
@@ -127,10 +132,10 @@ export default function TaskLessonClient({ task, initialReviewStage }: { task: A
     requestAnimationFrame(() => document.getElementById("lesson")?.scrollIntoView({ behavior: "smooth", block: "start" }));
   };
 
-  const navigator = <aside className="progress-section" id="learning-path-panel"><div className="progress-heading"><div><p className="eyebrow">Your learning path</p><h1>{task.title}</h1></div><p className="path-count">{completedStages} of {task.stages.length} stages done</p></div><ol className="stage-track"><li className="stage introduction-stage"><Link className="stage-navigation-button" data-stage-navigation href={`/learn/${task.id}`} aria-label="Open task introduction"><span className="stage-node" aria-hidden="true">i</span><span className="stage-copy"><span>Start here</span><strong>Task introduction</strong></span></Link></li><li className="stage dataset-stage"><Link className="stage-navigation-button" data-stage-navigation href={`/learn/${task.id}?view=dataset`} aria-label="Open dataset preview"><span className="stage-node" aria-hidden="true">D</span><span className="stage-copy"><span>Explore</span><strong>Dataset preview</strong></span></Link></li>{task.stages.map((item, index) => <li className={`stage ${index < completedStages ? "complete-stage" : index === stageIndex ? "active" : "locked"} ${(!taskComplete || reviewStageIndex !== null) && (reviewStageIndex ?? stageIndex) === index ? "selected-stage" : ""}`} key={item.id}><button type="button" className="stage-navigation-button" data-stage-navigation disabled={!progressRestored || (index >= completedStages && index !== stageIndex)} aria-current={(!taskComplete || reviewStageIndex !== null) && (reviewStageIndex ?? stageIndex) === index ? "step" : undefined} aria-label={`${index < completedStages ? "Review completed" : "Open"} stage ${index + 1}: ${item.label}`} onClick={() => selectStage(index)}><span className="stage-node">{index < completedStages ? "✓" : index + 1}</span><span className="stage-copy"><span>Stage {index + 1}</span><strong>{item.label}</strong></span></button></li>)}<AssessmentNavigation href={!taskComplete ? `/learn/${task.id}?view=assessment` : undefined} unlocked={progressRestored && taskComplete} selected={taskComplete && reviewStageIndex === null} onClick={() => setReviewStageIndex(null)} /></ol></aside>;
+  const navigator = <aside className="progress-section" id="learning-path-panel"><div className="progress-heading"><div><p className="eyebrow">Your learning path</p><h1>{task.title}</h1></div><p className="path-count">{completedStages} of {task.stages.length} stages done</p></div><ol className="stage-track"><li className="stage introduction-stage"><Link className="stage-navigation-button" data-stage-navigation href={`/learn/${task.id}`} aria-label="Open task introduction"><span className="stage-node" aria-hidden="true">i</span><span className="stage-copy"><span>Start here</span><strong>Task introduction</strong></span></Link></li><StartingAssessmentNavigation complete={baselineComplete} href={`/learn/${task.id}?view=starting-assessment`} /><li className="stage dataset-stage"><Link className="stage-navigation-button" data-stage-navigation href={`/learn/${task.id}?view=dataset`} aria-label="Open dataset preview"><span className="stage-node" aria-hidden="true">D</span><span className="stage-copy"><span>Explore</span><strong>Dataset preview</strong></span></Link></li>{task.stages.map((item, index) => { const locked = index >= completedStages && index !== stageIndex; return <li className={`stage ${index < completedStages ? "complete-stage" : index === stageIndex ? "active" : "locked"} ${(!taskComplete || reviewStageIndex !== null) && (reviewStageIndex ?? stageIndex) === index ? "selected-stage" : ""}`} key={item.id}><button type="button" className="stage-navigation-button" data-stage-navigation disabled={!progressRestored || locked} aria-current={(!taskComplete || reviewStageIndex !== null) && (reviewStageIndex ?? stageIndex) === index ? "step" : undefined} aria-label={`${index < completedStages ? "Review completed" : locked ? "Locked" : "Open"} stage ${index + 1}: ${item.label}`} onClick={() => selectStage(index)}><span className="stage-node" aria-hidden="true">{index < completedStages ? "✓" : locked ? "🔒" : index + 1}</span><span className="stage-copy"><span>{locked ? "Locked · " : ""}Stage {index + 1}</span><strong>{item.label}</strong></span></button></li>; })}<AssessmentNavigation href={!taskComplete ? `/learn/${task.id}?view=assessment` : undefined} unlocked={progressRestored && taskComplete} selected={taskComplete && reviewStageIndex === null} onClick={() => setReviewStageIndex(null)} /></ol></aside>;
 
   return <LearningShell taskTitle={task.title} location={taskComplete ? "Final assessment" : `Stage ${stageIndex + 1} of ${task.stages.length} · ${stage.label}`} progress={overallProgress} overviewHref={`/learn/${task.id}`} navigator={navigator}>
-    {reviewStageIndex !== null ? <CompletedStageReview key={`${reviewStageIndex}.${reviewInitialStep}`} task={task.id} stage={taskIntroductions[task.id].stages[reviewStageIndex]} stageNumber={reviewStageIndex + 1} taskComplete={taskComplete} onReturn={() => setReviewStageIndex(null)} completedStages={taskIntroductions[task.id].stages.slice(0, completedStages)} initialStepIndex={reviewInitialStep} onSelectStage={(stageId) => { const index = task.stages.findIndex((item) => item.id === stageId); selectStage(index, index < reviewStageIndex ? steps.length - 1 : 0); }} /> :
+    {reviewStageIndex !== null ? <CompletedStageReview key={`${reviewStageIndex}.${reviewInitialStep}`} task={task.id} stage={taskIntroductions[task.id].stages[reviewStageIndex]} stageNumber={reviewStageIndex + 1} completedStages={taskIntroductions[task.id].stages.slice(0, completedStages)} initialStepIndex={reviewInitialStep} onSelectStage={(stageId) => { const index = task.stages.findIndex((item) => item.id === stageId); selectStage(index, index < reviewStageIndex ? steps.length - 1 : 0); }} /> :
     <article className="lesson-content" id="lesson" tabIndex={-1}>
       {progressRestored && completedStages > 0 && <CompletedStagePicker stages={taskIntroductions[task.id].stages.slice(0, completedStages)} onSelect={(stageId) => selectStage(task.stages.findIndex((item) => item.id === stageId))} />}
       {!progressRestored && <p className="question-loading">Restoring your saved position…</p>}

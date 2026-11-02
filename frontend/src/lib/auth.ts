@@ -39,6 +39,13 @@ export async function getTaskProgress(): Promise<TaskProgress[]> {
   return response.json() as Promise<TaskProgress[]>;
 }
 
+export async function hasStartingAssessment(task: string): Promise<boolean> {
+  const response = await fetch(`${API_URL}/api/assessments/${encodeURIComponent(task)}?phase=pre`, { credentials: "include", cache: "no-store" });
+  if (!response.ok) throw new Error("Could not check your starting assessment");
+  const assessment = await response.json() as { result: unknown };
+  return Boolean(assessment.result);
+}
+
 export async function authenticate(path: "register" | "login", body: object): Promise<AuthSession> {
   const controller = new AbortController();
   const timeout = window.setTimeout(() => controller.abort(), 20_000);

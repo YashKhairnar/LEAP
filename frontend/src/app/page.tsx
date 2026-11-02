@@ -42,7 +42,7 @@ export default function Dashboard() {
   const latestTask = latest && tasks.find((task) => task.id === latest.task);
   const resume = latest && latestTask ? { record: latest, task: latestTask, percent: latest.task_complete ? 100 : Math.round((latest.completed_stages / Math.max(1, latest.total_stages)) * 100) } : null;
 
-  if (!user) return <main className="auth-loading" aria-live="polite">Loading your learning paths…</main>;
+  if (!user) return <LearningPathsLoading />;
 
   return <main className="dashboard-shell simple-dashboard">
     <header className="topbar dashboard-nav">
@@ -78,11 +78,21 @@ export default function Dashboard() {
           {tasks.map((task) => {
             const record = progress.find((item) => item.task === task.id);
             const status = record?.task_complete ? "Completed" : record ? "In progress" : "Not started";
+            const totalStages = record?.total_stages ?? 6;
+            const completedStages = record?.task_complete ? totalStages : record?.completed_stages ?? 0;
+            const percent = Math.round((completedStages / Math.max(1, totalStages)) * 100);
             return <article className="simple-path" key={task.id}>
-              <span className={`path-status ${record ? "started" : ""}`}>{status}</span>
+              <div className="path-card-status">
+                <span className={`path-status ${record ? "started" : ""}`}>{status}</span>
+                <span className="path-percent">{percent}% complete</span>
+              </div>
               <h3>{task.title}</h3>
               <p>{task.description}</p>
               <p className="simple-path-meta">{task.level} · {task.time}</p>
+              <div className="path-card-progress" role="progressbar" aria-label={`${task.title} lesson progress`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent}>
+                <span style={{ width: `${percent}%` }} />
+              </div>
+              <span className="path-stage-count">{completedStages} of {totalStages} stages</span>
               <Link className="path-link" href={record ? `${task.href}/lesson` : task.href}>{record?.task_complete ? "Review" : record ? "Continue" : "Start"} <span aria-hidden="true">→</span></Link>
             </article>;
           })}
@@ -99,5 +109,31 @@ export default function Dashboard() {
         <p>Practice questions help you learn and don’t count toward your assessment scores.</p>
       </details>
     </section>
+  </main>;
+}
+
+function LearningPathsLoading() {
+  return <main className="learning-paths-loading" role="status" aria-live="polite" aria-label="Loading your learning paths">
+    <div className="learning-loading-glow learning-loading-glow-one" aria-hidden="true" />
+    <div className="learning-loading-glow learning-loading-glow-two" aria-hidden="true" />
+    <div className="learning-loading-content">
+      <p className="learning-loading-brand">LEAP</p>
+      <div className="learning-loading-orbits" aria-hidden="true">
+        <span className="learning-loading-core">L</span>
+        <span className="learning-loading-orbit learning-loading-orbit-one"><i /></span>
+        <span className="learning-loading-orbit learning-loading-orbit-two"><i /></span>
+        <span className="learning-loading-orbit learning-loading-orbit-three"><i /></span>
+      </div>
+      <div className="learning-loading-copy">
+        <h1>Loading your learning paths</h1>
+        <p>Finding your progress and preparing your next step.</p>
+      </div>
+      <div className="learning-loading-progress" aria-hidden="true"><span /></div>
+      <div className="learning-loading-path-preview" aria-hidden="true">
+        <span><i />Review sentiment</span>
+        <span><i />House prices</span>
+        <span><i />Handwritten digits</span>
+      </div>
+    </div>
   </main>;
 }

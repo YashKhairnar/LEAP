@@ -10,9 +10,9 @@ import GeneratedTutorCard from "@/features/learning/components/generated-tutor-c
 import LearningShell from "@/features/learning/components/learning-shell";
 import CompletedStageReview from "@/features/learning/components/completed-stage-review";
 import CompletedStagePicker from "@/features/learning/components/completed-stage-picker";
-import TaskAssessment, { AssessmentNavigation } from "@/features/assessment/components/task-assessment";
+import TaskAssessment, { AssessmentNavigation, StartingAssessmentNavigation } from "@/features/assessment/components/task-assessment";
 import { taskIntroductions } from "@/features/learning/lib/lesson-introductions";
-import { getAuth, getTaskProgress } from "@/lib/auth";
+import { getAuth, getTaskProgress, hasStartingAssessment } from "@/lib/auth";
 
 const lessonSteps: { id: StepId; label: string }[] = [
   { id: "connect", label: "Question 1" },
@@ -32,6 +32,7 @@ export default function SentimentLesson({ searchParams }: { searchParams: Promis
   const [taskComplete, setTaskComplete] = useState(false);
   const [sessionId] = useState(() => typeof window === "undefined" ? "" : learningSessionId());
   const [progressRestored, setProgressRestored] = useState(false);
+  const [baselineComplete, setBaselineComplete] = useState(false);
   const [reviewStageIndex, setReviewStageIndex] = useState<number | null>(null);
   const [reviewInitialStep, setReviewInitialStep] = useState(0);
   const stage = sentimentStages[stageIndex];
@@ -45,9 +46,13 @@ export default function SentimentLesson({ searchParams }: { searchParams: Promis
   useEffect(() => {
     let active = true;
     void flushCollectionQueue().catch((error) => console.warn("Pending learner events will retry later.", error))
-      .then(() => getTaskProgress())
-      .then((records) => {
+      .then(() => Promise.all([
+        getTaskProgress(),
+        hasStartingAssessment("sentiment_classification").catch(() => false),
+      ]))
+      .then(([records, startingAssessmentComplete]) => {
         if (!active) return;
+        setBaselineComplete(startingAssessmentComplete);
         const saved = records.find((record) => record.task === "sentiment_classification");
         if (saved) {
           const savedStage = sentimentStages.findIndex((item) => item.id === saved.current_stage);
@@ -138,10 +143,10 @@ export default function SentimentLesson({ searchParams }: { searchParams: Promis
     requestAnimationFrame(() => document.getElementById("lesson")?.scrollIntoView({ behavior: "smooth", block: "start" }));
   };
 
-  const navigator = <aside className="progress-section" aria-labelledby="path-title" id="learning-path-panel"><div className="progress-heading"><div><p className="eyebrow">Your learning path</p><h1 id="path-title">Build a sentiment classifier</h1></div><p className="path-count">{completedStages} of {sentimentStages.length} stages done</p></div><ol className="stage-track"><li className="stage introduction-stage"><Link className="stage-navigation-button" data-stage-navigation href="/learn/sentiment" aria-label="Open task introduction"><span className="stage-node" aria-hidden="true">i</span><span className="stage-copy"><span>Start here</span><strong>Task introduction</strong></span></Link></li><li className="stage dataset-stage"><Link className="stage-navigation-button" data-stage-navigation href="/learn/sentiment?view=dataset" aria-label="Open dataset preview"><span className="stage-node" aria-hidden="true">D</span><span className="stage-copy"><span>Explore</span><strong>Dataset preview</strong></span></Link></li>{sentimentStages.map((item, index) => <li className={`stage ${index < completedStages ? "complete-stage" : index === stageIndex ? "active" : "locked"} ${(!taskComplete || reviewStageIndex !== null) && (reviewStageIndex ?? stageIndex) === index ? "selected-stage" : ""}`} key={item.id}><button type="button" className="stage-navigation-button" data-stage-navigation disabled={!progressRestored || (index >= completedStages && index !== stageIndex)} aria-current={(!taskComplete || reviewStageIndex !== null) && (reviewStageIndex ?? stageIndex) === index ? "step" : undefined} aria-label={`${index < completedStages ? "Review completed" : "Open"} stage ${index + 1}: ${item.shortLabel}`} onClick={() => selectStage(index)}><span className="stage-node">{index < completedStages ? "✓" : index + 1}</span><span className="stage-copy"><span>Stage {index + 1}</span><strong>{item.shortLabel}</strong></span></button></li>)}<AssessmentNavigation href={!taskComplete ? "/learn/sentiment?view=assessment" : undefined} unlocked={progressRestored && taskComplete} selected={taskComplete && reviewStageIndex === null} onClick={() => setReviewStageIndex(null)} /></ol></aside>;
+  const navigator = <aside className="progress-section" aria-labelledby="path-title" id="learning-path-panel"><div className="progress-heading"><div><p className="eyebrow">Your learning path</p><h1 id="path-title">Build a sentiment classifier</h1></div><p className="path-count">{completedStages} of {sentimentStages.length} stages done</p></div><ol className="stage-track"><li className="stage introduction-stage"><Link className="stage-navigation-button" data-stage-navigation href="/learn/sentiment" aria-label="Open task introduction"><span className="stage-node" aria-hidden="true">i</span><span className="stage-copy"><span>Start here</span><strong>Task introduction</strong></span></Link></li><StartingAssessmentNavigation complete={baselineComplete} href="/learn/sentiment?view=starting-assessment" /><li className="stage dataset-stage"><Link className="stage-navigation-button" data-stage-navigation href="/learn/sentiment?view=dataset" aria-label="Open dataset preview"><span className="stage-node" aria-hidden="true">D</span><span className="stage-copy"><span>Explore</span><strong>Dataset preview</strong></span></Link></li>{sentimentStages.map((item, index) => { const locked = index >= completedStages && index !== stageIndex; return <li className={`stage ${index < completedStages ? "complete-stage" : index === stageIndex ? "active" : "locked"} ${(!taskComplete || reviewStageIndex !== null) && (reviewStageIndex ?? stageIndex) === index ? "selected-stage" : ""}`} key={item.id}><button type="button" className="stage-navigation-button" data-stage-navigation disabled={!progressRestored || locked} aria-current={(!taskComplete || reviewStageIndex !== null) && (reviewStageIndex ?? stageIndex) === index ? "step" : undefined} aria-label={`${index < completedStages ? "Review completed" : locked ? "Locked" : "Open"} stage ${index + 1}: ${item.shortLabel}`} onClick={() => selectStage(index)}><span className="stage-node" aria-hidden="true">{index < completedStages ? "✓" : locked ? "🔒" : index + 1}</span><span className="stage-copy"><span>{locked ? "Locked · " : ""}Stage {index + 1}</span><strong>{item.shortLabel}</strong></span></button></li>; })}<AssessmentNavigation href={!taskComplete ? "/learn/sentiment?view=assessment" : undefined} unlocked={progressRestored && taskComplete} selected={taskComplete && reviewStageIndex === null} onClick={() => setReviewStageIndex(null)} /></ol></aside>;
 
   return <LearningShell taskTitle="Review sentiment" location={taskComplete ? "Final assessment" : `Stage ${stageIndex + 1} of ${sentimentStages.length} · ${stage.shortLabel}`} progress={overallProgress} overviewHref="/learn/sentiment" navigator={navigator}>
-    {reviewStageIndex !== null ? <CompletedStageReview key={`${reviewStageIndex}.${reviewInitialStep}`} task="sentiment_classification" stage={taskIntroductions.sentiment.stages[reviewStageIndex]} stageNumber={reviewStageIndex + 1} taskComplete={taskComplete} onReturn={() => setReviewStageIndex(null)} completedStages={taskIntroductions.sentiment.stages.slice(0, completedStages)} initialStepIndex={reviewInitialStep} onSelectStage={(stageId) => { const index = sentimentStages.findIndex((item) => item.id === stageId); selectStage(index, index < reviewStageIndex ? lessonSteps.length - 1 : 0); }} /> :
+    {reviewStageIndex !== null ? <CompletedStageReview key={`${reviewStageIndex}.${reviewInitialStep}`} task="sentiment_classification" stage={taskIntroductions.sentiment.stages[reviewStageIndex]} stageNumber={reviewStageIndex + 1} completedStages={taskIntroductions.sentiment.stages.slice(0, completedStages)} initialStepIndex={reviewInitialStep} onSelectStage={(stageId) => { const index = sentimentStages.findIndex((item) => item.id === stageId); selectStage(index, index < reviewStageIndex ? lessonSteps.length - 1 : 0); }} /> :
     <article className="lesson-content" id="lesson" tabIndex={-1}>
       {progressRestored && completedStages > 0 && <CompletedStagePicker stages={taskIntroductions.sentiment.stages.slice(0, completedStages)} onSelect={(stageId) => selectStage(sentimentStages.findIndex((item) => item.id === stageId))} />}
       {!progressRestored && <p className="question-loading">Restoring your saved position…</p>}

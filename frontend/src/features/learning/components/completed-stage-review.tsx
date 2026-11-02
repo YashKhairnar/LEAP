@@ -14,12 +14,10 @@ const steps: { id: InstructionalStep; label: string }[] = [
 const ignorePresentation = () => {};
 const ignoreAttempt = async () => {};
 
-export default function CompletedStageReview({ task, stage, stageNumber, taskComplete, onReturn, completedStages, onSelectStage, initialStepIndex = 0 }: {
+export default function CompletedStageReview({ task, stage, stageNumber, completedStages, onSelectStage, initialStepIndex = 0 }: {
   task: string;
   stage: StageIntroduction;
   stageNumber: number;
-  taskComplete: boolean;
-  onReturn: () => void;
   completedStages: StageIntroduction[];
   onSelectStage: (stageId: string) => void;
   initialStepIndex?: number;
@@ -38,12 +36,5 @@ export default function CompletedStageReview({ task, stage, stageNumber, taskCom
       {steps.map((item, index) => <button key={item.id} type="button" aria-current={index === stepIndex ? "step" : undefined} onClick={() => setStepIndex(index)}>{item.label}</button>)}
     </nav>
     <GeneratedTutorCard key={step.id} task={task} stage={stage.id} stageTitle={stage.title} questionNumber={stepIndex + 1} step={step.id} actionType={INSTRUCTIONAL_ACTIONS[step.id][0]} lessonContext={stage.summary} learningObjectives={stage.objectives} onAttempt={ignoreAttempt} onPresented={ignorePresentation} reviewOnly />
-    <footer className="lesson-footer">
-      <div className="review-footer-actions">
-        <button type="button" className="text-button" disabled={stepIndex === 0 && stageNumber === 1} onClick={() => { if (stepIndex > 0) setStepIndex((index) => index - 1); else onSelectStage(completedStages[stageNumber - 2].id); }}>← Previous</button>
-        <button type="button" className="text-button" onClick={onReturn}>{taskComplete ? "Completed task" : "Current stage"}</button>
-      </div>
-      {stepIndex < steps.length - 1 && <button type="button" className="primary-button" onClick={() => setStepIndex((index) => index + 1)}>Next step <span aria-hidden="true">→</span></button>}
-    </footer>
   </article>;
 }

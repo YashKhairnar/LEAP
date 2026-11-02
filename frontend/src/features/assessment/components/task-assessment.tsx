@@ -88,7 +88,7 @@ export default function TaskAssessment({ task, phase = "post", onReview }: { tas
 
   const isPre = phase === "pre";
   const taskSlug = task === "sentiment_classification" ? "sentiment" : task;
-  const title = isPre ? "Before-learning assessment" : "Final task assessment";
+  const title = isPre ? "Starting knowledge check" : "Final task assessment";
   if (loading) return <p className="question-loading" role="status">Preparing your {isPre ? "starting" : "final"} assessment…</p>;
   if (!assessment) return <section className="task-assessment"><p role="alert">{error}</p><button className="primary-button" type="button" onClick={() => void load()}>Try again</button></section>;
   if (!assessment.unlocked && !assessment.preview_allowed) return <section className="task-assessment"><h2>{title}</h2><p>Complete all six stages to open these questions. Previewing is disabled during data collection.</p><button className="primary-button" type="button" onClick={() => void load()}>Check progress</button></section>;
@@ -108,17 +108,17 @@ export default function TaskAssessment({ task, phase = "post", onReview }: { tas
   return <section className="task-assessment" aria-labelledby="assessment-title">
     <div className="assessment-mode-banner" role="status">
       <strong>{isPre ? "STARTING ASSESSMENT" : "FINAL ASSESSMENT"}</strong>
-      <span>{isPre ? "A snapshot of what you know before learning." : assessment.unlocked ? "Check what you learned across all six stages." : "Complete all six stages before submitting."}</span>
+      <span>{isPre ? "This records what you know before any concepts are introduced." : assessment.unlocked ? "Check what you learned across all six stages." : "Complete all six stages before submitting."}</span>
     </div>
     <header className="assessment-header">
       <p className="eyebrow blue">{isPre ? "Before you begin" : assessment.unlocked ? "All six lesson stages completed" : "Assessment preview"}</p>
       <h2 id="assessment-title">{title}</h2>
-      <p>{isPre ? "New to machine learning? Some questions may be unfamiliar. Give your best answer." : "Answer independently. You can go back and change your answers before submitting."}</p>
+      <p>{isPre ? "You are not expected to know these answers. Choose “I’m not sure yet” whenever you do not know—this is not a pass-or-fail test, and answers will not be shown before the lesson." : "Answer independently. You can go back and change your answers before submitting."}</p>
     </header>
     {result ? <>
       <section className="assessment-score" aria-labelledby="assessment-result-title">
-        <div><h3 id="assessment-result-title" ref={resultHeading} tabIndex={-1}>{isPre ? "Starting assessment saved" : "Assessment submitted"}</h3><p>{isPre ? "Next, explore the dataset and begin the lesson." : "Your first submission is saved. Review your answers below."}</p></div>
-        <strong aria-label={`${result.score} out of ${result.total} correct`}>{result.score}<span> / {result.total}</span><small>{Math.round(result.score / result.total * 100)}% correct</small></strong>
+        <div><h3 id="assessment-result-title" ref={resultHeading} tabIndex={-1}>{isPre ? "Starting assessment saved" : "Assessment submitted"}</h3><p>{isPre ? "Your answers are saved without feedback. After the lesson, the final assessment will show how your understanding changed." : "Your first submission is saved. Review your answers below."}</p></div>
+        {!isPre && <strong aria-label={`${result.score} out of ${result.total} correct`}>{result.score}<span> / {result.total}</span><small>{Math.round(result.score / result.total * 100)}% correct</small></strong>}
       </section>
       {!isPre && assessment.baseline_score !== null && assessment.baseline_score !== undefined && <p className="assessment-comparison"><strong>Before learning:</strong> {assessment.baseline_score} / {result.total} · <strong>Change:</strong> {result.score - assessment.baseline_score >= 0 ? "+" : ""}{result.score - assessment.baseline_score} points</p>}
       {!isPre && revisit.length > 0 && <aside className="assessment-revisit"><h3>Stages to revisit</h3><div>{revisit.map((question) => <button className="text-button" type="button" key={question.stage} onClick={() => onReview?.(question.stage)}>{question.stage.replaceAll("_", " ")} →</button>)}</div></aside>}
@@ -134,7 +134,7 @@ export default function TaskAssessment({ task, phase = "post", onReview }: { tas
       <footer className="assessment-footer"><Link className="primary-button" href={isPre ? `/learn/${taskSlug}?view=dataset` : "/"}>{isPre ? "Next: explore the dataset →" : "Return to learning paths"}</Link></footer>
     </> : !started ? <div className="assessment-start">
       <p>10 questions · one answer each · no time limit</p>
-      <p>{isPre ? "Your starting score helps compare your progress after learning." : "Your first submission is final. Your score and explanations appear afterward."}</p>
+      <p>{isPre ? "Your answers create a private starting point for comparison after learning." : "Your first submission is final. Your score and explanations appear afterward."}</p>
       <button className="primary-button" type="button" onClick={() => setStarted(true)}>Begin {isPre ? "starting" : "final"} assessment →</button>
     </div> : <form onSubmit={submit}>
       <div className="assessment-progress"><label htmlFor="assessment-progress">{answered} of 10 answered</label><progress id="assessment-progress" max={10} value={answered} /></div>
@@ -156,8 +156,17 @@ export default function TaskAssessment({ task, phase = "post", onReview }: { tas
 }
 
 export function AssessmentNavigation({ unlocked, selected = false, href, onClick }: { unlocked: boolean; selected?: boolean; href?: string; onClick?: () => void }) {
-  const content = <><span className="stage-node" aria-hidden="true">Q</span><span className="stage-copy"><span>{unlocked ? "10 questions" : "After all six stages"}</span><strong>Final assessment</strong></span></>;
-  return <li className={`stage assessment-stage ${selected ? "active selected-stage" : href || unlocked ? "next-stage" : "locked"}`}>
-    {href ? <Link className="stage-navigation-button" data-stage-navigation aria-current={selected ? "step" : undefined} href={href}>{content}</Link> : <button className="stage-navigation-button" type="button" data-stage-navigation disabled={!unlocked} aria-current={selected ? "step" : undefined} onClick={onClick}>{content}</button>}
+  const content = <><span className="stage-node" aria-hidden="true">{unlocked ? "Q" : "🔒"}</span><span className="stage-copy"><span>{unlocked ? "10 questions" : "Locked · After all six stages"}</span><strong>Final assessment</strong></span></>;
+  return <li className={`stage assessment-stage ${selected ? "active selected-stage" : unlocked ? "next-stage" : "locked"}`}>
+    {unlocked && href ? <Link className="stage-navigation-button" data-stage-navigation aria-current={selected ? "step" : undefined} aria-label="Open final assessment" href={href}>{content}</Link> : <button className="stage-navigation-button" type="button" data-stage-navigation disabled={!unlocked} aria-current={selected ? "step" : undefined} aria-label={unlocked ? "Open final assessment" : "Final assessment locked until all six stages are complete"} onClick={onClick}>{content}</button>}
+  </li>;
+}
+
+export function StartingAssessmentNavigation({ complete, href, selected = false }: { complete: boolean; href: string; selected?: boolean }) {
+  return <li className={`stage starting-assessment-stage ${selected ? "active selected-stage" : complete ? "complete-stage" : "next-stage"}`}>
+    <Link className="stage-navigation-button" data-stage-navigation aria-current={selected ? "step" : undefined} href={href}>
+      <span className="stage-node" aria-hidden="true">{complete ? "✓" : "Q"}</span>
+      <span className="stage-copy"><span>Before the lesson</span><strong>Starting assessment</strong></span>
+    </Link>
   </li>;
 }
