@@ -1,12 +1,16 @@
 import re
 import unittest
+from collections import Counter
 
 from app.assessments.bank import QUESTION_BANK
 from app.assessments.final_bank import FINAL_QUESTION_BANK
 
 from app.models import InstructionalActionType, TutorGenerationRequest
-from app.tutoring.authored_content import AUTHORED_CONTENT_VERSION, STAGES_BY_TASK, authored_tutor_content
+from app.tutoring.authored_content import AUTHORED_CONTENT_VERSION, STAGES_BY_TASK, _stable_shuffle, authored_tutor_content
+from app.tutoring.authored_questions import QUESTIONS
 from app.tutoring.lesson_code import FIXED_LESSON_CODE
+
+ALL_QUESTIONS = [(task, stage, pool, question) for task, stages in QUESTIONS.items() for stage, pools in stages.items() for pool, questions in pools.items() for question in questions]
 
 
 class AuthoredContentTests(unittest.TestCase):
@@ -77,28 +81,64 @@ class AuthoredContentTests(unittest.TestCase):
                     self.assertIn(result.content.expected_answer, result.content.options)
                     self.assertTrue(result.lesson.sections[4].code)
 
-    def test_pooled_questions_teach_and_rotate(self):
-        pooled = [(task, name, stage) for task, stages in STAGES_BY_TASK.items() for name, stage in stages.items() if "questions" in stage]
-        self.assertGreaterEqual(len(pooled), 7)
-        for task, name, stage in pooled:
-          for pool, variants in stage["questions"].items():
-            for prompt, correct, options, explanation, hint in variants:
-                with self.subTest(task=task, stage=name, pool=pool, prompt=prompt):
-                    self.assertEqual(options.count(correct), 1)
-                    self.assertTrue(all(len(option.split()) <= 10 for option in options))
-                    self.assertNotEqual(explanation.strip(), correct)
-                    self.assertGreater(len(explanation.split()), 12)
-                    self.assertNotIn(correct.lower(), hint.lower())
-        def ask(step, action, variant=0):
-            request = TutorGenerationRequest(task="sentiment_classification", stage="data_loading_and_preparation", step=step,
-                                             action_type=action, reference_prompt="test")
-            return authored_tutor_content(request, variant=variant).content.question
-        boundary = [ask("connect", InstructionalActionType.CONNECT_CONCEPT_MATCHING),
-                    ask("practice", InstructionalActionType.PRACTICE_MISCONCEPTION_DIAGNOSIS),
-                    ask("review", InstructionalActionType.REVIEW_CONCEPT_SUMMARY)]
-        self.assertEqual(len(set(boundary)), 3)
-        retry = InstructionalActionType.PRACTICE_PIPELINE_ORDERING
-        self.assertNotEqual(ask("practice", retry, 0), ask("practice", retry, 1))
+    def test_every_question_teaches_and_has_four_plausible_options(self):
+        for task, stage, pool, (prompt, correct, options, explanation, hint) in ALL_QUESTIONS:
+            with self.subTest(task=task, stage=stage, pool=pool, prompt=prompt):
+                self.assertEqual(len(options), 4)
+                self.assertEqual(len(set(options)), 4)
+                self.assertEqual(options.count(correct), 1)
+                self.assertTrue(all(len(option.split()) <= 10 for option in options))
+                self.assertNotEqual(explanation.strip(), correct)
+                self.assertGreater(len(explanation.split()), 12)
+                self.assertNotIn(correct.lower(), hint.lower())
+                self.assertIn(prompt.count("```"), (0, 2))
+
+    def test_every_stage_has_every_pool_with_a_second_question(self):
+        for task, stages in STAGES_BY_TASK.items():
+            for stage in stages:
+                with self.subTest(task=task, stage=stage):
+                    pools = QUESTIONS[task][stage]
+                    self.assertEqual(set(pools), {"operation", "variable", "boundary", "ordering", "transfer", "code"})
+                    self.assertTrue(all(len(questions) >= 2 for questions in pools.values()))
+
+    def test_the_correct_answer_cannot_be_spotted_by_length_or_position(self):
+        uniquely_longest = 0
+        positions = Counter()
+        for task, stage, _, (prompt, correct, options, _, _) in ALL_QUESTIONS:
+            lengths = sorted(len(option) for option in options)
+            uniquely_longest += len(correct) == lengths[-1] > lengths[-2]
+            positions[_stable_shuffle(list(options), f"{task}.{stage}.{prompt}").index(correct)] += 1
+        # With four options, the longest one is right about a quarter of the time by chance.
+        self.assertLessEqual(uniquely_longest / len(ALL_QUESTIONS), 0.25)
+        self.assertTrue(all(0.15 <= positions[slot] / len(ALL_QUESTIONS) <= 0.35 for slot in range(4)))
+
+    def test_retries_and_later_steps_show_a_different_question(self):
+        for task, stages in STAGES_BY_TASK.items():
+            for stage in stages:
+                for action in InstructionalActionType:
+                    step = action.value.split(".", 1)[0]
+                    if step not in {"connect", "practice", "review"}:
+                        continue
+                    def ask(variant):
+                        request = TutorGenerationRequest(task=task, stage=stage, step=step, action_type=action, reference_prompt="test")
+                        return authored_tutor_content(request, variant=variant).content.question
+                    with self.subTest(task=task, stage=stage, action=action.value):
+                        self.assertNotEqual(ask(0), ask(1))
+        def boundary(step, action):
+            request = TutorGenerationRequest(task="sentiment_classification", stage="data_loading_and_preparation", step=step, action_type=action, reference_prompt="test")
+            return authored_tutor_content(request).content.question
+        self.assertEqual(len({boundary("connect", InstructionalActionType.CONNECT_CONCEPT_MATCHING),
+                              boundary("practice", InstructionalActionType.PRACTICE_MISCONCEPTION_DIAGNOSIS),
+                              boundary("review", InstructionalActionType.REVIEW_CONCEPT_SUMMARY)}), 3)
+
+    def test_every_stage_first_practice_question_is_applied(self):
+        practice = [action for action in InstructionalActionType if action.value.startswith("practice.")]
+        for task, stages in STAGES_BY_TASK.items():
+            for stage in stages:
+                for action in practice:
+                    request = TutorGenerationRequest(task=task, stage=stage, step="practice", action_type=action, reference_prompt="test")
+                    with self.subTest(task=task, stage=stage, action=action.value):
+                        self.assertIn("```", authored_tutor_content(request).content.question)
 
     def test_pilot_lesson_covers_every_analogy_preference(self):
         bodies = set()
@@ -116,16 +156,13 @@ class AuthoredContentTests(unittest.TestCase):
         assessment = [question for bank in (QUESTION_BANK, FINAL_QUESTION_BANK) for questions in bank.values() for question in questions]
         def words(text):
             return set(re.findall(r"[a-z0-9.]+", text.lower()))
-        for task, stages in STAGES_BY_TASK.items():
-            for name, stage in stages.items():
-                for variants in stage.get("questions", {}).values():
-                    for prompt, *_ in variants:
-                        for item in assessment:
-                            if item.stage != name:
-                                continue
-                            overlap = len(words(prompt) & words(item.prompt)) / len(words(prompt) | words(item.prompt))
-                            with self.subTest(stage=name, prompt=prompt, assessment=item.id):
-                                self.assertLess(overlap, 0.5)
+        for _, name, _, (prompt, *_) in ALL_QUESTIONS:
+            for item in assessment:
+                if item.stage != name:
+                    continue
+                overlap = len(words(prompt) & words(item.prompt)) / len(words(prompt) | words(item.prompt))
+                with self.subTest(stage=name, prompt=prompt, assessment=item.id):
+                    self.assertLess(overlap, 0.5)
 
 
 if __name__ == "__main__":

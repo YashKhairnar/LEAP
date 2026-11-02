@@ -420,7 +420,7 @@ export default function GeneratedTutorCard({ task, stage, stageTitle, questionNu
 
             {generated && item && !showPersonalizationNotice && (
               <div ref={questionElement} className="practice-question">
-                <h3 className="generated-question">{item.prompt}</h3>
+                <QuestionPrompt prompt={item.prompt} />
 
                 <div className="answers-grid">
                   {item.options.map((option, index) => {
@@ -479,8 +479,8 @@ export default function GeneratedTutorCard({ task, stage, stageTitle, questionNu
                     <strong>Not quite. The answer is “{item.correctAnswer}”.</strong>
                     <p>{item.explanation}</p>
                     {!reviewOnly && <div className="feedback-actions">
-                      <button className="primary-button" type="button" onClick={retryCurrentQuestion}>Choose the answer</button>
-                      <button className="text-button" type="button" disabled={loading} onClick={() => void tryAnotherAfterIncorrect()}>{loading ? "Preparing…" : "Try a similar question instead"}</button>
+                      <button className="primary-button" type="button" disabled={loading} onClick={() => void tryAnotherAfterIncorrect()}>{loading ? "Preparing…" : "Try a similar question"}</button>
+                      <span>To move on, answer a new question correctly.</span>
                     </div>}
                   </div>
                 )}
@@ -514,6 +514,16 @@ export default function GeneratedTutorCard({ task, stage, stageTitle, questionNu
 type LessonPart = "idea" | "code" | "try";
 const LESSON_PART_LABELS: Record<LessonPart, string> = { idea: "Idea", code: "Code", try: "Try it" };
 function CheckIcon() { return <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m5 10 3 3 7-7" /></svg>; }
+
+// Prompts can embed a short snippet between ``` fences, shown as a code block.
+function QuestionPrompt({ prompt }: { prompt: string }) {
+  const [text, code, after] = prompt.split(/\n?```\n?/);
+  return <>
+    <h3 className="generated-question">{text}</h3>
+    {code && <pre className="question-code"><code>{code}</code></pre>}
+    {after && <p className="generated-question-after">{after}</p>}
+  </>;
+}
 
 function normalize(value: string): string { return value.trim().toLocaleLowerCase(); }
 

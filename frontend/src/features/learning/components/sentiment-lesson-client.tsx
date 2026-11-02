@@ -87,8 +87,10 @@ export default function SentimentLesson({ searchParams }: { searchParams: Promis
   const recordAttempt = async (item: QuestionItem, answer: string, correct: boolean, attempt: number, responseTimeMs: number, presentationId: string, evidence: AttemptEvidence) => {
     const stepIndex = lessonSteps.findIndex((lessonStep) => lessonStep.id === item.step);
     const isReview = item.step === "review";
-    const decision = correct ? (isReview ? "remain_on_step" : "advance_step") : "remain_on_step";
-    const locationAfter = correct
+    // A correct answer only moves the learner on if the answer wasn't revealed first.
+    const earned = correct && !evidence.answer_revealed_before_attempt;
+    const decision = earned ? (isReview ? "remain_on_step" : "advance_step") : "remain_on_step";
+    const locationAfter = earned
       ? isReview
         ? { task: "sentiment_classification", stage: stage.id, step: "review" }
         : { task: "sentiment_classification", stage: stage.id, step: lessonSteps[stepIndex + 1].id }
@@ -103,7 +105,7 @@ export default function SentimentLesson({ searchParams }: { searchParams: Promis
       progression: { decision }, location_after: locationAfter,
       event_timestamp: new Date().toISOString(), selection_policy: item.selectionPolicy ?? "llm_generated_content_v1", presentation_id: presentationId,
     };
-    if (correct) setMastered((state) => ({ ...state, [item.step]: true }));
+    if (earned) setMastered((state) => ({ ...state, [item.step]: true }));
     await enqueueCollection({ endpoint: "/api/interactions", payload: { ...transition, content: item.collectionContent ?? {
       content_id: contentId, task: "sentiment_classification", stage: stage.id, step: item.step,
       action_type: item.actionType, prompt: item.prompt, options: item.options,

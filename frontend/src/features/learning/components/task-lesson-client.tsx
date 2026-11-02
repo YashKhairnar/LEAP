@@ -100,7 +100,9 @@ export default function TaskLessonClient({ task, initialReviewStage }: { task: A
   const recordAttempt = async (item: QuestionItem, answer: string, correct: boolean, attempt: number, responseTimeMs: number, presentationId: string, evidence: AttemptEvidence) => {
     const nextStep = steps[Math.min(stepIndex + 1, steps.length - 1)].id;
     const contentId = questionContentId(task.id, item);
-    if (correct) setMastered((current) => ({ ...current, [`${stage.id}.${item.step}`]: true }));
+    // A correct answer only moves the learner on if the answer wasn't revealed first.
+    const earned = correct && !evidence.answer_revealed_before_attempt;
+    if (earned) setMastered((current) => ({ ...current, [`${stage.id}.${item.step}`]: true }));
     await enqueueCollection({ endpoint: "/api/interactions", payload: {
       session_id: sessionId,
       content: item.collectionContent ?? { content_id: contentId, task: task.id, stage: stage.id, step: item.step, action_type: item.actionType, prompt: item.prompt, options: item.options, correct_answer: item.correctAnswer, explanation: item.explanation, misconception: item.misconception, learning_objectives: item.learningObjectives ?? [], lesson_content: item.lessonContent, planner_decision: item.plannerDecision, generation_metadata: item.generationMetadata },
@@ -108,8 +110,8 @@ export default function TaskLessonClient({ task, initialReviewStage }: { task: A
       location_before: { task: task.id, stage: stage.id, step: item.step },
       instructional_action: { action_type: item.actionType, content_id: contentId }, learner_action: { response: answer },
       observation: { ...evidence, correct, score: correct ? 1 : 0, attempt, response_time_ms: responseTimeMs, misconception: correct ? null : item.misconception },
-      progression: { decision: correct && item.step !== "review" ? "advance_step" : "remain_on_step" },
-      location_after: { task: task.id, stage: stage.id, step: correct ? nextStep : item.step },
+      progression: { decision: earned && item.step !== "review" ? "advance_step" : "remain_on_step" },
+      location_after: { task: task.id, stage: stage.id, step: earned ? nextStep : item.step },
       event_timestamp: new Date().toISOString(), selection_policy: item.selectionPolicy ?? "llm_generated_content_v1", presentation_id: presentationId,
     }}).catch((error) => console.warn("Interaction queued for retry.", error));
   };

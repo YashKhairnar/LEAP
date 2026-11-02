@@ -569,3 +569,8 @@ body { background: var(--canvas); }
   .idea-example-table :is(th, td) { padding: 0; border: 0; }
   .idea-example-table td:nth-child(3) { grid-column: 1 / -1; font-size: 14px; }
 }
+/* Code snippets inside practice questions */
+.learning-site-shell .practice-question .question-code { margin: -6px 0 18px; padding: 12px 14px; overflow-x: auto; border-radius: 8px; background: #172033; color: #e6edf8; font: 13px/1.6 var(--font-mono); white-space: pre; }
+.learning-site-shell .practice-question .generated-question-after { margin: 0 0 16px; color: var(--ink); font-size: 16px; }
+.learning-site-shell .practice-question .answer-text { font-variant-ligatures: none; }
+.learning-site-shell .practice-question .feedback-actions > span { color: #4f5d70; font-size: 13px; }
