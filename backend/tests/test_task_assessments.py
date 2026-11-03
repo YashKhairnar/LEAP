@@ -9,7 +9,7 @@ from unittest.mock import patch
 
 from pydantic import ValidationError
 
-from app.assessments.bank import QUESTION_BANK, VERSION
+from app.assessments.bank import QUESTION_BANK, UNSURE, VERSION
 from app.assessments.service import AssessmentSubmission, get_assessment, questions_for_phase, submit_assessment
 from app.database import connect, initialize_database, list_progress
 from app.tutoring.lesson_code import FIXED_LESSON_CODE
@@ -78,6 +78,17 @@ class TaskAssessmentTests(unittest.TestCase):
             self.assertTrue({q.prompt for q in pre}.isdisjoint(q.prompt for q in post))
             self.assertEqual([q.concept for q in pre], [q.concept for q in post])
             self.assertEqual([q.stage for q in pre], [q.stage for q in post])
+
+    def test_starting_assessment_is_beginner_friendly_without_teaching(self):
+        unexplained_code_terms = ("tfidf", "logisticregression", "standardscaler", "conv2d", "train_test_split", "model.fit", "torch.")
+        for task, questions in QUESTION_BANK.items():
+            for question in questions:
+                with self.subTest(task=task, question=question.id):
+                    self.assertIsNone(question.code)
+                    self.assertIn(UNSURE, question.options)
+                    self.assertNotEqual(question.options[question.answer], UNSURE)
+                    learner_text = f"{question.prompt} {' '.join(question.options)}".lower()
+                    self.assertFalse(any(term in learner_text for term in unexplained_code_terms))
 
     def test_scores_all_tasks_and_restores_results(self):
         for task in QUESTION_BANK:

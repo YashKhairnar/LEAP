@@ -98,10 +98,11 @@ answers three questions, and completes the confidence check. The lesson remains 
 through **Back to Lesson**; there are no layout tabs. Practice styles are sampled uniformly
 at random, and the learner notice states this explicitly.
 
-Assessment version `task_assessment_v3` uses separate authored pre/post item banks with
-matching stage and concept coverage. Final items use different scenarios or calculations;
-equal difficulty has not yet been validated. Starting scores are returned without answer
-reviews, including on submission; the server retains the full scored research record.
+Assessment version `task_assessment_v4` uses separate authored pre/post item banks with
+matching stage and concept coverage. The starting form uses plain language, no code, and an
+explicit “I’m not sure yet” option on every item. Final items use different scenarios or
+calculations; equal difficulty has not yet been validated. Starting answers are saved without
+showing a score or answer review in the UI; the server retains the full scored research record.
 Existing submissions remain stored under their original version and are not reused as
 scores for the new forms.
 
