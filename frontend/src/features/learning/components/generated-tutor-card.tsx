@@ -355,10 +355,10 @@ export default function GeneratedTutorCard({ task, stage, stageTitle, questionNu
               <div className="idea-sections">
                 {ideaSections.map((section, index) => <IdeaSection section={section} task={task} stage={stage} step={step} key={`${section.type}.${index}`} />)}
               </div>
-              <details className="words-to-know">
-                <summary>Words to know</summary>
+              <section className="words-to-know" aria-label="Words to know">
+                <h3>Words to know</h3>
                 <p>{stageTerms(task, stage)}</p>
-              </details>
+              </section>
             </>}
 
             {currentPart === "code" && codeSection && <>

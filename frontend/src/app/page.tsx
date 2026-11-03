@@ -98,8 +98,8 @@ export default function Dashboard() {
           })}
         </div>
       </section>
-      <details className="how-paths-work">
-        <summary>How a learning path works</summary>
+      <section className="how-paths-work" aria-labelledby="how-paths-work-title">
+        <h2 id="how-paths-work-title">How a learning path works</h2>
         <ol>
           <li><strong>Starting assessment.</strong> Answer 10 questions to record what you know before the lesson.</li>
           <li><strong>Explore the dataset.</strong> See a few examples and learn what information the data contains.</li>
@@ -107,7 +107,7 @@ export default function Dashboard() {
           <li><strong>Final assessment.</strong> Answer 10 questions on your own to check your understanding.</li>
         </ol>
         <p>Practice questions help you learn and don’t count toward your assessment scores.</p>
-      </details>
+      </section>
     </section>
   </main>;
 }

@@ -421,7 +421,7 @@ body { background: var(--canvas); }
 .lesson-part-title { margin: 0 0 16px; color: var(--ink); font-size: clamp(25px, 3vw, 32px); font-weight: 600; line-height: 1.25; letter-spacing: -.02em; }
 .lesson-part-intro { margin: 0 0 20px; color: #33404f; font-size: 16px; line-height: 1.65; }
 .words-to-know { margin: 0 0 24px; padding: 0 16px; border: 1px solid var(--line); border-radius: 8px; background: #fff; }
-.words-to-know summary { min-height: 44px; display: flex; align-items: center; color: var(--blue); font-size: 14px; font-weight: 600; cursor: pointer; }
+.words-to-know h3 { margin: 14px 0 6px; color: var(--blue); font-size: 14px; font-weight: 600; }
 .words-to-know p { margin: 0 0 14px; color: #33404f; font-size: 15px; line-height: 1.6; }
 .learning-site-shell .generated-lesson-pane .section-body { font-size: 17px; line-height: 1.7; color: #33404f; }
 .learning-site-shell .generated-lesson-pane .section-title { font-size: 18px; }
@@ -514,7 +514,7 @@ body { background: var(--canvas); }
 .path-stage-count { color: var(--muted); font-size: 12px; }
 .path-link { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; margin-top: auto; color: var(--blue); font-size: 15px; font-weight: 600; text-decoration: none; }
 .how-paths-work { margin-top: 32px; color: #33404f; font-size: 15px; line-height: 1.6; }
-.how-paths-work summary { min-height: 44px; display: flex; align-items: center; color: var(--blue); font-weight: 600; cursor: pointer; }
+.how-paths-work h2 { margin: 0 0 6px; color: var(--blue); font-size: 15px; font-weight: 600; }
 .how-paths-work ol { margin: 4px 0 8px; padding-left: 22px; }
 .how-paths-work p { margin: 0; color: var(--muted); }
 /* Idea step: lead paragraph, goals, then one card per kind of explanation. */
