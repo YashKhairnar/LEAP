@@ -13,7 +13,7 @@ class FixedLessonCode:
 
 
 CODE_VERSION = "real_datasets_pytorch_v3"
-EXPERIMENT_VERSION = "fixed_stage_experiments_v1"
+EXPERIMENT_VERSION = "fixed_stage_experiments_v2"
 
 
 @dataclass(frozen=True)
@@ -21,7 +21,8 @@ class FixedCodeExperiment:
     title: str
     find: str
     replace: str
-    expected_change: str
+    prediction: str  # asked before the learner runs the edit
+    expected_change: str  # revealed after they run it
 
 
 def _python(code: str) -> FixedLessonCode:
@@ -218,116 +219,134 @@ print("Test accuracy:", round(accuracy, 3))
 FIXED_CODE_EXPERIMENTS: dict[str, dict[str, tuple[FixedCodeExperiment, ...]]] = {
     "sentiment_classification": {
         "data_loading_and_preparation": (FixedCodeExperiment(
-            "Preview just two reviews",
-            'print(df.head())',
-            'print(df.head(2))',
-            "Before you run it, predict whether the Rows: line will change. The preview now shows two reviews instead of five, but Rows: still says 3000, because head() only changes what you display.",
+            'Count reviews per website',
+            'print("Rows:", len(df))',
+            'print("Rows:", len(df))\nprint(df["source"].value_counts().to_dict())\nprint(df["sentiment"].value_counts().to_dict())',
+            'The file has 3,000 reviews from three websites: Amazon, IMDb and Yelp. Predict: does each website supply the same number of reviews, and are there as many positive reviews as negative ones?',
+            "Both are perfectly even: 1,000 reviews from each website, and 1,500 positive and 1,500 negative. A balanced dataset means a model can't score well just by favouring one label.",
         ),),
         "train_test_split": (FixedCodeExperiment(
-            "Reserve 30% for testing",
+            'Reserve 30% for testing',
             '    test_size=0.2,\n    random_state=42,\n    stratify=df["sentiment"],\n)',
             '    test_size=0.3,\n    random_state=42,\n    stratify=df["sentiment"],\n)',
-            "Before you run it, predict the new sizes. The output shows 2,100 training and 900 test reviews, and the test labels are still split evenly: 450 and 450. More test data leaves less to learn from.",
+            'Change test_size from 0.2 to 0.3. Predict: how many reviews end up in training and in testing, and how many of the test reviews are positive?',
+            '2,100 training and 900 test reviews, and the test set is still exactly half positive: 450 and 450, because stratify keeps the mix. Holding more back leaves less to learn from.',
         ),),
         "tfidf_vectorization": (FixedCodeExperiment(
-            "Limit the vocabulary to 100 words",
-            'vectorizer = TfidfVectorizer()\nX_train_tfidf = vectorizer.fit_transform(X_train)\nX_test_tfidf = vectorizer.transform(X_test)',
-            'vectorizer = TfidfVectorizer(max_features=100)\nX_train_tfidf = vectorizer.fit_transform(X_train)\nX_test_tfidf = vectorizer.transform(X_test)',
-            "Before you run it, predict what happens to 'mic'. Both matrices now have 100 columns, the 100 most frequent words. 'mic' is too rare to make the cut, so it disappears from the example, and the remaining words get bigger weights (great 0.76, is 0.52, the 0.38).",
+            'Limit the vocabulary to 100 words',
+            'vectorizer = TfidfVectorizer()',
+            'vectorizer = TfidfVectorizer(max_features=100)',
+            "Keep only the 100 most common words with max_features=100. Predict: how many columns will the matrices have, and what happens to the rare word 'mic' in the example review?",
+            "Both matrices shrink to 100 columns. 'mic' isn't among the 100 most common words, so it drops out, and the remaining words get bigger weights: great 0.76, is 0.52, the 0.38.",
         ),),
         "model_training": (FixedCodeExperiment(
-            "Look up the weights of four words",
+            'Look up the weights of four words',
             'model.fit(X_train_tfidf, y_train)',
             'model.fit(X_train_tfidf, y_train)\nweights = dict(zip(vectorizer.get_feature_names_out(), model.coef_[0]))\nfor word in ["great", "not", "mic", "food"]:\n    print(word, round(float(weights[word]), 2))',
-            "Before you run it, guess each word's sign. great is +4.92 and not is −4.6, the strongest each way. mic is 0.0 because it says nothing about sentiment, and food is slightly negative (−0.51), because food comes up more in complaints.",
+            "Predict the sign of each word's weight: great, not, mic and food. Which will be positive, which negative, and which close to 0?",
+            'great is +4.92 and not is −4.6, the strongest each way. mic is 0.0 because it says nothing about sentiment. food is slightly negative (−0.51): it comes up more often in complaints.',
         ),),
         "prediction": (FixedCodeExperiment(
-            "Show only three predictions",
-            'for review, prediction in list(zip(X_test, y_pred))[:10]:',
-            'for review, prediction in list(zip(X_test, y_pred))[:3]:',
-            "Only three labeled reviews are printed instead of ten. model.predict() still makes predictions for the entire test set; the slice only limits the display.",
+            'Classify reviews you write',
+            'y_pred = model.predict(X_test_tfidf)',
+            'y_pred = model.predict(X_test_tfidf)\nmy_reviews = ["The battery died after one day.", "Not bad at all, I would buy it again."]\nprint(model.predict(vectorizer.transform(my_reviews)))',
+            'Classify two reviews of your own: "The battery died after one day." and "Not bad at all, I would buy it again." Predict the label the model gives each one.',
+            "Both come out negative. The first is right. The second is wrong: the model sees 'not' and 'bad', two of its most negative words, and can't tell that together they mean something good. Word weights ignore word order.",
         ),),
         "evaluation": (FixedCodeExperiment(
-            "Show more detail in the report",
-            'print(classification_report(y_test, y_pred, zero_division=0))',
-            'print(classification_report(y_test, y_pred, zero_division=0, digits=4))',
-            "Precision, recall, and F1 are displayed with four decimal places instead of two. This reveals rounding detail without changing the model or its predictions.",
+            'Compare with always guessing positive',
+            'print("Accuracy:", accuracy)',
+            'print("Accuracy:", accuracy)\nprint("Always guessing positive:", accuracy_score(y_test, ["positive"] * len(y_test)))',
+            'Add a lazy baseline that answers "positive" for every review. Predict its accuracy on this test set, and compare it with the model\'s 0.83.',
+            "Always guessing positive scores 0.5, because the test set is half positive. The model's 0.83 is well above that, so it has learned something real. Always compare against a baseline like this.",
         ),),
     },
     "regression": {
         "prepare_housing_data": (FixedCodeExperiment(
-            "Preview two houses",
-            'df.head()',
-            'print(df.head(2))',
-            "The output lists two houses instead of five, including their features and sale prices. X and y still contain all prepared rows.",
+            'Find the cheapest, typical and priciest house',
+            'y = df["price"]',
+            'y = df["price"]\nprint("Cheapest:", y.min(), "Median:", y.median(), "Priciest:", y.max())',
+            'Print the cheapest, the median and the most expensive sale price. Predict roughly what each one is.',
+            'Cheapest $12,789, median $160,000, priciest $755,000. The range is wide: a $30,000 miss is a big error on a $100,000 house but a small one on a $700,000 house. Keep that in mind when you measure errors later.',
         ),),
         "split_housing_data": (FixedCodeExperiment(
-            "Reserve 30% of houses for testing",
+            'Reserve 30% of houses for testing',
             '    X, y, test_size=0.2, random_state=42\n)',
             '    X, y, test_size=0.3, random_state=42\n)',
-            "Before you run it, predict the new sizes. The output shows 2,051 training houses and 879 test houses. More houses held out leaves fewer to learn from; features and prices stay paired.",
+            'Change test_size from 0.2 to 0.3. Predict how many of the 2,930 houses end up in training and in testing.',
+            '2,051 training and 879 test houses. Each house keeps its own price, because X and y are split together.',
         ),),
         "scale_features": (FixedCodeExperiment(
-            "See what the scaler learned",
+            'See what the scaler learned',
             'X_test_scaled = scaler.transform(X_test)',
             'X_test_scaled = scaler.transform(X_test)\nprint("Averages learned:", scaler.mean_.round(0).tolist())\nprint("Scaled training averages:", X_train_scaled.mean(axis=0).round(2).tolist())',
-            "Before you run it, predict the second line. The scaler learned averages of about 3 bedrooms, 2 bathrooms, 1,493 sq ft and 37 years from the training houses. After scaling, every training average is 0.",
+            'Print the averages the scaler learned and the average of every scaled training column. Predict what the scaled averages will be.',
+            'The scaler learned averages of about 3 bedrooms, 2 bathrooms, 1,493 sq ft and 37 years. Every scaled training average is 0 (−0.0 is a rounding artefact), because scaling subtracts exactly those averages.',
         ),),
         "train_regression": (FixedCodeExperiment(
-            "Price a perfectly average house",
+            'Price a perfectly average house',
             'model.fit(X_train_scaled, y_train)',
             'model.fit(X_train_scaled, y_train)\nprint("Average house:", round(model.predict([[0, 0, 0, 0]])[0]))',
-            "Before you run it, predict the number. A house that is average on every feature scales to all zeros, so its prediction is exactly the intercept: $178,582, the average training price.",
+            'Ask the model to price a house that is exactly average on every feature: all zeros after scaling. Predict the price before you run it.',
+            '$178,582, which is the intercept. With every scaled feature at 0, the coefficients add nothing, so the prediction is the average training price.',
         ),),
         "predict_prices": (FixedCodeExperiment(
-            "Inspect three price predictions",
-            'for actual, predicted in list(zip(y_test, y_pred))[:10]:',
-            'for actual, predicted in list(zip(y_test, y_pred))[:3]:',
-            "Three actual/predicted price pairs are printed instead of ten. Compare each pair to see individual errors; predictions for the full test set still exist in y_pred.",
+            'Price a house you describe',
+            'y_pred = model.predict(X_test_scaled)',
+            'y_pred = model.predict(X_test_scaled)\nmy_house = pd.DataFrame([[3, 2, 2000, 10]], columns=feature_columns)\nprint("My house:", round(model.predict(scaler.transform(my_house))[0]))',
+            "Price your own house: 3 bedrooms, 2 bathrooms, 2,000 sq ft, 10 years old. It is scaled with the same scaler first. Predict: above or below the average house's $178,582?",
+            'About $248,493, well above average: it is bigger and newer than the typical house, and size and age have the largest coefficients.',
         ),),
         "evaluate_regression": (FixedCodeExperiment(
-            "Look at the errors behind the average",
+            'Compare with always guessing the average',
             'print(f"Mean absolute error: ${mae:,.0f}")',
-            'print(f"Mean absolute error: ${mae:,.0f}")\nfor actual, predicted in list(zip(y_test, y_pred))[:3]:\n    print(f"Absolute error: ${abs(actual - predicted):,.0f}")',
-            "Three individual absolute errors appear below MAE. Each is a nonnegative dollar difference; MAE averages such errors across all test houses, not just these three.",
+            'print(f"Mean absolute error: ${mae:,.0f}")\nguess = [y_train.mean()] * len(y_test)\nprint(f"Always guessing the average: ${mean_absolute_error(y_test, guess):,.0f}")',
+            "Add a baseline that predicts the average training price for every test house. Predict: will its error be larger or smaller than the model's $32,050?",
+            "Always guessing the average misses by $64,611 on average, about twice the model's error. The four features cut the error roughly in half.",
         ),),
     },
     "cnn": {
         "load_images": (FixedCodeExperiment(
-            "Inspect one image as numbers",
+            'Count the images of each digit',
             'print("Images:", images.shape, "Classes:", len(np.unique(labels)))',
-            'print("Images:", images.shape, "Classes:", len(np.unique(labels)))\nprint("First label:", labels[0])\nprint(images[0, 0])',
-            "The output adds the first image's digit label and its 8×8 grid of pixel intensities. These numbers, not an image filename, are what the CNN receives.",
+            'print("Images:", images.shape, "Classes:", len(np.unique(labels)))\nprint("Images per digit:", np.bincount(labels).tolist())',
+            'Count the images of each digit, 0 to 9. Predict: are some digits much more common than others?',
+            'All ten digits appear 554 to 572 times. With classes this balanced, overall accuracy is a fair summary.',
         ),),
         "normalize_split": (FixedCodeExperiment(
-            "Use smaller training batches",
-            'train_loader = DataLoader(train_dataset, batch_size=128, shuffle=True, generator=generator)',
-            'train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True, generator=generator)',
-            "Before you run it, predict the number of batches. The output shows 141 training batches of 32 instead of 36 of 128. The split is unchanged; smaller batches mean more weight updates per pass.",
+            'Use smaller training batches',
+            'batch_size=128, shuffle=True',
+            'batch_size=32, shuffle=True',
+            'Change batch_size from 128 to 32. Predict how many training batches there will be.',
+            '141 batches of 32 instead of 36 of 128 (4,496 ÷ 32 = 140.5, rounded up). The split is the same; smaller batches mean more weight updates in each pass.',
         ),),
         "build_cnn": (FixedCodeExperiment(
-            "Inspect the network's layers",
-            '    nn.Linear(16 * 4 * 4, 10),\n)',
-            '    nn.Linear(16 * 4 * 4, 10),\n)\nprint(model)',
-            "The network's layers are printed in order: convolution, activation, pooling, flattening, and a linear layer with 10 outputs. Building this structure does not train its weights yet.",
+            'Use 8 filters instead of 16',
+            '    nn.Conv2d(1, 16, kernel_size=3, padding=1),\n    nn.ReLU(),\n    nn.MaxPool2d(2),\n    nn.Flatten(),\n    nn.Linear(16 * 4 * 4, 10),',
+            '    nn.Conv2d(1, 8, kernel_size=3, padding=1),\n    nn.ReLU(),\n    nn.MaxPool2d(2),\n    nn.Flatten(),\n    nn.Linear(8 * 4 * 4, 10),',
+            'Use 8 filters instead of 16. Linear must change too, because 8 maps of 4 × 4 give 128 numbers. Predict the new number of learnable numbers (it was 2,730).',
+            '1,370: 80 in the filters (8 × 9 weights + 8 biases) and 1,290 in Linear (128 × 10 + 10). Halving the filters halves both layers, because Linear takes everything the filters produce.',
         ),),
         "train_network": (FixedCodeExperiment(
-            "Try a smaller learning rate",
-            'optimizer = torch.optim.Adam(model.parameters(), lr=0.01)',
-            'optimizer = torch.optim.Adam(model.parameters(), lr=0.001)',
-            "Run the original first and note its final batch loss, then compare this run. The learning rate is ten times smaller. Loss may change; a smaller rate is not guaranteed to improve it after only one pass.",
+            'Try a learning rate ten times smaller',
+            'lr=0.01',
+            'lr=0.001',
+            'Make the learning rate ten times smaller: 0.001. Predict: will the final batch loss be higher or lower than 0.37 after one pass?',
+            "Much higher: about 2.06, barely below random guessing (2.3). Smaller steps are safer but slower, so one pass isn't enough to learn much. A bigger rate isn't always better either: too big and training becomes unstable.",
         ),),
         "classify_images": (FixedCodeExperiment(
-            "Show three predicted digits",
+            "Find the model's mistakes",
             'print("First predictions:", y_pred[:10].tolist())',
-            'print("First predictions:", y_pred[:3].tolist())',
-            "The printed list contains three predicted digits instead of ten. The network still classifies every test image, and all predictions remain available for evaluation.",
+            'print("First predictions:", y_pred[:10].tolist())\nwrong = (y_pred != y_test).nonzero().flatten()\nprint("Wrong:", len(wrong), "of", len(y_test))\nfor i in wrong[:3].tolist():\n    print("Predicted", y_pred[i].item(), "but it was", y_test[i].item())',
+            "List the model's mistakes on the test images. Predict how many of the 1,124 it gets wrong, and which digits it confuses.",
+            '89 wrong out of 1,124. The first three: a 7 read as 1, a 3 read as 8 and a 3 read as 1. These digits share strokes, so the mistakes make sense.',
         ),),
         "evaluate_cnn": (FixedCodeExperiment(
-            "Display accuracy as a percentage",
+            'Find the hardest digit',
             'print("Test accuracy:", round(accuracy, 3))',
-            'print(f"Test accuracy: {accuracy:.1%}")',
-            "Accuracy is displayed as a percentage with one decimal place instead of a fraction. The same correct predictions and test images are counted; only formatting changes.",
+            'print("Test accuracy:", round(accuracy, 3))\nfor digit in range(10):\n    mask = y_test == digit\n    print(digit, round((y_pred[mask] == digit).float().mean().item(), 2))',
+            'Print the accuracy for each digit separately. Predict which digits the model finds hardest.',
+            '0 is perfect (1.0), while 3 (0.84), 8 (0.85) and 9 (0.85) are the hardest. The overall 0.921 hides that some digits are much harder than others.',
         ),),
     },
 }

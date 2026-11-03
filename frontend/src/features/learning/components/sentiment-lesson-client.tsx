@@ -28,6 +28,8 @@ export default function SentimentLesson({ searchParams }: { searchParams: Promis
   const [step, setStep] = useState(0);
   const [furthestStep, setFurthestStep] = useState(0);
   const [mastered, setMastered] = useState<Record<StepId, boolean>>(emptyMastery);
+  // Steps where the answer was revealed after two misses: the learner may move on without mastery.
+  const [revealed, setRevealed] = useState<Record<StepId, boolean>>(emptyMastery);
   const [confidence, setConfidence] = useState<string | null>(null);
   const [taskComplete, setTaskComplete] = useState(false);
   const [sessionId] = useState(() => typeof window === "undefined" ? "" : learningSessionId());
@@ -123,17 +125,17 @@ export default function SentimentLesson({ searchParams }: { searchParams: Promis
 
   const continueLesson = () => {
     const next = step + 1;
-    recordBehavior("navigation", { direction: "continue", from_step: current.id, to_step: lessonSteps[next].id });
+    recordBehavior("navigation", { direction: "continue", from_step: current.id, to_step: lessonSteps[next].id, mastered: mastered[current.id] });
     setFurthestStep((value) => Math.max(value, next)); setStep(next);
     requestAnimationFrame(() => document.getElementById("lesson")?.scrollIntoView({ behavior: "smooth", block: "start" }));
   };
 
   const completeStage = () => {
     const finalStage = stageIndex === sentimentStages.length - 1;
-    recordBehavior("navigation", { direction: finalStage ? "complete_task" : "complete_stage", from_stage: stage.id, to_stage: finalStage ? null : sentimentStages[stageIndex + 1].id, completed_stages: stageIndex + 1, total_stages: sentimentStages.length });
+    recordBehavior("navigation", { direction: finalStage ? "complete_task" : "complete_stage", from_stage: stage.id, to_stage: finalStage ? null : sentimentStages[stageIndex + 1].id, completed_stages: stageIndex + 1, total_stages: sentimentStages.length, mastered: mastered[current.id] });
     setCompletedStages(stageIndex + 1);
     if (finalStage) { setTaskComplete(true); requestAnimationFrame(() => document.getElementById("lesson")?.scrollIntoView({ behavior: "smooth", block: "start" })); return; }
-    setStageIndex((value) => value + 1); setStep(0); setFurthestStep(0); setMastered(emptyMastery()); setConfidence(null);
+    setStageIndex((value) => value + 1); setStep(0); setFurthestStep(0); setMastered(emptyMastery()); setRevealed(emptyMastery()); setConfidence(null);
     requestAnimationFrame(() => document.getElementById("lesson")?.scrollIntoView({ behavior: "smooth", block: "start" }));
   };
 
@@ -152,7 +154,7 @@ export default function SentimentLesson({ searchParams }: { searchParams: Promis
     <article className="lesson-content" id="lesson" tabIndex={-1}>
       {progressRestored && completedStages > 0 && <CompletedStagePicker stages={taskIntroductions.sentiment.stages.slice(0, completedStages)} onSelect={(stageId) => selectStage(sentimentStages.findIndex((item) => item.id === stageId))} />}
       {!progressRestored && <p className="question-loading">Restoring your saved position…</p>}
-      {progressRestored && !taskComplete && <GeneratedTutorCard key={`${stage.id}.${current.id}`} task="sentiment_classification" stage={stage.id} stageTitle={stageHeading} questionNumber={step + 1} step={current.id} actionType={questionBanks[stage.id][current.id][0].actionType} lessonContext={useJavaReferences ? `${stageHeading}. ${stage.intro} Familiar Java concept: ${stage.familiar}. Target ML concept: ${stage.target}. Their relationship: ${stage.relationship}.` : useEverydayAnalogies ? `${stageHeading}. ${stage.intro} Use everyday examples. Target ML concept: ${stage.target}.` : `${stageHeading}. ${stage.intro} Explain the ML concept directly through the Python implementation. Target ML concept: ${stage.target}.`} learningObjectives={stage.objectives} onAttempt={recordAttempt} onPresented={recordPresentation} onRestoredCorrect={(restoredStep) => setMastered((state) => ({ ...state, [restoredStep]: true }))} onPrevious={step > 0 ? () => moveTo(step - 1) : undefined} onContinue={current.id === "review" ? completeStage : continueLesson} continueDisabled={!mastered[current.id] || (current.id === "review" && !confidence)} continueLabel={current.id === "review" ? (stageIndex === sentimentStages.length - 1 ? "Start final assessment" : "Next stage") : "Continue"} confidence={confidence} onConfidence={(level) => { setConfidence(level); recordBehavior("confidence_checkpoint", { confidence: level, stage: stage.id }); }} />}
+      {progressRestored && !taskComplete && <GeneratedTutorCard key={`${stage.id}.${current.id}`} task="sentiment_classification" stage={stage.id} stageTitle={stageHeading} questionNumber={step + 1} step={current.id} actionType={questionBanks[stage.id][current.id][0].actionType} lessonContext={useJavaReferences ? `${stageHeading}. ${stage.intro} Familiar Java concept: ${stage.familiar}. Target ML concept: ${stage.target}. Their relationship: ${stage.relationship}.` : useEverydayAnalogies ? `${stageHeading}. ${stage.intro} Use everyday examples. Target ML concept: ${stage.target}.` : `${stageHeading}. ${stage.intro} Explain the ML concept directly through the Python implementation. Target ML concept: ${stage.target}.`} learningObjectives={stage.objectives} onAttempt={recordAttempt} onPresented={recordPresentation} onRestoredCorrect={(restoredStep) => setMastered((state) => ({ ...state, [restoredStep]: true }))} onAnswerRevealed={(revealedStep) => setRevealed((state) => ({ ...state, [revealedStep]: true }))} onPrevious={step > 0 ? () => moveTo(step - 1) : undefined} onContinue={current.id === "review" ? completeStage : continueLesson} continueDisabled={!(mastered[current.id] || revealed[current.id]) || (current.id === "review" && !confidence)} continueLabel={current.id === "review" ? (stageIndex === sentimentStages.length - 1 ? "Start final assessment" : "Next stage") : "Continue"} confidence={confidence} onConfidence={(level) => { setConfidence(level); recordBehavior("confidence_checkpoint", { confidence: level, stage: stage.id }); }} />}
       {taskComplete && <TaskAssessment task="sentiment_classification" onReview={(stageId) => selectStage(sentimentStages.findIndex((item) => item.id === stageId))} />}
     </article>}
   </LearningShell>;

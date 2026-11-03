@@ -27,6 +27,8 @@ export default function TaskLessonClient({ task, initialReviewStage }: { task: A
   const [stageIndex, setStageIndex] = useState(0);
   const [stepIndex, setStepIndex] = useState(0);
   const [mastered, setMastered] = useState<Record<string, boolean>>({});
+  // Steps where the answer was revealed after two misses: the learner may move on without mastery.
+  const [revealed, setRevealed] = useState<Record<string, boolean>>({});
   const [completedStages, setCompletedStages] = useState(0);
   const [taskComplete, setTaskComplete] = useState(false);
   const [furthestStep, setFurthestStep] = useState(0);
@@ -82,7 +84,7 @@ export default function TaskLessonClient({ task, initialReviewStage }: { task: A
     void enqueueCollection({ endpoint: "/api/events", payload: {
       event_id: crypto.randomUUID(), session_id: sessionId, event_type: "navigation",
       location: { task: task.id, stage: stage.id, step: step.id }, event_timestamp: new Date().toISOString(),
-      data: { direction: "continue", from_step: step.id, to_step: steps[next].id },
+      data: { direction: "continue", from_step: step.id, to_step: steps[next].id, mastered: Boolean(masteredCurrent) },
     }}).catch(() => undefined);
     setFurthestStep((value) => Math.max(value, next)); setStepIndex(next);
     requestAnimationFrame(() => document.getElementById("lesson")?.scrollIntoView({ behavior: "smooth", block: "start" }));
@@ -118,10 +120,10 @@ export default function TaskLessonClient({ task, initialReviewStage }: { task: A
 
   const finishStage = () => {
     const final = stageIndex === task.stages.length - 1;
-    void enqueueCollection({ endpoint: "/api/events", payload: { event_id: crypto.randomUUID(), session_id: sessionId, event_type: "navigation", location: { task: task.id, stage: stage.id, step: "review" }, event_timestamp: new Date().toISOString(), data: { direction: final ? "complete_task" : "complete_stage", from_stage: stage.id, to_stage: final ? null : task.stages[stageIndex + 1].id, completed_stages: stageIndex + 1, total_stages: task.stages.length } } }).catch(() => undefined);
+    void enqueueCollection({ endpoint: "/api/events", payload: { event_id: crypto.randomUUID(), session_id: sessionId, event_type: "navigation", location: { task: task.id, stage: stage.id, step: "review" }, event_timestamp: new Date().toISOString(), data: { direction: final ? "complete_task" : "complete_stage", from_stage: stage.id, to_stage: final ? null : task.stages[stageIndex + 1].id, completed_stages: stageIndex + 1, total_stages: task.stages.length, mastered: Boolean(masteredCurrent) } } }).catch(() => undefined);
     setCompletedStages(stageIndex + 1);
     if (final) { setTaskComplete(true); requestAnimationFrame(() => document.getElementById("lesson")?.scrollIntoView({ behavior: "smooth", block: "start" })); return; }
-    setStageIndex((value) => value + 1); setStepIndex(0); setFurthestStep(0); setMastered({}); setConfidence(null);
+    setStageIndex((value) => value + 1); setStepIndex(0); setFurthestStep(0); setMastered({}); setRevealed({}); setConfidence(null);
     requestAnimationFrame(() => document.getElementById("lesson")?.scrollIntoView({ behavior: "smooth", block: "start" }));
   };
 
@@ -141,7 +143,7 @@ export default function TaskLessonClient({ task, initialReviewStage }: { task: A
     <article className="lesson-content" id="lesson" tabIndex={-1}>
       {progressRestored && completedStages > 0 && <CompletedStagePicker stages={taskIntroductions[task.id].stages.slice(0, completedStages)} onSelect={(stageId) => selectStage(task.stages.findIndex((item) => item.id === stageId))} />}
       {!progressRestored && <p className="question-loading">Restoring your saved position…</p>}
-      {progressRestored && !taskComplete && <GeneratedTutorCard key={`${stage.id}.${step.id}`} task={task.id} stage={stage.id} stageTitle={stage.title} questionNumber={stepIndex + 1} step={step.id} actionType={bank[step.id][0].actionType} lessonContext={`${stage.title}. ${stage.intro} Concept: ${stage.concept}. Expected result: ${stage.result}.`} learningObjectives={bank[step.id][0].learningObjectives ?? []} onAttempt={recordAttempt} onPresented={recordPresentation} onRestoredCorrect={(restoredStep) => setMastered((state) => ({ ...state, [`${stage.id}.${restoredStep}`]: true }))} onPrevious={stepIndex > 0 ? () => moveStep(stepIndex - 1) : undefined} onContinue={step.id === "review" ? finishStage : continueStep} continueDisabled={!masteredCurrent || (step.id === "review" && !confidence)} continueLabel={step.id === "review" ? (stageIndex === task.stages.length - 1 ? "Start final assessment" : "Next stage") : "Continue"} confidence={confidence} onConfidence={setConfidence} />}
+      {progressRestored && !taskComplete && <GeneratedTutorCard key={`${stage.id}.${step.id}`} task={task.id} stage={stage.id} stageTitle={stage.title} questionNumber={stepIndex + 1} step={step.id} actionType={bank[step.id][0].actionType} lessonContext={`${stage.title}. ${stage.intro} Concept: ${stage.concept}. Expected result: ${stage.result}.`} learningObjectives={bank[step.id][0].learningObjectives ?? []} onAttempt={recordAttempt} onPresented={recordPresentation} onRestoredCorrect={(restoredStep) => setMastered((state) => ({ ...state, [`${stage.id}.${restoredStep}`]: true }))} onAnswerRevealed={(revealedStep) => setRevealed((state) => ({ ...state, [`${stage.id}.${revealedStep}`]: true }))} onPrevious={stepIndex > 0 ? () => moveStep(stepIndex - 1) : undefined} onContinue={step.id === "review" ? finishStage : continueStep} continueDisabled={!(masteredCurrent || revealed[`${stage.id}.${step.id}`]) || (step.id === "review" && !confidence)} continueLabel={step.id === "review" ? (stageIndex === task.stages.length - 1 ? "Start final assessment" : "Next stage") : "Continue"} confidence={confidence} onConfidence={setConfidence} />}
       {taskComplete && <TaskAssessment task={task.id} onReview={(stageId) => selectStage(task.stages.findIndex((item) => item.id === stageId))} />}
     </article>}
   </LearningShell>;

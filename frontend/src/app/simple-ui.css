@@ -622,3 +622,25 @@ body { background: var(--canvas); }
   .report-stage-number { display: none; }
   .report-dots { display: none; }
 }
+
+/* Try a change: predict, make one specific edit, run, then see the answer */
+.experiment-plan { margin: 0 0 18px; padding: 18px 20px; border: 1px solid #c8d8ee; border-radius: 10px; background: #f6f9ff; }
+.experiment-plan > h3 { margin: 0 0 12px; color: var(--ink); font-size: 16px; font-weight: 600; }
+.experiment-plan > ol { display: grid; gap: 14px; margin: 0; padding: 0; list-style: none; }
+.experiment-step { min-width: 0; }
+.experiment-step + .experiment-step { padding-top: 14px; border-top: 1px solid #dce5f1; }
+.experiment-step-label { display: block; margin-bottom: 4px; color: #244b8f; font-size: 12px; font-weight: 700; letter-spacing: .02em; }
+.experiment-step p { margin: 0; color: #33404f; font-size: 15px; line-height: 1.6; }
+.experiment-step.is-predict p { color: var(--ink); font-weight: 500; }
+.experiment-diff { display: grid; gap: 10px; margin-bottom: 10px; }
+.experiment-diff .experiment-label { margin-top: 0; }
+.experiment-diff pre { margin: 6px 0 0; padding: 10px 12px; overflow-x: auto; white-space: pre-wrap; overflow-wrap: anywhere; border: 1px solid #dce5f1; border-radius: 6px; background: #fff; color: #263951; font-size: 12px; line-height: 1.7; }
+.experiment-diff .experiment-replacement { border-left: 3px solid #6094cf; background: #eef5ff; }
+.experiment-plan .experiment-note, p.experiment-note { margin: 8px 0 0; color: #617087; font-size: 13px; }
+.experiment-answer { margin: 14px 0 0; padding: 14px 16px; border: 1px solid #b7dcc4; border-left: 4px solid #2f8f5b; border-radius: 8px; background: #f1faf4; }
+.experiment-answer strong { color: #17663a; font-size: 14px; }
+.experiment-answer p { margin: 4px 0 0; color: #23402f; font-size: 15px; line-height: 1.6; }
+.experiment-reveal { margin-top: 12px; text-transform: none !important; letter-spacing: normal !important; font-size: 13px !important; }
+@media(max-width: 700px) {
+  .experiment-plan { padding: 14px; }
+}

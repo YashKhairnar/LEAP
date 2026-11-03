@@ -22,7 +22,7 @@ from ..models import (
 from .authored_questions import QUESTIONS
 from .lesson_code import fixed_code_experiments, fixed_lesson_code
 
-AUTHORED_CONTENT_VERSION = "authored_content_v5"
+AUTHORED_CONTENT_VERSION = "authored_content_v6"
 
 
 class AuthoredContentUnavailable(ValueError):
@@ -653,7 +653,7 @@ def _lesson(request: TutorGenerationRequest, data: dict[str, object]) -> Generat
         code_explanation=list(data.get("code_explanation", [])),  # type: ignore[arg-type]
         try_this=[{
             "title": experiment.title, "find": experiment.find, "replace": experiment.replace,
-            "expected_change": experiment.expected_change,
+            "prediction": experiment.prediction, "expected_change": experiment.expected_change,
         } for experiment in experiments[:1]],
         key_takeaway=str(data["review"]),
     )

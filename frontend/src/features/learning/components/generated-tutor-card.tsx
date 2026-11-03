@@ -16,14 +16,15 @@ import StageAnimation from "@/features/learning/components/lesson-animations";
 type TutorContent = { question: string; options: string[]; expected_answer: string; hint: string; explanation: string; concepts_tested: string[] };
 type LessonSectionType = "meaning" | "concept" | "analogy" | "example" | "code" | "result" | "why_it_matters" | "concept_bridge" | "real_life_analogy" | "data_preview" | "pipeline" | "transformation" | "warning" | "metric";
 type LessonSection = { type: LessonSectionType; title: string; body: string; items: string[]; code: string | null; language: string | null };
-type CodeExperiment = { title: string; find: string; replace: string; expected_change: string };
+type CodeExperiment = { title: string; find: string; replace: string; prediction?: string; expected_change: string };
 type LessonContent = { title: string; introduction: string; sections: LessonSection[]; code_explanation?: string[]; try_this?: (CodeExperiment | string)[]; key_takeaway?: string };
 
-export default function GeneratedTutorCard({ task, stage, stageTitle, questionNumber, step, actionType, lessonContext, learningObjectives, onAttempt, onPresented, onRestoredCorrect, onPrevious, onContinue, continueDisabled = false, continueLabel = "Continue", confidence, onConfidence, reviewOnly = false }: {
+export default function GeneratedTutorCard({ task, stage, stageTitle, questionNumber, step, actionType, lessonContext, learningObjectives, onAttempt, onPresented, onRestoredCorrect, onAnswerRevealed, onPrevious, onContinue, continueDisabled = false, continueLabel = "Continue", confidence, onConfidence, reviewOnly = false }: {
   task: string; stage: string; stageTitle?: string; questionNumber?: number; step: InstructionalStep; actionType: InstructionalActionType; lessonContext: string; learningObjectives: string[];
   onAttempt: (item: QuestionItem, answer: string, correct: boolean, attempt: number, responseTimeMs: number, presentationId: string, evidence: AttemptEvidence) => Promise<void>;
   onPresented: (item: QuestionItem, presentationId: string) => void;
   onRestoredCorrect?: (step: InstructionalStep) => void;
+  onAnswerRevealed?: (step: InstructionalStep) => void;
   onPrevious?: () => void;
   onContinue?: () => void;
   continueDisabled?: boolean;
@@ -33,7 +34,7 @@ export default function GeneratedTutorCard({ task, stage, stageTitle, questionNu
   reviewOnly?: boolean;
 }) {
   const learner = getAuth()?.user;
-  const lessonKey = `leap.generated.lesson.v20.${learner?.user_id ?? "anonymous"}.${learner?.analogy_preference ?? "java"}.${task}.${stage}`;
+  const lessonKey = `leap.generated.lesson.v21.${learner?.user_id ?? "anonymous"}.${learner?.analogy_preference ?? "java"}.${task}.${stage}`;
   const [stageLesson, setStageLesson] = useState<LessonContent | null>(() => {
     if (typeof window === "undefined" || reviewOnly) return null;
     const saved = window.sessionStorage.getItem(lessonKey);
@@ -72,6 +73,7 @@ export default function GeneratedTutorCard({ task, stage, stageTitle, questionNu
   const onAttemptRef = useRef(onAttempt);
   const onPresentedRef = useRef(onPresented);
   const onRestoredCorrectRef = useRef(onRestoredCorrect);
+  const onAnswerRevealedRef = useRef(onAnswerRevealed);
   const changeViewMode = (mode: "learn" | "practice") => {
     setViewMode(mode);
     if (mode === "practice") window.sessionStorage.setItem(practiceStartedKey, "started");
@@ -84,7 +86,7 @@ export default function GeneratedTutorCard({ task, stage, stageTitle, questionNu
       if (window.scrollY > top) window.scrollTo({ top, behavior: "smooth" });
     });
   };
-  useEffect(() => { onAttemptRef.current = onAttempt; onPresentedRef.current = onPresented; onRestoredCorrectRef.current = onRestoredCorrect; }, [onAttempt, onPresented, onRestoredCorrect]);
+  useEffect(() => { onAttemptRef.current = onAttempt; onPresentedRef.current = onPresented; onRestoredCorrectRef.current = onRestoredCorrect; onAnswerRevealedRef.current = onAnswerRevealed; }, [onAttempt, onPresented, onRestoredCorrect, onAnswerRevealed]);
 
   const prefetchNextStep = useCallback(async (lesson: LessonContent) => {
     const nextStep: InstructionalStep | null = step === "connect" ? "practice" : step === "practice" ? "review" : null;
@@ -159,6 +161,7 @@ export default function GeneratedTutorCard({ task, stage, stageTitle, questionNu
           setMisses(restoredState?.correct === false ? Math.min(2, restoredState.attempt) : 0);
           setStageLesson(saved.lesson);
           if (restoredState?.correct) onRestoredCorrectRef.current?.(step);
+          else if (restoredState?.correct === false && restoredState.attempt >= 2) onAnswerRevealedRef.current?.(step);
           void prefetchNextStep(saved.lesson);
           return;
         }
@@ -237,6 +240,8 @@ export default function GeneratedTutorCard({ task, stage, stageTitle, questionNu
     if (revealsAnswer) {
       answerRevealed.current = true;
       recordExposure("answer_revealed");
+      // After two misses the learner may move on; the attempt record still says it was missed.
+      if (!correct) onAnswerRevealedRef.current?.(step);
     } else {
       // The first miss shows the hint instead of the answer.
       hintUsed.current = true;
@@ -369,7 +374,7 @@ export default function GeneratedTutorCard({ task, stage, stageTitle, questionNu
 
             {currentPart === "try" && codeSection && <>
               <h2 className="lesson-part-title">Try a change</h2>
-              <p className="lesson-part-intro">Make one small edit, run the code again, and see what changes.</p>
+              <p className="lesson-part-intro">Predict what one specific change will do, make the change, then run the code to see if you were right.</p>
               <ExecutableLessonCell section={codeSection} task={task} stage={stage} step={step} codeExplanation={[]} tryThis={stageLesson.try_this ?? []} showInstruction={false} />
             </>}
 
@@ -479,19 +484,19 @@ export default function GeneratedTutorCard({ task, stage, stageTitle, questionNu
                     <p>{item.explanation}</p>
                     {!reviewOnly && <div className="feedback-actions">
                       <button className="primary-button" type="button" disabled={loading} onClick={() => void tryAnotherAfterIncorrect()}>{loading ? "Preparing…" : "Try a similar question"}</button>
-                      <span>To move on, answer a new question correctly.</span>
+                      {onContinue && <span>Practise with a similar question, or move on when you’re ready.</span>}
                     </div>}
                   </div>
                 )}
 
-                {step === "review" && onConfidence && !reviewOnly && checked && correct && (
+                {step === "review" && onConfidence && !reviewOnly && checked && (correct || revealed) && (
                   <fieldset className="confidence-check confidence-check-inline">
                     <legend>How sure do you feel about this stage?</legend>
                     <div>{["Not yet", "Somewhat", "Confident"].map((level) => <button type="button" aria-pressed={confidence === level} className={confidence === level ? "confidence selected" : "confidence"} onClick={() => onConfidence(level)} key={level}>{level}</button>)}</div>
                   </fieldset>
                 )}
 
-                {onContinue && !reviewOnly && checked && correct && (
+                {onContinue && !reviewOnly && checked && (correct || revealed) && (
                   <div className="question-continue">
                     {continueDisabled && <span role="status">Choose how sure you feel to continue.</span>}
                     <button type="button" className="primary-button" disabled={continueDisabled} onClick={onContinue}>{continueLabel === "Continue" ? "Next question" : continueLabel} <span aria-hidden="true">→</span></button>
@@ -666,6 +671,7 @@ function ExecutableLessonCell({ section, task, stage, step, codeExplanation, try
   const editorRef = useRef<HTMLTextAreaElement>(null);
   const [appliedExperiment, setAppliedExperiment] = useState<number | null>(null);
   const [editStatus, setEditStatus] = useState("");
+  const [answerShown, setAnswerShown] = useState(false);
   const experiments = tryThis.filter((suggestion): suggestion is CodeExperiment => typeof suggestion !== "string");
   const instruction = repeatsCode(section.body, section.code)
     ? "Run the code, then check that the output matches what this step describes."
@@ -692,6 +698,7 @@ function ExecutableLessonCell({ section, task, stage, step, codeExplanation, try
     setCode(original);
     setResult(null);
     setAppliedExperiment(null);
+    setAnswerShown(false);
     setEditStatus("Original code restored. Choose an experiment or run the code.");
     window.sessionStorage.setItem(editorKey, original);
   };
@@ -746,6 +753,36 @@ function ExecutableLessonCell({ section, task, stage, step, codeExplanation, try
   return (
     <div className="code-learning-unit">
       {showInstruction && <p className="section-body code-purpose">{instruction}</p>}
+      {tryThis.length > 0 && (experiments.length > 0 ? experiments.map((experiment, index) => {
+        const original = section.code ?? "";
+        const originalStart = original.indexOf(experiment.find);
+        const start = code.indexOf(experiment.find);
+        const matches = Boolean(experiment.find) && originalStart >= 0 && originalStart === original.lastIndexOf(experiment.find) && start >= 0 && start === code.lastIndexOf(experiment.find);
+        const line = original.slice(0, originalStart).split("\n").length;
+        const applied = appliedExperiment === index;
+        return <section className="experiment-plan" key={`${index}.${experiment.title}`} aria-label={`Experiment: ${experiment.title}`}>
+          <h3>{experiment.title}</h3>
+          <ol>
+            {experiment.prediction && <li className="experiment-step is-predict">
+              <span className="experiment-step-label">1 · Predict first</span>
+              <p>{experiment.prediction}</p>
+            </li>}
+            <li className="experiment-step">
+              <span className="experiment-step-label">{experiment.prediction ? "2" : "1"} · Make this change</span>
+              <div className="experiment-diff">
+                <div><span className="experiment-label">Find{originalStart >= 0 ? ` · line ${line}` : ""}</span><pre><code>{experiment.find}</code></pre></div>
+                <div><span className="experiment-label">Replace with</span><pre className="experiment-replacement"><code>{experiment.replace}</code></pre></div>
+              </div>
+              <button type="button" className="experiment-apply" disabled={running || !matches || appliedExperiment !== null} onClick={() => applyExperiment(experiment, index)}>{applied ? "Applied to the code below" : "Apply this change"}</button>
+              {!applied && !matches && <p className="experiment-note">Select Reset on the code below to restore the original first.</p>}
+            </li>
+            <li className="experiment-step">
+              <span className="experiment-step-label">{experiment.prediction ? "3" : "2"} · Run it and check your prediction</span>
+              <p>{applied ? "Select Run code below." : "Apply the change, then select Run code below."}</p>
+            </li>
+          </ol>
+        </section>;
+      }) : <p className="experiment-note">Exact code edits aren’t available for this saved lesson.</p>)}
       <div className="executable-cell">
       <div className="code-heading">
         <div className="code-heading-left">
@@ -809,7 +846,11 @@ function ExecutableLessonCell({ section, task, stage, step, codeExplanation, try
         )}
       </div>
 
-      {(codeExplanation.length > 0 || tryThis.length > 0) && <div className="code-guidance-grid">
+      {appliedExperiment !== null && experiments[appliedExperiment] && (result?.success || answerShown
+        ? <div className="experiment-answer" role="status"><strong>What happened</strong><p>{experiments[appliedExperiment].expected_change}</p></div>
+        : result && <button type="button" className="text-button experiment-reveal" onClick={() => setAnswerShown(true)}>The code didn’t run. Show what should happen</button>)}
+
+      {codeExplanation.length > 0 && <div className="code-guidance-grid">
         {codeExplanation.length > 0 && <section className="code-explanation" aria-labelledby={`code-explanation-${stage}`}>
           <div className="code-guidance-heading">
             <svg className="lesson-highlight-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m8 7-5 5 5 5m8-10 5 5-5 5m-3-13-2 16" /></svg>
@@ -827,30 +868,6 @@ function ExecutableLessonCell({ section, task, stage, step, codeExplanation, try
               </div>
             </li>;
           })}</ol>
-        </section>}
-        {tryThis.length > 0 && <section className="try-this">
-          <h5>Try this · explore the code</h5>
-          {experiments.length > 0 ? <>
-            <p>Apply an edit below to the cell above, then select Run code. Use Reset before trying another edit.</p>
-            <ol className="code-experiments">{experiments.map((experiment, index) => {
-              const original = section.code ?? "";
-              const originalStart = original.indexOf(experiment.find);
-              const start = code.indexOf(experiment.find);
-              const matches = Boolean(experiment.find) && originalStart >= 0 && originalStart === original.lastIndexOf(experiment.find) && start >= 0 && start === code.lastIndexOf(experiment.find);
-              const line = original.slice(0, originalStart).split("\n").length;
-              const applied = appliedExperiment === index;
-              return <li key={`${index}.${experiment.title}`}>
-                <h6>{experiment.title}</h6>
-                <span className="experiment-label">Find in the original cell{originalStart >= 0 ? ` · line ${line}` : ""}</span>
-                <pre><code>{experiment.find}</code></pre>
-                <span className="experiment-label">Replace with</span>
-                <pre className="experiment-replacement"><code>{experiment.replace}</code></pre>
-                <p><strong>What to look for:</strong> {experiment.expected_change}</p>
-                <button type="button" className="experiment-apply" disabled={running || !matches || appliedExperiment !== null} onClick={() => applyExperiment(experiment, index)}>{applied ? "Applied to editor" : "Apply to editor"}</button>
-                {(appliedExperiment !== null || !matches) && <p className="experiment-note">{applied ? "Run code above to see the change. Reset restores the original." : "Reset the cell to its original code before applying this edit."}</p>}
-              </li>;
-            })}</ol>
-          </> : <p>Exact code edits aren’t available for this saved lesson.</p>}
         </section>}
       </div>}
     </div>

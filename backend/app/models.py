@@ -280,6 +280,7 @@ class CodeExperiment(BaseModel):
     title: str = Field(min_length=1, max_length=100)
     find: str = Field(min_length=1, max_length=6000)
     replace: str = Field(min_length=1, max_length=6000)
+    prediction: str = Field(default="", max_length=400)
     expected_change: str = Field(min_length=1, max_length=600)
 
 

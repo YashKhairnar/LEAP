@@ -56,6 +56,7 @@ class LessonStructureTests(unittest.TestCase):
             "title": "Inspect the fitted model",
             "find": find,
             "replace": replace,
+            "prediction": "What will print(model) show?",
             "expected_change": "The output now shows the model and its settings.",
         }]
         return lesson

@@ -10,6 +10,12 @@ type AssessmentQuestion = { id: string; stage: string; concept: string; prompt: 
 type QuestionReview = AssessmentQuestion & { answer: number; selected: number; correct: boolean; explanation: string };
 type AssessmentResult = { score: number; total: number; submitted_at: string; questions: QuestionReview[]; report?: AssessmentReport };
 type AssessmentPhase = "pre" | "post";
+// Same order as the learning paths on the home page; the last path leads back home.
+const PATH_ORDER = [
+  { slug: "sentiment", title: "Review sentiment" },
+  { slug: "regression", title: "House prices" },
+  { slug: "cnn", title: "Handwritten digits" },
+];
 type Assessment = { phase: AssessmentPhase; version: string; unlocked: boolean; preview_allowed?: boolean; baseline_score?: number | null; questions: AssessmentQuestion[]; result: AssessmentResult | null };
 
 export default function TaskAssessment({ task, phase = "post", onReview }: { task: string; phase?: AssessmentPhase; onReview?: (stage: string) => void }) {
@@ -93,6 +99,7 @@ export default function TaskAssessment({ task, phase = "post", onReview }: { tas
 
   const isPre = phase === "pre";
   const taskSlug = task === "sentiment_classification" ? "sentiment" : task;
+  const nextPath = PATH_ORDER[PATH_ORDER.findIndex((path) => path.slug === taskSlug) + 1];
   const title = isPre ? "Starting knowledge check" : "Final task assessment";
   if (loading) return <p className="question-loading" role="status">Preparing your {isPre ? "starting" : "final"} assessment…</p>;
   if (!assessment) return <section className="task-assessment"><p role="alert">{error}</p><button className="primary-button" type="button" onClick={() => void load()}>Try again</button></section>;
@@ -136,7 +143,11 @@ export default function TaskAssessment({ task, phase = "post", onReview }: { tas
         {!question.correct && <p><strong>Correct answer:</strong> {question.options[question.answer]}</p>}
         <p className="assessment-explanation"><strong>Why:</strong> {question.explanation}</p>
       </section>)}</div></section>}
-      <footer className="assessment-footer"><Link className="primary-button" href={isPre ? `/learn/${taskSlug}?view=dataset` : "/"}>{isPre ? "Next: explore the dataset →" : "Return to learning paths"}</Link></footer>
+      <footer className="assessment-footer">
+        {isPre ? <Link className="primary-button" href={`/learn/${taskSlug}?view=dataset`}>Next: explore the dataset →</Link>
+          : nextPath ? <><Link className="text-button" href="/">Back to learning paths</Link><Link className="primary-button" href={`/learn/${nextPath.slug}`}>Next: {nextPath.title} →</Link></>
+          : <Link className="primary-button" href="/">Finish: back to learning paths →</Link>}
+      </footer>
     </> : !started ? <div className="assessment-start">
       <p>10 questions · one answer each · no time limit</p>
       <p>{isPre ? "You can take it once. Your answers create a private starting point for comparison after learning." : "You can take it once: your first submission is final. Afterward you get a report on how your understanding changed, with explanations for every question."}</p>
