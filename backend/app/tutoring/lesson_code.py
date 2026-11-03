@@ -12,7 +12,7 @@ class FixedLessonCode:
     code: str
 
 
-CODE_VERSION = "real_datasets_pytorch_v2"
+CODE_VERSION = "real_datasets_pytorch_v3"
 EXPERIMENT_VERSION = "fixed_stage_experiments_v1"
 
 
@@ -47,6 +47,8 @@ X_train, X_test, y_train, y_test = train_test_split(
     random_state=42,
     stratify=df["sentiment"],
 )
+print("Training reviews:", len(X_train), "Test reviews:", len(X_test))
+print("Test labels:", y_test.value_counts().to_dict())
 '''),
         "tfidf_vectorization": _python('''
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -54,12 +56,22 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 vectorizer = TfidfVectorizer()
 X_train_tfidf = vectorizer.fit_transform(X_train)
 X_test_tfidf = vectorizer.transform(X_test)
+print("Training matrix:", X_train_tfidf.shape, "Test matrix:", X_test_tfidf.shape)
+
+words = vectorizer.get_feature_names_out()
+example = vectorizer.transform(["The mic is great."]).toarray()[0]
+print({str(word): round(float(example[i]), 2) for i, word in enumerate(words) if example[i] > 0})
 '''),
         "model_training": _python('''
 from sklearn.linear_model import LogisticRegression
 
 model = LogisticRegression(max_iter=1000, random_state=42)
 model.fit(X_train_tfidf, y_train)
+
+words = vectorizer.get_feature_names_out()
+order = model.coef_[0].argsort()
+print("Most negative words:", [str(words[i]) for i in order[:5]])
+print("Most positive words:", [str(words[i]) for i in order[-5:][::-1]])
 '''),
         "prediction": _python('''
 y_pred = model.predict(X_test_tfidf)
@@ -91,6 +103,7 @@ from sklearn.model_selection import train_test_split
 X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.2, random_state=42
 )
+print("Training houses:", len(X_train), "Test houses:", len(X_test))
 '''),
         "scale_features": _python('''
 from sklearn.preprocessing import StandardScaler
@@ -98,12 +111,19 @@ from sklearn.preprocessing import StandardScaler
 scaler = StandardScaler()
 X_train_scaled = scaler.fit_transform(X_train)
 X_test_scaled = scaler.transform(X_test)
+
+print("First training house:", X_train.iloc[0].to_dict())
+print("After scaling:", X_train_scaled[0].round(2).tolist())
 '''),
         "train_regression": _python('''
 from sklearn.linear_model import LinearRegression
 
 model = LinearRegression()
 model.fit(X_train_scaled, y_train)
+
+for feature, coefficient in zip(feature_columns, model.coef_):
+    print(feature, round(coefficient))
+print("intercept", round(model.intercept_))
 '''),
         "predict_prices": _python('''
 y_pred = model.predict(X_test_scaled)
@@ -143,6 +163,8 @@ train_dataset, test_dataset = random_split(
 )
 train_loader = DataLoader(train_dataset, batch_size=128, shuffle=True, generator=generator)
 test_loader = DataLoader(test_dataset, batch_size=256)
+print("Training images:", len(train_dataset), "Test images:", len(test_dataset))
+print("Training batches:", len(train_loader), "Images per batch:", train_loader.batch_size)
 '''),
         "build_cnn": _python('''
 from torch import nn
@@ -155,6 +177,8 @@ model = nn.Sequential(
     nn.Flatten(),
     nn.Linear(16 * 4 * 4, 10),
 )
+print("Scores for one image:", tuple(model(torch.zeros(1, 1, 8, 8)).shape))
+print("Learnable numbers:", sum(p.numel() for p in model.parameters()))
 '''),
         "train_network": _python('''
 loss_fn = nn.CrossEntropyLoss()
@@ -202,20 +226,20 @@ FIXED_CODE_EXPERIMENTS: dict[str, dict[str, tuple[FixedCodeExperiment, ...]]] = 
         "train_test_split": (FixedCodeExperiment(
             "Reserve 30% for testing",
             '    test_size=0.2,\n    random_state=42,\n    stratify=df["sentiment"],\n)',
-            '    test_size=0.3,\n    random_state=42,\n    stratify=df["sentiment"],\n)\nprint("Training reviews:", len(X_train), "Test reviews:", len(X_test))',
-            "The added print shows 2,100 training reviews and 900 test reviews, instead of the original 2,400/600 split. More test data leaves less data for learning.",
+            '    test_size=0.3,\n    random_state=42,\n    stratify=df["sentiment"],\n)',
+            "Before you run it, predict the new sizes. The output shows 2,100 training and 900 test reviews, and the test labels are still split evenly: 450 and 450. More test data leaves less to learn from.",
         ),),
         "tfidf_vectorization": (FixedCodeExperiment(
             "Limit the vocabulary to 100 words",
             'vectorizer = TfidfVectorizer()\nX_train_tfidf = vectorizer.fit_transform(X_train)\nX_test_tfidf = vectorizer.transform(X_test)',
-            'vectorizer = TfidfVectorizer(max_features=100)\nX_train_tfidf = vectorizer.fit_transform(X_train)\nX_test_tfidf = vectorizer.transform(X_test)\nprint("Training matrix:", X_train_tfidf.shape)\nprint("Test matrix:", X_test_tfidf.shape)',
-            "Both printed shapes have 100 columns, one per selected word. Row counts still reflect the training and test reviews. The vocabulary is learned only from training data.",
+            'vectorizer = TfidfVectorizer(max_features=100)\nX_train_tfidf = vectorizer.fit_transform(X_train)\nX_test_tfidf = vectorizer.transform(X_test)',
+            "Before you run it, predict what happens to 'mic'. Both matrices now have 100 columns, the 100 most frequent words. 'mic' is too rare to make the cut, so it disappears from the example, and the remaining words get bigger weights (great 0.76, is 0.52, the 0.38).",
         ),),
         "model_training": (FixedCodeExperiment(
-            "Inspect five learned word weights",
+            "Look up the weights of four words",
             'model.fit(X_train_tfidf, y_train)',
-            'model.fit(X_train_tfidf, y_train)\nfor word, weight in list(zip(vectorizer.get_feature_names_out(), model.coef_[0]))[:5]:\n    print(word, round(weight, 3))',
-            "Five vocabulary words now appear with learned weights. Positive weights push toward model.classes_[1], negative weights toward model.classes_[0]. Fitting learns these numbers from the training reviews.",
+            'model.fit(X_train_tfidf, y_train)\nweights = dict(zip(vectorizer.get_feature_names_out(), model.coef_[0]))\nfor word in ["great", "not", "mic", "food"]:\n    print(word, round(float(weights[word]), 2))',
+            "Before you run it, guess each word's sign. great is +4.92 and not is −4.6, the strongest each way. mic is 0.0 because it says nothing about sentiment, and food is slightly negative (−0.51), because food comes up more in complaints.",
         ),),
         "prediction": (FixedCodeExperiment(
             "Show only three predictions",
@@ -240,20 +264,20 @@ FIXED_CODE_EXPERIMENTS: dict[str, dict[str, tuple[FixedCodeExperiment, ...]]] = 
         "split_housing_data": (FixedCodeExperiment(
             "Reserve 30% of houses for testing",
             '    X, y, test_size=0.2, random_state=42\n)',
-            '    X, y, test_size=0.3, random_state=42\n)\nprint("Training houses:", len(X_train), "Test houses:", len(X_test))',
-            "The added print shows the new split sizes. About 30% of the prepared houses are now held out, leaving fewer examples to train the model. Features and prices remain paired.",
+            '    X, y, test_size=0.3, random_state=42\n)',
+            "Before you run it, predict the new sizes. The output shows 2,051 training houses and 879 test houses. More houses held out leaves fewer to learn from; features and prices stay paired.",
         ),),
         "scale_features": (FixedCodeExperiment(
-            "Compare a house before and after scaling",
+            "See what the scaler learned",
             'X_test_scaled = scaler.transform(X_test)',
-            'X_test_scaled = scaler.transform(X_test)\nprint("Features:", feature_columns)\nprint("Before:", X_train.iloc[0].to_numpy())\nprint("After:", X_train_scaled[0].round(2))',
-            "The same house now appears in original units and standardized units. After scaling, a negative value means below that feature's training-set average; a positive value means above it.",
+            'X_test_scaled = scaler.transform(X_test)\nprint("Averages learned:", scaler.mean_.round(0).tolist())\nprint("Scaled training averages:", X_train_scaled.mean(axis=0).round(2).tolist())',
+            "Before you run it, predict the second line. The scaler learned averages of about 3 bedrooms, 2 bathrooms, 1,493 sq ft and 37 years from the training houses. After scaling, every training average is 0.",
         ),),
         "train_regression": (FixedCodeExperiment(
-            "Inspect what the model learned",
+            "Price a perfectly average house",
             'model.fit(X_train_scaled, y_train)',
-            'model.fit(X_train_scaled, y_train)\nfor feature, coefficient in zip(feature_columns, model.coef_):\n    print(feature, round(coefficient, 2))',
-            "One learned coefficient is printed for each feature. Its sign shows the direction of the predicted price change, holding other features fixed. Because inputs were scaled, each coefficient is per one training standard deviation, not per original unit.",
+            'model.fit(X_train_scaled, y_train)\nprint("Average house:", round(model.predict([[0, 0, 0, 0]])[0]))',
+            "Before you run it, predict the number. A house that is average on every feature scales to all zeros, so its prediction is exactly the intercept: $178,582, the average training price.",
         ),),
         "predict_prices": (FixedCodeExperiment(
             "Inspect three price predictions",
@@ -278,8 +302,8 @@ FIXED_CODE_EXPERIMENTS: dict[str, dict[str, tuple[FixedCodeExperiment, ...]]] = 
         "normalize_split": (FixedCodeExperiment(
             "Use smaller training batches",
             'train_loader = DataLoader(train_dataset, batch_size=128, shuffle=True, generator=generator)',
-            'train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True, generator=generator)\nprint("Images per full training batch:", train_loader.batch_size)\nprint("Training batches:", len(train_loader))',
-            "The loader reports batches of 32 images and 141 training batches instead of 36. The training/test split is unchanged; smaller batches mean more optimizer updates per pass during training.",
+            'train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True, generator=generator)',
+            "Before you run it, predict the number of batches. The output shows 141 training batches of 32 instead of 36 of 128. The split is unchanged; smaller batches mean more weight updates per pass.",
         ),),
         "build_cnn": (FixedCodeExperiment(
             "Inspect the network's layers",
