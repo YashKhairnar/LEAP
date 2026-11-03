@@ -106,6 +106,14 @@ showing a score or answer review in the UI; the server retains the full scored r
 Existing submissions remain stored under their original version and are not reused as
 scores for the new forms.
 
+Each form can be submitted once per version: the first submission is stored and any later
+one is ignored (the API returns the stored result with `already_submitted: true`, and the UI
+says so). The UI asks for confirmation before submitting. After the final assessment, the
+learner sees an analysis report that pairs each final item with the starting item at the same
+position (same stage and concept): starting and final scores, how many concepts were learned,
+already known, slipped or still being learned, and per-stage results with links back to the
+lesson. This is the first point at which per-item starting results are shown to the learner.
+
 1. Approve consent, withdrawal, retention and participant eligibility procedures. Signup
    currently records `draft-research-consent-v1`; changing collection mode does not change it.
 2. Review authored questions/answer keys and the fixed final MCQs for correctness and

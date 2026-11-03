@@ -7,9 +7,10 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from .bank import QUESTION_BANK, VERSION, AssessmentQuestion, assessment_task
+from .bank import QUESTION_BANK, UNSURE, VERSION, AssessmentQuestion, assessment_task
 from .final_bank import FINAL_QUESTION_BANK
 from ..database import connect
+from ..tutoring.authored_content import STAGES_BY_TASK
 from ..tutoring.lesson_code import FIXED_LESSON_CODE
 from ..collection.config import assessment_preview_allowed, collection_mode
 
@@ -36,6 +37,56 @@ def _public_result(result: dict, phase: AssessmentPhase) -> dict:
     return {**result, "questions": []}
 
 
+def _outcome(before: dict | None, after: dict) -> str:
+    if before is None:
+        return "no_baseline"
+    if before["correct"]:
+        return "kept" if after["correct"] else "slipped"
+    return "learned" if after["correct"] else "still_learning"
+
+
+def _report(task: str, result: dict, baseline: dict | None) -> dict:
+    """Pre/post comparison shown only once the final assessment is submitted.
+
+    The two forms are paired item by item on stage and concept, so each final
+    question is compared with the starting question at the same position.
+    """
+    before_items = baseline["questions"] if baseline else []
+    items = []
+    for index, after in enumerate(result["questions"]):
+        before = before_items[index] if index < len(before_items) else None
+        if before and (before["stage"], before["concept"]) != (after["stage"], after["concept"]):
+            before = None
+        items.append({
+            "stage": after["stage"], "concept": after["concept"], "after": after["correct"],
+            "before": None if before is None else "unsure" if before["options"][before["selected"]] == UNSURE else before["correct"],
+            "outcome": _outcome(before, after),
+        })
+    stages = []
+    for stage in FIXED_LESSON_CODE[task]:
+        stage_items = [item for item in items if item["stage"] == stage]
+        stages.append({
+            "stage": stage, "title": str(STAGES_BY_TASK[task][stage]["title"]), "total": len(stage_items),
+            "after": sum(item["after"] for item in stage_items),
+            "before": sum(item["before"] is True for item in stage_items) if baseline else None,
+        })
+    outcomes = {key: sum(item["outcome"] == key for item in items) for key in ("learned", "kept", "slipped", "still_learning")}
+    return {
+        "before_score": baseline["score"] if baseline else None,
+        "before_unsure": sum(item["before"] == "unsure" for item in items) if baseline else None,
+        "after_score": result["score"], "total": result["total"],
+        "outcomes": outcomes, "stages": stages, "concepts": items,
+    }
+
+
+def _with_report(connection, learner_id: str, task: str, result: dict) -> dict:
+    baseline_row = connection.execute(
+        "SELECT payload FROM task_pre_assessments WHERE learner_id = ? AND task = ? AND version = ?",
+        (learner_id, task, VERSION),
+    ).fetchone()
+    return {**result, "report": _report(task, result, json.loads(baseline_row["payload"]) if baseline_row else None)}
+
+
 def _unlocked(connection, learner_id: str, task: str) -> bool:
     row = connection.execute(
         "SELECT completed_stages FROM user_progress WHERE learner_id = ? AND task = ?",
@@ -57,6 +108,9 @@ def get_assessment(learner_id: str, task: str, phase: AssessmentPhase = "post") 
             "SELECT payload FROM task_pre_assessments WHERE learner_id = ? AND task = ? AND version = ?",
             (learner_id, task, VERSION),
         ).fetchone() if phase == "post" else None
+        result = json.loads(row["payload"]) if row else None
+        if result and phase == "post":
+            result = _with_report(connection, learner_id, task, result)
     # Never deliver the answer key (including explanations) before submission.
     questions = [
         {key: value for key, value in asdict(question).items() if key not in {"answer", "explanation"}}
@@ -67,7 +121,7 @@ def get_assessment(learner_id: str, task: str, phase: AssessmentPhase = "post") 
         "unlocked": phase == "pre" or unlocked,
         "preview_allowed": assessment_preview_allowed(),
         "baseline_score": json.loads(baseline_row["payload"])["score"] if baseline_row else None,
-        "questions": questions, "result": _public_result(json.loads(row["payload"]), phase) if row else None,
+        "questions": questions, "result": _public_result(result, phase) if result else None,
     }
 
 
@@ -99,8 +153,10 @@ def submit_assessment(learner_id: str, task: str, submission: AssessmentSubmissi
             VALUES (?, ?, ?, ?) ON CONFLICT (learner_id, task, version) DO NOTHING""",
             (learner_id, task, VERSION, json.dumps(result)),
         )
-        saved = connection.execute(
+        saved = json.loads(connection.execute(
             f"SELECT payload FROM {table} WHERE learner_id = ? AND task = ? AND version = ?",
             (learner_id, task, VERSION),
-        ).fetchone()
-    return _public_result(json.loads(saved["payload"]), phase)
+        ).fetchone()["payload"])
+        if phase == "post":
+            saved = _with_report(connection, learner_id, task, saved)
+    return _public_result(saved, phase)

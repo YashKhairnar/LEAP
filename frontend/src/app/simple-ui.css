@@ -562,3 +562,63 @@ body { background: var(--canvas); }
 .learning-site-shell .practice-question .generated-question-after { margin: 0 0 16px; color: var(--ink); font-size: 16px; }
 .learning-site-shell .practice-question .answer-text { font-variant-ligatures: none; }
 .learning-site-shell .practice-question .feedback-actions > span { color: #4f5d70; font-size: 13px; }
+
+/* Final assessment: submit confirmation, lock notice and analysis report */
+.assessment-submitted-at { margin-top: 6px !important; font-size: 12px !important; }
+.assessment-confirm { display: grid; gap: 4px; margin: 16px 0 0; padding: 14px 16px; border: 1px solid #f2c48f; border-radius: 10px; background: #fff8ec; color: #6b4310; font-size: 14px; }
+.assessment-confirm strong { color: #4a2d08; }
+.assessment-already { margin: 0 0 20px; padding: 12px 16px; border-left: 3px solid #c28a30; background: #fffbf1; color: #5b4216; font-size: 14px; line-height: 1.6; }
+.assessment-report { margin: 0 0 32px; padding: 24px; border: 1px solid #dfe6f0; border-radius: 12px; background: #fff; }
+.report-header h3 { margin: 4px 0 20px; color: var(--ink); font-size: 20px; font-weight: 600; }
+.report-header .eyebrow { margin: 0; }
+.report-scores { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; }
+.report-score { display: grid; gap: 2px; min-width: 132px; padding: 14px 18px; border-radius: 10px; background: #f4f6fa; }
+.report-score.is-after { background: var(--blue-soft); }
+.report-score span { color: #4f5d70; font-size: 12px; font-weight: 500; }
+.report-score strong { color: var(--ink); font-size: 32px; line-height: 1.2; }
+.report-score.is-after strong { color: var(--blue); }
+.report-score small { color: #66758a; font-size: 18px; font-weight: 400; }
+.report-score em { color: #66758a; font-size: 12px; font-style: normal; }
+.report-arrow { color: #9aa7b8; font-size: 22px; }
+.report-change { display: grid; justify-items: center; padding: 10px 16px; border-radius: 99px; background: #eef2f7; color: #4f5d70; }
+.report-change strong { font-size: 22px; line-height: 1.2; }
+.report-change span { font-size: 12px; }
+.report-change.is-up { background: #e6f4ec; color: #17663a; }
+.report-change.is-down { background: #fdeee6; color: #9a3412; }
+.report-note { margin: 14px 0 0; color: #4f5d70; font-size: 14px; line-height: 1.6; }
+.report-outcomes { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin: 22px 0 0; padding: 0; list-style: none; }
+.report-outcomes > li { padding: 14px; border: 1px solid var(--line); border-top-width: 3px; border-radius: 10px; background: #fbfcfe; }
+.report-outcomes > li.is-learned { border-top-color: #2f8f5b; }
+.report-outcomes > li.is-kept { border-top-color: var(--blue); }
+.report-outcomes > li.is-slipped { border-top-color: #c2410c; }
+.report-outcomes > li.is-still_learning { border-top-color: #c28a30; }
+.report-outcomes > li > div { display: flex; align-items: baseline; gap: 8px; }
+.report-outcomes > li > div strong { color: var(--ink); font-size: 24px; }
+.report-outcomes > li > div span { color: var(--ink); font-size: 14px; font-weight: 600; }
+.report-outcomes > li > p { margin: 2px 0 0; color: #66758a; font-size: 12px; line-height: 1.5; }
+.report-outcomes ul { display: flex; flex-wrap: wrap; gap: 4px; margin: 10px 0 0; padding: 0; list-style: none; }
+.report-outcomes ul li { padding: 2px 8px; border-radius: 99px; background: #eef2f7; color: #33404f; font-size: 12px; }
+.report-stages { margin-top: 26px; }
+.report-stages h4 { margin: 0 0 10px; color: var(--ink); font-size: 15px; font-weight: 600; }
+.report-stages table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.report-stages th, .report-stages td { padding: 10px 8px; border-top: 1px solid #edf1f6; background: none; text-align: left; text-transform: none; letter-spacing: normal; vertical-align: middle; }
+.report-stages thead th { border-top: 0; color: #66758a; font-size: 12px; font-weight: 500; }
+.report-stages tbody th { color: var(--ink); font-size: 14px; font-weight: 500; }
+.report-stage-number { display: inline-grid; place-items: center; width: 22px; height: 22px; margin-right: 10px; border-radius: 99px; background: #eef2f7; color: #4f5d70; font-size: 12px; }
+.report-dots { display: inline-flex; gap: 4px; margin-right: 8px; vertical-align: middle; }
+.report-dots i { width: 10px; height: 10px; border: 1.5px solid #b8c3d2; border-radius: 99px; }
+.report-dots.is-before i.is-on { border-color: #8f9cb0; background: #8f9cb0; }
+.report-dots.is-after i.is-on { border-color: var(--blue); background: var(--blue); }
+.report-count { color: #4f5d70; font: 12px var(--font-mono); }
+.report-status.is-solid { padding: 2px 10px; border-radius: 99px; background: #e6f4ec; color: #17663a; font-size: 12px; font-weight: 600; }
+.report-review { font-size: 13px !important; text-transform: none !important; letter-spacing: normal !important; white-space: nowrap; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+@media(max-width: 700px) {
+  .assessment-report { padding: 16px; }
+  .report-outcomes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .report-score { min-width: 0; flex: 1 1 120px; }
+  .report-arrow { display: none; }
+  .report-stages th, .report-stages td { padding: 8px 4px; }
+  .report-stage-number { display: none; }
+  .report-dots { display: none; }
+}

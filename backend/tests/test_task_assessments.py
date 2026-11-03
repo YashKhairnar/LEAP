@@ -126,6 +126,35 @@ class TaskAssessmentTests(unittest.TestCase):
         self.assertEqual((post["phase"], post["score"]), ("post", 9))
         self.assertEqual(get_assessment(learner, "cnn")["baseline_score"], 3)
 
+    def test_final_result_reports_change_from_the_starting_assessment(self):
+        learner = "report-student"
+        self.unlock(learner, "cnn")
+        pre_questions = questions_for_phase("cnn", "pre")
+        # Starting form: 1st right, 2nd "not sure", the rest wrong.
+        pre_answers = {question.id: question.answer if index == 0 else question.options.index(UNSURE) if index == 1 else next(
+            option for option in range(4) if option != question.answer and question.options[option] != UNSURE)
+            for index, question in enumerate(pre_questions)}
+        submit_assessment(learner, "cnn", AssessmentSubmission(version=VERSION, answers=pre_answers), "pre")
+        # Final form: first 8 right.
+        post = submit_assessment(learner, "cnn", self.submission("cnn", 8))
+        report = post["report"]
+        self.assertEqual((report["before_score"], report["after_score"], report["total"], report["before_unsure"]), (1, 8, 10, 1))
+        self.assertEqual(report["outcomes"], {"learned": 7, "kept": 1, "slipped": 0, "still_learning": 2})
+        self.assertEqual([stage["stage"] for stage in report["stages"]], list(FIXED_LESSON_CODE["cnn"]))
+        self.assertEqual(sum(stage["total"] for stage in report["stages"]), 10)
+        self.assertEqual(sum(stage["after"] for stage in report["stages"]), 8)
+        self.assertTrue(all(stage["title"] for stage in report["stages"]))
+        self.assertEqual(get_assessment(learner, "cnn")["result"]["report"], report)
+
+    def test_final_report_without_a_starting_assessment(self):
+        report = submit_assessment("student-a", "regression", self.submission("regression", 5))["report"]
+        self.assertIsNone(report["before_score"])
+        self.assertEqual(report["outcomes"], {"learned": 0, "kept": 0, "slipped": 0, "still_learning": 0})
+        self.assertTrue(all(stage["before"] is None for stage in report["stages"]))
+
+    def test_starting_result_has_no_report(self):
+        self.assertNotIn("report", submit_assessment("student-a", "cnn", self.submission("cnn", 3, "pre"), "pre"))
+
     def test_other_phase_answers_are_rejected(self):
         for task in QUESTION_BANK:
             for phase, wrong_phase in (("pre", "post"), ("post", "pre")):
@@ -246,8 +275,11 @@ class TaskAssessmentTests(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertNotIn("answer", public["questions"][0])
         status, result = self.api_request("POST", "cnn", self.submission("cnn", 7).model_dump(), learner="student-a")
-        self.assertEqual((status, result["score"]), (200, 7))
+        self.assertEqual((status, result.pop("already_submitted"), result["score"]), (200, False, 7))
         self.assertEqual(self.api_request("GET", "cnn", learner="student-a")[1]["result"], result)
+        status, repeat = self.api_request("POST", "cnn", self.submission("cnn", 10).model_dump(), learner="student-a")
+        self.assertEqual((status, repeat.pop("already_submitted")), (200, True))
+        self.assertEqual(repeat, result)
         self.assertEqual(self.api_request("POST", "cnn", {"version": VERSION, "answers": {}}, learner="student-a")[0], 422)
         self.assertEqual(self.api_request("POST", "cnn", self.submission("cnn").model_dump(), learner="student-b")[0], 403)
         self.assertEqual(self.api_request("GET", "missing", learner="student-a")[0], 404)

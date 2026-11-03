@@ -4,10 +4,11 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { API_URL, getAuth } from "@/lib/auth";
 import { flushCollectionQueue } from "@/features/collection/lib/collection";
+import AssessmentReportView, { type AssessmentReport } from "@/features/assessment/components/assessment-report";
 
 type AssessmentQuestion = { id: string; stage: string; concept: string; prompt: string; options: string[]; code: string | null };
 type QuestionReview = AssessmentQuestion & { answer: number; selected: number; correct: boolean; explanation: string };
-type AssessmentResult = { score: number; total: number; submitted_at: string; questions: QuestionReview[] };
+type AssessmentResult = { score: number; total: number; submitted_at: string; questions: QuestionReview[]; report?: AssessmentReport };
 type AssessmentPhase = "pre" | "post";
 type Assessment = { phase: AssessmentPhase; version: string; unlocked: boolean; preview_allowed?: boolean; baseline_score?: number | null; questions: AssessmentQuestion[]; result: AssessmentResult | null };
 
@@ -17,6 +18,8 @@ export default function TaskAssessment({ task, phase = "post", onReview }: { tas
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [alreadySubmitted, setAlreadySubmitted] = useState(false);
+  const [confirming, setConfirming] = useState(false);
   const [started, setStarted] = useState(phase === "pre");
   const [questionIndex, setQuestionIndex] = useState(0);
   const questionHeading = useRef<HTMLLegendElement>(null);
@@ -65,7 +68,7 @@ export default function TaskAssessment({ task, phase = "post", onReview }: { tas
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!assessment || !assessment.unlocked || assessment.result || submissionInFlight.current || assessment.questions.some((question) => answers[question.id] === undefined)) return;
+    if (!assessment || !assessment.unlocked || assessment.result || !confirming || submissionInFlight.current || assessment.questions.some((question) => answers[question.id] === undefined)) return;
     submissionInFlight.current = true;
     setSubmitting(true); setError("");
     try {
@@ -73,9 +76,11 @@ export default function TaskAssessment({ task, phase = "post", onReview }: { tas
         method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ version: assessment.version, answers }),
       });
-      const body = await response.json() as AssessmentResult & { detail?: unknown };
+      const body = await response.json() as AssessmentResult & { detail?: unknown; already_submitted?: boolean };
       if (!response.ok) throw new Error(typeof body.detail === "string" ? body.detail : "Your result could not be saved. Your answers are still here; please try again.");
-      setAssessment({ ...assessment, result: body });
+      const { already_submitted: repeat, ...saved } = body;
+      setAlreadySubmitted(Boolean(repeat));
+      setAssessment({ ...assessment, result: saved });
       try { if (draftKey.current) window.sessionStorage.removeItem(draftKey.current); } catch { /* Optional draft storage. */ }
       requestAnimationFrame(() => {
         resultHeading.current?.focus({ preventScroll: true });
@@ -95,9 +100,9 @@ export default function TaskAssessment({ task, phase = "post", onReview }: { tas
 
   const result = assessment.result;
   const answered = assessment.questions.filter((question) => answers[question.id] !== undefined).length;
-  const revisit = result ? [...new Map(result.questions.filter((question) => !question.correct).map((question) => [question.stage, question])).values()] : [];
   const currentQuestion = assessment.questions[questionIndex];
   const moveQuestion = (next: number) => {
+    setConfirming(false);
     setQuestionIndex(next);
     requestAnimationFrame(() => {
       questionHeading.current?.focus({ preventScroll: true });
@@ -113,15 +118,15 @@ export default function TaskAssessment({ task, phase = "post", onReview }: { tas
     <header className="assessment-header">
       <p className="eyebrow blue">{isPre ? "Before you begin" : assessment.unlocked ? "All six lesson stages completed" : "Assessment preview"}</p>
       <h2 id="assessment-title">{title}</h2>
-      <p>{isPre ? "You are not expected to know these answers. Choose “I’m not sure yet” whenever you do not know—this is not a pass-or-fail test, and answers will not be shown before the lesson." : "Answer independently. You can go back and change your answers before submitting."}</p>
+      {!result && <p>{isPre ? "You are not expected to know these answers. Choose “I’m not sure yet” whenever you do not know—this is not a pass-or-fail test, and answers will not be shown before the lesson." : "Answer independently. You can go back and change your answers until you submit; after that they are final."}</p>}
     </header>
     {result ? <>
       <section className="assessment-score" aria-labelledby="assessment-result-title">
-        <div><h3 id="assessment-result-title" ref={resultHeading} tabIndex={-1}>{isPre ? "Starting assessment saved" : "Assessment submitted"}</h3><p>{isPre ? "Your answers are saved without feedback. After the lesson, the final assessment will show how your understanding changed." : "Your first submission is saved. Review your answers below."}</p></div>
+        <div><h3 id="assessment-result-title" ref={resultHeading} tabIndex={-1}>{isPre ? "Starting assessment saved" : "Assessment submitted"}</h3><p>{isPre ? "Your answers are saved without feedback and can’t be changed. After the lesson, the final assessment will show how your understanding changed." : "Your answers are final and can’t be changed. Your report and the answer review are below."}</p><p className="assessment-submitted-at">Submitted {new Date(result.submitted_at).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}</p></div>
         {!isPre && <strong aria-label={`${result.score} out of ${result.total} correct`}>{result.score}<span> / {result.total}</span><small>{Math.round(result.score / result.total * 100)}% correct</small></strong>}
       </section>
-      {!isPre && assessment.baseline_score !== null && assessment.baseline_score !== undefined && <p className="assessment-comparison"><strong>Before learning:</strong> {assessment.baseline_score} / {result.total} · <strong>Change:</strong> {result.score - assessment.baseline_score >= 0 ? "+" : ""}{result.score - assessment.baseline_score} points</p>}
-      {!isPre && revisit.length > 0 && <aside className="assessment-revisit"><h3>Stages to revisit</h3><div>{revisit.map((question) => <button className="text-button" type="button" key={question.stage} onClick={() => onReview?.(question.stage)}>{question.stage.replaceAll("_", " ")} →</button>)}</div></aside>}
+      {alreadySubmitted && <p className="assessment-already" role="status">You had already submitted this assessment, so your new answers were not saved. Your first submission is shown.</p>}
+      {!isPre && result.report && <AssessmentReportView report={result.report} onReview={onReview} />}
       {!isPre && <section className="assessment-review-details"><h3>Review answers and explanations</h3>
       <div className="assessment-questions">{result.questions.map((question, index) => <section className="assessment-question assessment-reviewed" key={question.id}>
         <p className={`assessment-question-meta ${question.correct ? "is-correct" : "is-incorrect"}`}>Question {index + 1} · {question.correct ? "Correct" : "Incorrect"} · {question.concept}</p>
@@ -134,7 +139,7 @@ export default function TaskAssessment({ task, phase = "post", onReview }: { tas
       <footer className="assessment-footer"><Link className="primary-button" href={isPre ? `/learn/${taskSlug}?view=dataset` : "/"}>{isPre ? "Next: explore the dataset →" : "Return to learning paths"}</Link></footer>
     </> : !started ? <div className="assessment-start">
       <p>10 questions · one answer each · no time limit</p>
-      <p>{isPre ? "Your answers create a private starting point for comparison after learning." : "Your first submission is final. Your score and explanations appear afterward."}</p>
+      <p>{isPre ? "You can take it once. Your answers create a private starting point for comparison after learning." : "You can take it once: your first submission is final. Afterward you get a report on how your understanding changed, with explanations for every question."}</p>
       <button className="primary-button" type="button" onClick={() => setStarted(true)}>Begin {isPre ? "starting" : "final"} assessment →</button>
     </div> : <form onSubmit={submit}>
       <div className="assessment-progress"><label htmlFor="assessment-progress">{answered} of 10 answered</label><progress id="assessment-progress" max={10} value={answered} /></div>
@@ -146,10 +151,16 @@ export default function TaskAssessment({ task, phase = "post", onReview }: { tas
           <span className="assessment-option-letter" aria-hidden="true">{String.fromCharCode(65 + optionIndex)}</span><span>{option}</span>
         </label>)}</div>
       </fieldset>)}</div>
+      {confirming && <div className="assessment-confirm" role="alert">
+        <strong>Submit all 10 answers?</strong>
+        <span>You can only submit once. After this, your answers can’t be changed.</span>
+      </div>}
       {error && <p className="assessment-error" role="alert">{error}</p>}
       <footer className="assessment-footer">
         <button className="text-button" type="button" disabled={questionIndex === 0 || submitting} onClick={() => moveQuestion(questionIndex - 1)}>← Previous</button>
-        {questionIndex < assessment.questions.length - 1 ? <button className="primary-button" type="button" disabled={answers[currentQuestion.id] === undefined} onClick={() => moveQuestion(questionIndex + 1)}>Next question →</button> : <button className="primary-button" type="submit" disabled={!assessment.unlocked || submitting || answered !== 10}>{!assessment.unlocked ? "Complete stages to submit" : submitting ? "Saving…" : "Submit assessment"}</button>}
+        {questionIndex < assessment.questions.length - 1 ? <button className="primary-button" type="button" disabled={answers[currentQuestion.id] === undefined} onClick={() => moveQuestion(questionIndex + 1)}>Next question →</button> : !confirming || !assessment.unlocked
+          ? <button key="review" className="primary-button" type="button" disabled={!assessment.unlocked || answered !== 10} onClick={() => setConfirming(true)}>{!assessment.unlocked ? "Complete stages to submit" : "Submit assessment"}</button>
+          : <button key="confirm" className="primary-button" type="submit" disabled={submitting}>{submitting ? "Saving…" : "Yes, submit my answers"}</button>}
       </footer>
     </form>}
   </section>;

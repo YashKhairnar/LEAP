@@ -193,7 +193,9 @@ def task_assessment_submit(task: str, request: AssessmentSubmission, user: Annot
     except ValueError as error:
         raise HTTPException(status_code=404, detail=str(error)) from error
     try:
-        return submit_assessment(user.user_id, task, request, phase)
+        # Only the first submission is kept; tell the client when this one was ignored.
+        already_submitted = get_assessment(user.user_id, task, phase)["result"] is not None
+        return {**submit_assessment(user.user_id, task, request, phase), "already_submitted": already_submitted}
     except PermissionError as error:
         raise HTTPException(status_code=403, detail=str(error)) from error
     except ValueError as error:
