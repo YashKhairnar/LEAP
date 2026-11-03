@@ -216,16 +216,6 @@ body { background: var(--canvas); }
   from { opacity: 0; transform: translate(-50%, -10px) rotate(90deg); }
   to { opacity: 1; transform: translateX(-50%) rotate(90deg); }
 }
-.digit-matrix-example { margin: 16px 0 0; }
-.digit-matrix-layout { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); align-items: start; gap: 20px; max-width: 470px; }
-.digit-matrix-layout > div { min-width: 0; }
-.digit-matrix-label { min-height: 40px; margin: 0 0 8px; color: #425269; font-size: 12px; font-weight: 500; line-height: 1.5; }
-.digit-image-preview { display: block; width: 100%; max-width: 180px; aspect-ratio: 1; border: 1px solid #c7ced8; }
-.digit-matrix-example .digit-pixel-matrix { width: min(100%, 288px); table-layout: fixed; border: 1px solid #c7ced8; border-collapse: separate; border-spacing: 1px; background: #c7ced8; }
-.digit-matrix-example .digit-pixel-matrix td { padding: 0; border: 0; text-align: center; font: 12px/1.5 var(--font-mono); }
-.digit-matrix-example .digit-pixel-matrix td > span { display: flex; align-items: center; justify-content: center; width: 100%; aspect-ratio: 1; }
-.digit-matrix-example figcaption { max-width: 44ch; margin-top: 12px; color: #425269; font-size: 13px; font-weight: 400; line-height: 1.65; }
-.digit-matrix-example figcaption strong { display: block; margin-bottom: 4px; color: var(--ink); font-weight: 600; }
 .intro-learning-goals > ul { display: grid; gap: 8px; margin: 0; padding-left: 22px; color: #425269; font-size: 15px; line-height: 1.65; }
 .simple-roadmap { display: grid; gap: 10px; margin: 24px 0; padding: 18px 0; border-block: 1px solid var(--line); color: var(--muted); font-size: 14px; }
 .learning-site-shell .intro-build { margin-block: 24px; }
@@ -368,8 +358,6 @@ body { background: var(--canvas); }
   .dataset-digit-image { width: 96px; }
   .dataset-ready { grid-template-columns: auto minmax(0, 1fr); align-items: flex-start; }
   .dataset-ready .primary-button { grid-column: 1 / -1; justify-content: center; width: 100%; }
-  .digit-matrix-layout { grid-template-columns: 1fr; gap: 16px; }
-  .digit-matrix-label { min-height: 0; }
   .intro-example-pair { grid-template-columns: 1fr; gap: 42px; }
   .intro-example-output::before { top: -34px; left: 50%; transform: translateX(-50%) rotate(90deg); animation-name: intro-example-arrow-mobile; }
   .intro-example-explanation { grid-template-columns: 1fr; gap: 4px; }

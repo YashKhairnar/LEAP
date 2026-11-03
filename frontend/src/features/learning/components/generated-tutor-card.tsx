@@ -11,7 +11,6 @@ import { questionContentId } from "@/features/collection/lib/content-id";
 import { QuestionExposureClock, evidenceKind, type AttemptEvidence } from "@/features/collection/lib/question-exposure";
 import { JAVA_ANALOGY_EXAMPLES, stageTerms } from "@/features/learning/lib/learning-support";
 import { initialStageScreen } from "@/features/learning/lib/learning-flow";
-import DigitMatrixExample from "@/features/learning/components/digit-matrix-example";
 import StageAnimation from "@/features/learning/components/lesson-animations";
 
 type TutorContent = { question: string; options: string[]; expected_answer: string; hint: string; explanation: string; concepts_tested: string[] };
@@ -571,7 +570,6 @@ function IdeaSection({ section, task, stage, step }: { section: LessonSection; t
         <tbody>{rows.map(([column, value, role]) => <tr key={column}><th scope="row"><code>{column}</code></th><td>{value}</td><td>{role}</td></tr>)}</tbody>
       </table></div>}
       {notes.map((note) => <p className="idea-example-note" key={note}>{note}</p>)}
-      {task === "cnn" && stage === "load_images" && <DigitMatrixExample />}
       <StageAnimation task={task} stage={stage} />
     </section>;
   }
