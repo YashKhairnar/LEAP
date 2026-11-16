@@ -1,4 +1,37 @@
-import { API_URL } from "@/lib/auth";
+import { API_URL, setAuth, type AuthUser } from "@/lib/auth";
+
+const RESEARCH_ID_KEY = "leap.workshop.research-id.v1";
+
+export function storedResearchId(): string | null {
+  try { return window.localStorage.getItem(RESEARCH_ID_KEY); } catch { return null; }
+}
+
+export function rememberResearchId(researchId: string | null): void {
+  try {
+    if (researchId) window.localStorage.setItem(RESEARCH_ID_KEY, researchId);
+    else window.localStorage.removeItem(RESEARCH_ID_KEY);
+  } catch { /* display convenience only */ }
+}
+
+/** Enter the workshop with a research ID only; the server sets the session cookie. */
+export async function enterWorkshop(researchId: string): Promise<{ user: AuthUser; research_id: string }> {
+  let response: Response;
+  try {
+    response = await fetch(`${API_URL}/api/workshop/enter`, {
+      method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ research_id: researchId }),
+    });
+  } catch {
+    throw new Error("We couldn’t reach the workshop. Check your connection and try again.");
+  }
+  const body = await response.json().catch(() => ({})) as { user?: AuthUser; research_id?: string; detail?: unknown };
+  if (!response.ok || !body.user || !body.research_id) {
+    throw new Error(typeof body.detail === "string" ? body.detail : "We couldn’t sign you in. Check your research ID and try again.");
+  }
+  setAuth({ user: body.user });
+  rememberResearchId(body.research_id);
+  return { user: body.user, research_id: body.research_id };
+}
 
 export type BoxVariant = "see" | "did" | "check" | "warning" | "plain";
 export type WorkshopBlock =
@@ -25,6 +58,7 @@ export type WorkshopContent = { workshop_id: string; version: string; title: str
 export type TablePreview = { columns: string[]; rows: Record<string, unknown>[] };
 export type CellRun = { run_id: string; cell_id: string; execution_count: number; code: string; success: boolean; stdout: string; stderr: string; result: unknown; table_preview: TablePreview | null; plots: string[]; duration_ms: number; created_at: string };
 export type WorkshopState = {
+  research_id: string | null;
   current_stage: string;
   completed_stages: string[];
   uploaded_filename: string | null;

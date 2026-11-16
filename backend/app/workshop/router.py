@@ -4,7 +4,7 @@
 import os
 from typing import Annotated, Any, Callable, Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
@@ -42,6 +42,10 @@ class AnswerRequest(BaseModel):
     answer: str = Field(max_length=5000)
 
 
+class EnterRequest(BaseModel):
+    research_id: str = Field(min_length=1, max_length=64)
+
+
 def stage_unlocked(progress: dict[str, Any], stage_id: str) -> bool:
     return stage_id in progress["completed_stages"] or stage_id == progress["current_stage"]
 
@@ -68,6 +72,7 @@ def workshop_state(learner_id: str) -> dict[str, Any]:
     return {
         "workshop_id": WORKSHOP_ID,
         "version": WORKSHOP_VERSION,
+        "research_id": store.research_id_for(learner_id),
         "current_stage": progress["current_stage"],
         "completed_stages": progress["completed_stages"],
         "uploaded_filename": progress["uploaded_filename"],
@@ -86,9 +91,22 @@ def workshop_state(learner_id: str) -> dict[str, Any]:
     }
 
 
-def build_workshop_router(current_user: Callable[..., UserRecord]) -> APIRouter:
+def build_workshop_router(
+    current_user: Callable[..., UserRecord],
+    set_session_cookie: Callable[[Response, str], None] = lambda response, token: None,
+) -> APIRouter:
     router = APIRouter(prefix="/api/workshop", tags=["workshop"])
     User = Annotated[UserRecord, Depends(current_user)]
+
+    @router.post("/enter")
+    def enter(request: EnterRequest, response: Response) -> dict[str, Any]:
+        """Enter the workshop with a research ID only (no account or password)."""
+        try:
+            session, research_id = store.enter_with_research_id(request.research_id)
+        except ValueError as error:
+            raise HTTPException(status_code=422, detail=str(error)) from error
+        set_session_cookie(response, session.access_token)
+        return {"user": session.user.model_dump(), "research_id": research_id}
 
     @router.get("/content")
     def content(_: User) -> dict[str, Any]:

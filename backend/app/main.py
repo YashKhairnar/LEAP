@@ -142,15 +142,15 @@ def current_user(token: Annotated[str, Depends(access_token)]) -> UserRecord:
     return user
 
 
-app.include_router(build_workshop_router(current_user))
-
-
 def set_session_cookie(response: Response, token: str) -> None:
     production = os.getenv("ENVIRONMENT", "development").lower() == "production"
     response.set_cookie(
         "leap_session", token, httponly=True, secure=production,
         samesite="none" if production else "lax", max_age=60 * 60 * 24 * 30, path="/",
     )
+
+
+app.include_router(build_workshop_router(current_user, set_session_cookie))
 
 
 @app.post("/api/auth/register", response_model=PublicAuthResponse, status_code=status.HTTP_201_CREATED)

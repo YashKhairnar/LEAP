@@ -72,5 +72,6 @@ export async function logout(): Promise<void> {
   } finally {
     clearAuth();
     window.sessionStorage.removeItem("leap.learning.session.v1");
+    window.localStorage.removeItem("leap.workshop.research-id.v1");
   }
 }

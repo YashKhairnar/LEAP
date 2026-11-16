@@ -146,8 +146,8 @@ START = WorkshopStage(
         # Adapted: the Colab asks learners to save a copy in Google Drive. Work is saved to the account here.
         H("Your work is saved as you go"),
         BOX("plain", None,
-            "Every cell you run and every answer you type is saved to your participant account.",
-            "You can close this page and come back later: you will continue where you left off."),
+            "Every cell you run and every answer you type is saved under your research ID.",
+            "You can close this page and come back later: enter the same research ID and you will continue where you left off."),
         H("How to run each cell"),
         BOX("plain", None,
             "Every time you see a green **YOUR TURN** box, do these three things:",
@@ -607,7 +607,7 @@ FINISH = WorkshopStage(
         P("Congratulations! You built a machine learning model that reads restaurant reviews and labels them as positive or negative, including reviews it had never seen. You loaded and looked at real data, split it, turned text into numbers, trained a model, and evaluated it."),
         P("To finish, please complete the steps below."),
         # Adapted: the Colab's "Save your notebook to Google Drive" step is not needed; work is saved
-        # to the participant account, so the participant code replaces the notebook link.
+        # under the learner's research ID, which replaces the notebook link.
         {"type": "post_survey"},
         {
             "type": "checklist",
@@ -617,7 +617,7 @@ FINISH = WorkshopStage(
                 {"text": "1. Completed the **pre-survey** before the workshop", "auto": None},
                 {"text": "2. Ran **all 16 cells** in this workshop (Steps 1 to 6)", "auto": "cells"},
                 {"text": "3. Answered every **Check your understanding** question (q1_1 to q6_2)", "auto": "answers"},
-                {"text": "4. Completed the **post-survey** and entered your participant code (Finish)", "auto": None},
+                {"text": "4. Completed the **post-survey** with the same research ID (Finish)", "auto": None},
             ],
             "note": "Questions? Ask a facilitator before you leave the room.",
         },

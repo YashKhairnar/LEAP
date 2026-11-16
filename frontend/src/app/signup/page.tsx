@@ -3,9 +3,16 @@
 import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
+import ResearchIdEntry from "@/features/workshop/components/research-id-entry";
+import { showLessonPaths } from "@/features/workshop/lib/visibility";
 import { authenticate, type AnalogyPreference } from "@/lib/auth";
 
-export default function SignupPage() {
+export default function SignupPageRoute() {
+  // While only the workshop is shown, learners enter with a research ID instead of an account.
+  return showLessonPaths ? <SignupPage /> : <ResearchIdEntry />;
+}
+
+function SignupPage() {
   const router = useRouter();
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);

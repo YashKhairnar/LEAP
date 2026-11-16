@@ -2,20 +2,24 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { getWorkshopState, type WorkshopState } from "@/features/workshop/lib/workshop-api";
+import { getWorkshopState, rememberResearchId, type WorkshopState } from "@/features/workshop/lib/workshop-api";
 import { WORKSHOP_HREF } from "@/features/workshop/lib/visibility";
 
 const PARTS = 7; // Before you start + Steps 1–6
 
 /** Dashboard body while only the workshop is shown. */
-export default function WorkshopHome() {
+export default function WorkshopHome({ onResearchId }: { onResearchId?: (researchId: string | null) => void }) {
   const [state, setState] = useState<WorkshopState | null>(null);
   const [failed, setFailed] = useState(false);
   useEffect(() => {
     let active = true;
-    void getWorkshopState().then((value) => { if (active) setState(value); }).catch(() => { if (active) setFailed(true); });
+    void getWorkshopState().then((value) => {
+      if (!active) return;
+      setState(value);
+      if (value.research_id) { rememberResearchId(value.research_id); onResearchId?.(value.research_id); }
+    }).catch(() => { if (active) setFailed(true); });
     return () => { active = false; };
-  }, []);
+  }, [onResearchId]);
 
   const done = state?.completed_stages.filter((stage) => stage !== "finish").length ?? 0;
   const started = Boolean(state && (done > 0 || Object.keys(state.cells).length > 0));
@@ -51,7 +55,7 @@ export default function WorkshopHome() {
         <li><strong>Check your understanding.</strong> Each step ends with short questions to answer in your own words.</li>
         <li><strong>Finish.</strong> Complete the post-survey and the completion checklist.</li>
       </ol>
-      <p>Your code runs and answers are saved to your participant account as you go.</p>
+      <p>Your code runs and answers are saved under your research ID as you go. Enter the same ID to come back later.</p>
     </section>
   </section>;
 }

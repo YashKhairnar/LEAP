@@ -4,9 +4,10 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from fastapi import HTTPException
+from fastapi import HTTPException, Response
 
-from app.database import connect, initialize_database
+from app.database import connect, initialize_database, user_for_token
+from app.main import set_session_cookie
 from app.execution.cells import UnsafeCode, validate_code
 from app.main import app
 from app.models import UserRecord
@@ -81,7 +82,7 @@ class WorkshopApiTests(unittest.TestCase):
         runner = patch.object(workshop_router, "run_workshop_cell", side_effect=fake_run)
         runner.start()
         self.addCleanup(runner.stop)
-        router = workshop_router.build_workshop_router(lambda: USER)
+        router = workshop_router.build_workshop_router(lambda: USER, set_session_cookie)
         self.routes = {route.name: route.endpoint for route in router.routes}
 
     def run_cell(self, cell_id, code=None, user=USER, upload=None):
@@ -101,8 +102,37 @@ class WorkshopApiTests(unittest.TestCase):
         return self.routes["complete"](stage.stage_id, user)
 
     def test_routes_are_registered(self):
-        self.assertEqual(set(self.routes), {"content", "state", "dataset", "run_cell", "answer", "complete"})
+        self.assertEqual(set(self.routes), {"enter", "content", "state", "dataset", "run_cell", "answer", "complete"})
         self.assertIn("/api/workshop/cells/{cell_id}/run", app.openapi()["paths"])
+
+    def enter(self, research_id):
+        response = Response()
+        body = self.routes["enter"](workshop_router.EnterRequest(research_id=research_id), response)
+        cookie = response.headers.get("set-cookie", "")
+        token = cookie.split("leap_session=", 1)[1].split(";", 1)[0]
+        return body, token
+
+    def test_research_id_is_enough_to_enter_and_return(self):
+        first, first_token = self.enter("  SJSU 0042 ")
+        self.assertEqual(first["research_id"], "SJSU 0042")
+        user = user_for_token(first_token)
+        self.assertEqual(user.user_id, first["user"]["user_id"])
+        # Same ID (any case or spacing) returns to the same learner and their work.
+        self.run_cell("practice", user=user)
+        again, again_token = self.enter("sjsu   0042")
+        self.assertEqual(again["user"]["user_id"], user.user_id)
+        self.assertEqual(again["research_id"], "SJSU 0042")
+        self.assertNotEqual(again_token, first_token)
+        self.assertIn("practice", self.routes["state"](user_for_token(again_token))["cells"])
+        self.assertEqual(self.routes["state"](user)["research_id"], "SJSU 0042")
+        # A different ID is a different learner.
+        other, _ = self.enter("SJSU 0043")
+        self.assertNotEqual(other["user"]["user_id"], user.user_id)
+
+    def test_blank_research_id_is_rejected(self):
+        with self.assertRaises(HTTPException) as raised:
+            self.enter("   ")
+        self.assertEqual(raised.exception.status_code, 422)
 
     def test_new_learner_starts_at_the_beginning(self):
         state = self.routes["state"](USER)

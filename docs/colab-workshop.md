@@ -4,6 +4,15 @@ A copy of the SJSU CSED Research Lab's Colab notebook *Machine Learning Workshop
 Restaurant Reviews*, running on this platform. It is kept separate from the three lesson paths:
 its own content, code runner, database tables, API routes and pages.
 
+## Signing in
+
+There are no accounts while only the workshop is shown. `/login` (and `/signup`) ask for a **research
+ID** only. The first time an ID is used, a workshop user is created and linked to it in
+`workshop_participants`; entering the same ID again (any letter case, extra spaces ignored) returns to that
+learner's work. Any non-empty ID up to 64 characters is accepted for now, and there is no password: anyone
+who types an ID enters as that participant. The research ID replaces the participant code on the dashboard
+and finish page. Route: `POST /api/workshop/enter`.
+
 ## What learners see
 
 `Before you start` → Steps 1–6 → `Finish`, in the same order and wording as the notebook. There are
@@ -17,9 +26,9 @@ What was adapted from Colab (everything else follows the notebook):
 
 | Colab | Here |
 |---|---|
-| Save a copy in Google Drive | Work saves to the participant account automatically |
+| Save a copy in Google Drive | Work saves under the research ID automatically |
 | `files.upload()` with Colab's widget | Same code. ▶ Run shows a *Choose Files* button; the file must be the workshop's `dataset.csv` (header and size are checked). The sandbox then reads the server's copy. |
-| Finish 1: share the notebook link | Removed; the post-survey asks for the participant code instead |
+| Finish 1: share the notebook link | Removed; the post-survey asks for the research ID instead |
 | Rules "skipping a cell causes `NameError`", "Colab restarted?" | Reworded: cells unlock in order and earlier cells are remembered |
 | — | "Download dataset.csv here" link next to the lab-website instruction |
 | — | Cell 16 note: avoid `/` and `\` in reviews (the platform's code-safety check blocks them) |
@@ -41,11 +50,12 @@ Outputs match the notebook: 10,000 reviews, 8,000/2,000 split, 10,788 words, acc
 
 ## Data
 
-Three new tables, created on startup next to the existing ones:
+Four new tables, created on startup next to the existing ones:
 
 - `workshop_progress`: one row per learner (current stage, completed stages, uploaded file name, start/finish times)
 - `workshop_cell_runs`: every run (code, output, success, duration, run number); append-only
 - `workshop_answers`: every saved answer; append-only, the latest per question is the current one
+- `workshop_participants`: research ID → workshop user (first and last entry times)
 
 ## Configuration
 

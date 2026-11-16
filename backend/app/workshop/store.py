@@ -6,17 +6,25 @@ assessment and collection tables:
 - workshop_progress:  one row per learner (current stage, completed stages, uploaded file)
 - workshop_cell_runs: every cell run, with the code and its output (append-only)
 - workshop_answers:   every saved answer to a Check-your-understanding question (append-only)
+- workshop_participants: research ID → workshop user, so learners enter with a research ID only
 """
 
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+import re
+import secrets
+from datetime import datetime, timedelta, timezone
 from typing import Any
 from uuid import uuid4
 
-from ..database import connect
+from ..auth import new_access_token, token_digest
+from ..database import IntegrityErrors, _user_record, connect, create_user
+from ..models import AuthResponse
 from .content import STAGE_IDS, WORKSHOP_VERSION
+
+WORKSHOP_CONSENT_VERSION = "workshop-research-id-v1"
+SESSION_DAYS = 30
 
 
 def _now() -> str:
@@ -71,6 +79,72 @@ def initialize_workshop_tables() -> None:
         connection.execute(
             "CREATE INDEX IF NOT EXISTS workshop_answers_learner ON workshop_answers (learner_id, created_at)"
         )
+        connection.execute(
+            """CREATE TABLE IF NOT EXISTS workshop_participants (
+                research_id_key TEXT PRIMARY KEY,
+                research_id TEXT NOT NULL,
+                user_id TEXT NOT NULL UNIQUE,
+                created_at TEXT NOT NULL,
+                last_entered_at TEXT NOT NULL)"""
+        )
+
+
+def normalize_research_id(research_id: str) -> tuple[str, str]:
+    """Return (display form, lookup key). IDs match ignoring case and extra spaces."""
+    display = re.sub(r"\s+", " ", research_id).strip()
+    return display, display.casefold()
+
+
+def _participant(connection: Any, key: str) -> dict[str, Any] | None:
+    row = connection.execute(
+        "SELECT research_id, user_id FROM workshop_participants WHERE research_id_key = ?", (key,),
+    ).fetchone()
+    return dict(row) if row is not None else None
+
+
+def enter_with_research_id(research_id: str) -> tuple[AuthResponse, str]:
+    """Sign in with a research ID, creating the workshop user the first time it is used.
+
+    There is no password: anyone who types an ID enters as that participant.
+    """
+    display, key = normalize_research_id(research_id)
+    if not display:
+        raise ValueError("Enter your research ID.")
+    now = _now()
+    with connect() as connection:
+        existing = _participant(connection, key)
+    if existing is None:
+        # The random password is never shown; the research ID is the only way in.
+        created = create_user(str(uuid4()), secrets.token_urlsafe(32), "unspecified", WORKSHOP_CONSENT_VERSION, "pure_ml")
+        try:
+            with connect() as connection:
+                connection.execute(
+                    "INSERT INTO workshop_participants (research_id_key, research_id, user_id, created_at, last_entered_at) "
+                    "VALUES (?, ?, ?, ?, ?)", (key, display, created.user.user_id, now, now),
+                )
+            return created, display
+        except IntegrityErrors:
+            # Someone entered the same ID at the same moment; use their record.
+            with connect() as connection:
+                existing = _participant(connection, key)
+            if existing is None:
+                raise
+    token = new_access_token()
+    expires_at = (datetime.now(timezone.utc) + timedelta(days=SESSION_DAYS)).isoformat()
+    with connect() as connection:
+        connection.execute(
+            "INSERT INTO auth_sessions (token_hash, user_id, expires_at) VALUES (?, ?, ?)",
+            (token_digest(token), existing["user_id"], expires_at),
+        )
+        connection.execute("UPDATE workshop_participants SET last_entered_at = ? WHERE research_id_key = ?", (now, key))
+        user = connection.execute("SELECT * FROM users WHERE user_id = ?", (existing["user_id"],)).fetchone()
+    return AuthResponse(access_token=token, user=_user_record(user)), existing["research_id"]
+
+
+def research_id_for(user_id: str) -> str | None:
+    with connect() as connection:
+        row = connection.execute("SELECT research_id FROM workshop_participants WHERE user_id = ?", (user_id,)).fetchone()
+    return dict(row)["research_id"] if row is not None else None
 
 
 def _progress_row(connection: Any, learner_id: str) -> dict[str, Any] | None:

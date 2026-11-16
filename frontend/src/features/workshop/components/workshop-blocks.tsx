@@ -5,7 +5,7 @@ import { workshopDatasetUrl, type WorkshopBlock, type WorkshopContent, type Work
 type Context = {
   content: WorkshopContent;
   state: WorkshopState;
-  participantCode: string;
+  researchId: string;
   renderCell: (cellId: string) => ReactNode;
   renderQuestions: () => ReactNode;
 };
@@ -73,7 +73,7 @@ function Block({ block, context }: { block: WorkshopBlock; context: Context }) {
           ? <a href={context.content.post_survey_url} target="_blank" rel="noreferrer">Post-Workshop Survey</a>
           : <strong>Post-Workshop Survey</strong>}{!context.content.post_survey_url && " (your facilitator will share the link)"}</p>
         <p>Enter your <strong>student ID</strong> (the same one you used in the pre-survey).</p>
-        <p>Answer all the questions. Where it asks for your notebook link, enter your participant code: <strong className="ws-participant-code">{context.participantCode}</strong></p>
+        <p>Answer all the questions. Where it asks for your notebook link, enter your research ID: <strong className="ws-participant-code">{context.researchId}</strong></p>
       </section>;
     case "checklist": {
       const { state } = context;

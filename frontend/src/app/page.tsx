@@ -7,6 +7,7 @@ import { getTaskProgress, logout, validateAuth, type AuthUser, type TaskProgress
 import { flushCollectionQueue } from "@/features/collection/lib/collection";
 import WorkshopHome from "@/features/workshop/components/workshop-home";
 import { showLessonPaths } from "@/features/workshop/lib/visibility";
+import { storedResearchId } from "@/features/workshop/lib/workshop-api";
 
 const tasks = [
   { id: "sentiment_classification", title: "Review sentiment", description: "Teach a model to recognize positive and negative reviews.", level: "Beginner", time: "2–3 hours", href: "/learn/sentiment" },
@@ -19,6 +20,7 @@ export default function Dashboard() {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [progress, setProgress] = useState<TaskProgress[]>([]);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [researchId, setResearchId] = useState<string | null>(() => typeof window === "undefined" ? null : storedResearchId());
 
   useEffect(() => {
     let active = true;
@@ -50,11 +52,11 @@ export default function Dashboard() {
     <header className="topbar dashboard-nav">
       <Link className="brand" href="/">LEAP</Link>
       <div className="account-controls">
-        <span className="account-name">Participant {user.participant_code}</span>
+        <span className="account-name">{!showLessonPaths && researchId ? `Research ID ${researchId}` : `Participant ${user.participant_code}`}</span>
         <button className="logout-button" disabled={loggingOut} onClick={signOut}>{loggingOut ? "Signing out…" : "Log out"}</button>
       </div>
     </header>
-    {!showLessonPaths ? <WorkshopHome /> : <section className="simple-dashboard-content" aria-labelledby="paths-title">
+    {!showLessonPaths ? <WorkshopHome onResearchId={setResearchId} /> : <section className="simple-dashboard-content" aria-labelledby="paths-title">
       {resume ? <>
         <header className="simple-page-heading">
           <h1 id="paths-title">Welcome back</h1>

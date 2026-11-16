@@ -142,7 +142,7 @@ export default function WorkshopClient() {
   return <LearningShell taskTitle="ML Workshop" location={`${stage.nav_label} · ${stage.short_label}`} progress={progress} navigator={navigator}>
     <article className="lesson-content ws-lesson" id="lesson" tabIndex={-1}>
       <h1 className="lesson-part-title ws-stage-title">{stage.title}</h1>
-      <WorkshopBlocks blocks={stage.blocks} context={{ content, state, participantCode: learner?.participant_code ?? "", renderCell, renderQuestions }} />
+      <WorkshopBlocks blocks={stage.blocks} context={{ content, state, researchId: state.research_id ?? learner?.participant_code ?? "", renderCell, renderQuestions }} />
 
       {!isFinish && <footer className="ws-stage-footer">
         {completionError && <div className="ws-completion-error" role="alert">
