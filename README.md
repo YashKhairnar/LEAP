@@ -11,6 +11,7 @@ code exploration; the research project develops a learner-state world model from
 - [Current implementation and remaining work](docs/status.md)
 - [Collection protocol and exports](docs/collection.md)
 - [Deploy the services](docs/deployment.md)
+- [Colab ML workshop](docs/colab-workshop.md)
 - [Research documentation](LEAP/docs/README.md)
 
 ## Repository map

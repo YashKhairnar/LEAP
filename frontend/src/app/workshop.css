@@ -1,0 +1,95 @@
+/* Colab ML workshop. Builds on the lesson layout tokens; every class here is prefixed ws-. */
+.ws-lesson { color: var(--ink); }
+/* .lesson-content rules style the other paths' headings; these keep the workshop's own scale. */
+.lesson-content.ws-lesson > * { max-width: none; }
+.lesson-content.ws-lesson > * + * { margin-top: 16px; }
+.lesson-content.ws-lesson > .ws-stage-title { margin: 0 0 8px; }
+.ws-paragraph { color: #33404f; font-size: 16px; line-height: 1.75; }
+.ws-paragraph a, .ws-box a, .ws-download a { color: var(--blue); text-underline-offset: 3px; }
+.lesson-content.ws-lesson > .ws-heading-2 { margin: 40px 0 0; padding-top: 24px; border-top: 1px solid var(--line); color: var(--ink); font-family: var(--font-sans); font-size: clamp(22px, 2.6vw, 28px); font-weight: 600; letter-spacing: -.01em; line-height: 1.3; }
+.lesson-content.ws-lesson > .ws-heading-3 { margin: 28px 0 0; color: var(--blue); font-family: var(--font-sans); font-size: 19px; font-weight: 600; letter-spacing: 0; line-height: 1.4; }
+.ws-inline-code { padding: 1px 6px; border: 1px solid var(--line); border-radius: 6px; background: var(--canvas); color: var(--ink); font: .88em/1.5 var(--font-mono); overflow-wrap: anywhere; }
+.ws-quote { padding: 4px 0 4px 18px; border-left: 3px solid #b99ad6; }
+.ws-quote p { margin: 0; color: #5d3290; font-size: 16px; font-style: italic; line-height: 1.75; }
+.ws-quote cite { color: var(--muted); font-size: 13px; font-style: normal; }
+.ws-aside { color: var(--muted); font-size: 14px; line-height: 1.7; }
+.ws-list { padding-left: 22px; color: #33404f; font-size: 16px; line-height: 1.75; }
+.ws-list li + li { margin-top: 6px; }
+
+.ws-banner { padding: 22px 24px; border: 1px solid #d6e2f5; border-radius: 12px; background: var(--blue-soft); }
+.ws-banner h2 { margin: 0 0 12px; color: #1f4a9c; font-size: clamp(21px, 2.6vw, 26px); line-height: 1.3; }
+.ws-banner p { margin: 4px 0 0; color: #33404f; font-size: 15px; line-height: 1.65; }
+.ws-banner small { display: block; margin-top: 14px; padding-top: 12px; border-top: 1px solid #d6e2f5; color: var(--muted); font-size: 12px; line-height: 1.5; }
+
+.ws-box { padding: 16px 20px; border: 1px solid var(--line); border-left-width: 3px; border-radius: 0 10px 10px 0; background: #fff; }
+.ws-box h4 { margin: 0 0 8px; font-size: 16px; font-weight: 650; }
+.ws-box p { margin: 4px 0 0; color: #33404f; font-size: 14.5px; line-height: 1.65; }
+.ws-box-see, .ws-box-did { border-color: #cad9ee; border-left-color: var(--blue); background: var(--blue-soft); }
+.ws-box-see h4, .ws-box-did h4 { color: #1f4a9c; }
+.ws-box-check { border-color: #f0dfb5; border-left-color: #c28a30; background: var(--warning-soft); }
+.ws-box-check h4 { color: #9a5a0b; }
+.ws-box-warning { border-color: #f1d0cc; border-left-color: var(--error); background: var(--error-soft); }
+.ws-box-warning h4 { color: #a13c32; }
+.ws-box-plain { background: var(--canvas); border-left-color: #9aa8bb; }
+.ws-box-output { margin: 6px 0 0; padding: 6px 10px; border-radius: 6px; background: #fff; border: 1px solid var(--line); color: var(--ink); font: 12.5px/1.6 var(--font-mono); white-space: pre-wrap; overflow-wrap: anywhere; }
+
+.ws-table-wrap { overflow-x: auto; }
+.ws-table { width: 100%; border-collapse: collapse; font-size: 15px; }
+.ws-table th, .ws-table td { padding: 10px 12px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; line-height: 1.5; }
+.ws-table thead th { color: var(--muted); font-size: 13px; font-weight: 600; }
+.ws-table tbody th { font-weight: 600; white-space: nowrap; }
+
+.ws-download { padding: 12px 16px; border: 1px dashed #b9c8de; border-radius: 8px; color: var(--muted); font-size: 14px; }
+
+/* Cells: green YOUR TURN header, grey copy box, then the learner's paste cell. */
+.lesson-content.ws-lesson > .ws-cell { display: grid; gap: 10px; margin-top: 28px; }
+.ws-your-turn { padding: 12px 16px; border: 1px solid #cfe6db; border-left: 3px solid var(--green); border-radius: 0 10px 10px 0; background: #f0f8f3; }
+.ws-your-turn h4 { margin: 0; color: #1b6b55; font-size: 15px; font-weight: 650; }
+.ws-your-turn p { margin: 4px 0 0; color: #456a5c; font-size: 13.5px; line-height: 1.6; }
+.ws-source { position: relative; border: 1px solid var(--line); border-radius: 10px; background: #f6f8fb; }
+.ws-source pre { margin: 0; padding: 16px 84px 16px 16px; overflow-x: auto; color: var(--ink); font: 13px/1.7 var(--font-mono); }
+.ws-source .ws-comment { color: #6b7a90; }
+.ws-copy { position: absolute; top: 8px; right: 8px; padding: 5px 12px; border: 1px solid var(--line); border-radius: 6px; background: #fff; color: var(--ink); font-size: 12px; font-weight: 600; cursor: pointer; }
+.ws-copy:hover { border-color: #92add8; }
+.ws-copy:focus-visible, .ws-file-button:focus-within { outline: 2px solid var(--blue); outline-offset: 2px; }
+.ws-paste-cell textarea { min-height: 0 !important; }
+.ws-count { color: #93a4bd; font: 12px var(--font-mono); }
+.ws-done-badge { color: #7fd1b3; font-size: 12px; font-weight: 650; }
+.ws-cell.is-done .ws-your-turn { opacity: .85; }
+.ws-upload { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
+.ws-upload > span { color: #94a3b8; font-size: 13px; }
+.ws-upload .text-button { margin-left: auto; color: #b6c4dc; }
+.ws-file-button { position: relative; padding: 6px 12px; border: 1px solid #50607a; border-radius: 6px; background: #1b2539; color: #e4ebf7; font-size: 13px; cursor: pointer; }
+.ws-file-button input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+/* Like Colab's DataFrame view: long reviews are shortened so every column stays visible. */
+.ws-paste-cell .cell-table-wrap td { max-width: 46ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ws-no-output { margin: 0; color: #94a3b8; font-size: 13px; }
+.ws-cell-message { margin: 0; padding: 10px 14px; border-radius: 8px; background: var(--warning-soft); color: #69480e; font-size: 14px; line-height: 1.6; }
+.ws-own-guide { padding: 14px 18px; border: 1px solid var(--line); border-radius: 10px; background: var(--canvas); }
+.ws-own-guide p { margin: 4px 0 0; color: #33404f; font-size: 14px; line-height: 1.65; }
+.ws-own-label { color: var(--muted) !important; font-weight: 600; }
+
+/* Questions */
+.ws-answers { padding: 18px 20px; border: 1px solid var(--line); border-radius: 12px; background: #fff; }
+.ws-answers h3 { margin: 0 0 12px; font-size: 18px; font-weight: 600; }
+.ws-answer + .ws-answer { margin-top: 16px; }
+.ws-answer label { display: block; margin-bottom: 6px; color: var(--ink); font: 600 13px var(--font-mono); }
+.ws-answer textarea { display: block; width: 100%; padding: 10px 12px; border: 1px solid #b9c5d6; border-radius: 8px; background: #fff; color: var(--ink); font: 15px/1.6 var(--font-sans); resize: vertical; }
+.ws-answer textarea:focus { outline: 2px solid var(--blue); outline-offset: 1px; border-color: var(--blue); }
+.ws-save-status { display: block; min-height: 18px; margin-top: 4px; color: var(--muted); font-size: 12px; }
+.ws-save-status.is-saved { color: var(--green); }
+.ws-save-status.is-error { color: var(--error); }
+
+.ws-checklist { margin: 8px 0; padding: 0; list-style: none; }
+.ws-checklist li { display: flex; gap: 10px; padding: 4px 0; color: #33404f; font-size: 14.5px; line-height: 1.6; }
+.ws-checklist li.is-checked { color: #196c52; }
+.ws-participant-code { font-family: var(--font-mono); letter-spacing: .04em; white-space: nowrap; }
+
+.lesson-content.ws-lesson > .ws-stage-footer { margin-top: 36px; }
+.ws-completion-error { margin-bottom: 12px; padding: 14px 16px; border-radius: 8px; background: var(--error-soft); color: var(--error); font-size: 14px; line-height: 1.6; }
+.ws-completion-error ul { margin: 6px 0 0; padding-left: 20px; }
+
+@media (max-width: 600px) {
+  .ws-box, .ws-banner, .ws-answers { padding: 14px; }
+  .ws-source pre { padding-top: 40px; font-size: 12px; }
+}

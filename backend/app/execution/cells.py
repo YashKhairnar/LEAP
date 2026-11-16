@@ -37,7 +37,11 @@ class CodapiPayloadTooLarge(RuntimeError):
     pass
 
 
-def validate_code(code: str) -> None:
+def validate_code(
+    code: str,
+    allowed_imports: frozenset[str] | set[str] = frozenset(ALLOWED_IMPORTS),
+    allowed_dunder_attributes: frozenset[str] = frozenset(),
+) -> None:
     try:
         tree = ast.parse(code)
     except SyntaxError as error:
@@ -45,18 +49,18 @@ def validate_code(code: str) -> None:
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
             modules = [alias.name.split(".", 1)[0] for alias in node.names]
-            if any(module not in ALLOWED_IMPORTS for module in modules):
+            if any(module not in allowed_imports for module in modules):
                 raise UnsafeCode(
                     "Available imports include pandas, numpy, scikit-learn, matplotlib, "
                     "seaborn, scipy, and selected Python data utilities."
                 )
         if isinstance(node, ast.ImportFrom):
             module = (node.module or "").split(".", 1)[0]
-            if node.level or module not in ALLOWED_IMPORTS:
+            if node.level or module not in allowed_imports:
                 raise UnsafeCode("That import is not available in the learning runtime.")
         if isinstance(node, ast.Name) and (node.id in BANNED_NAMES or node.id.startswith("fetch_")):
             raise UnsafeCode(f"{node.id} is not available in the learning runtime.")
-        if isinstance(node, ast.Attribute) and (
+        if isinstance(node, ast.Attribute) and node.attr not in allowed_dunder_attributes and (
             node.attr.startswith("__") or node.attr in BANNED_ATTRIBUTES or node.attr.startswith("fetch_")
         ):
             raise UnsafeCode(f"{node.attr} is not available in the learning runtime.")

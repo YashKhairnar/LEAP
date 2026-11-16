@@ -7,3 +7,4 @@ LEAP's runtime datasets are derived from real public teaching and research datas
 - `optical_digits_uci_v2.csv`: Alpaydin, E. and Kaynak, C. (1998), *Optical Recognition of Handwritten Digits*, UCI Machine Learning Repository, DOI `10.24432/C50P49`, CC BY 4.0. Contains all 5,620 examples represented as 8×8 pixel-block intensity values.
 
 The preparation script is `backend/scripts/prepare_real_datasets.py`. Source archives are downloaded to `/tmp/leap-real-datasets` before running it.
+- `workshop_restaurant_reviews_v1.csv`: the 10,000-review restaurant dataset (`text`, `sentiment`; 5,000 positive and 5,000 negative) used by the SJSU CSED Research Lab's "Classifying Restaurant Reviews" Colab workshop, copied unchanged from the lab's `dataset.csv` (1,366,043 bytes).

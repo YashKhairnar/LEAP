@@ -46,6 +46,7 @@ DATASET_FILES = {
     "reviews.csv": "sentiment_labelled_sentences_uci_v2.csv",
     "houses.csv": "ames_housing_v2.csv",
     "images.csv": "optical_digits_uci_v2.csv",
+    "dataset.csv": "workshop_restaurant_reviews_v1.csv",
 }
 
 

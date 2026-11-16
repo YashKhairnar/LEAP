@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getTaskProgress, logout, validateAuth, type AuthUser, type TaskProgress } from "@/lib/auth";
 import { flushCollectionQueue } from "@/features/collection/lib/collection";
+import WorkshopHome from "@/features/workshop/components/workshop-home";
+import { showLessonPaths } from "@/features/workshop/lib/visibility";
 
 const tasks = [
   { id: "sentiment_classification", title: "Review sentiment", description: "Teach a model to recognize positive and negative reviews.", level: "Beginner", time: "2–3 hours", href: "/learn/sentiment" },
@@ -52,7 +54,7 @@ export default function Dashboard() {
         <button className="logout-button" disabled={loggingOut} onClick={signOut}>{loggingOut ? "Signing out…" : "Log out"}</button>
       </div>
     </header>
-    <section className="simple-dashboard-content" aria-labelledby="paths-title">
+    {!showLessonPaths ? <WorkshopHome /> : <section className="simple-dashboard-content" aria-labelledby="paths-title">
       {resume ? <>
         <header className="simple-page-heading">
           <h1 id="paths-title">Welcome back</h1>
@@ -108,7 +110,7 @@ export default function Dashboard() {
         </ol>
         <p>Practice questions help you learn and don’t count toward your assessment scores.</p>
       </section>
-    </section>
+    </section>}
   </main>;
 }
 
@@ -130,9 +132,11 @@ function LearningPathsLoading() {
       </div>
       <div className="learning-loading-progress" aria-hidden="true"><span /></div>
       <div className="learning-loading-path-preview" aria-hidden="true">
-        <span><i />Review sentiment</span>
-        <span><i />House prices</span>
-        <span><i />Handwritten digits</span>
+        {showLessonPaths ? <>
+          <span><i />Review sentiment</span>
+          <span><i />House prices</span>
+          <span><i />Handwritten digits</span>
+        </> : <span><i />ML workshop</span>}
       </div>
     </div>
   </main>;

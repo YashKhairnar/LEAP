@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "@/app/globals.css";
 import "@/app/simple-ui.css";
 import "@/app/lesson-animations.css";
+import "@/app/workshop.css";
 
 export const metadata: Metadata = {
   title: "LEAP",

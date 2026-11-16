@@ -71,11 +71,14 @@ generate_tutor_content = authored_tutor_content
 # Retained as an importable compatibility symbol for collection tests and older
 # integrations; the planner route below never calls it.
 from .planning.client import WorldModelUnavailable, plan_next_action
+from .workshop.router import build_workshop_router
+from .workshop.store import initialize_workshop_tables
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     initialize_database()
+    initialize_workshop_tables()
     yield
 
 
@@ -137,6 +140,9 @@ def current_user(token: Annotated[str, Depends(access_token)]) -> UserRecord:
     if user is None:
         raise HTTPException(status_code=401, detail="invalid access token")
     return user
+
+
+app.include_router(build_workshop_router(current_user))
 
 
 def set_session_cookie(response: Response, token: str) -> None:
