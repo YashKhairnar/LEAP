@@ -1,3 +1,4 @@
+import json
 import os
 from pathlib import Path
 import tempfile
@@ -12,7 +13,7 @@ from app.execution.cells import UnsafeCode, validate_code
 from app.main import app
 from app.models import UserRecord
 from app.workshop import router as workshop_router
-from app.workshop.content import CELLS, LEARNING_STAGES, QUESTIONS, STAGES, own_reviews_written
+from app.workshop.content import CELLS, LEARNING_STAGES, PRIMARY, QUESTIONS, STAGES, VERSIONS, own_reviews_written
 from app.workshop.runner import DATASET_PATH, WORKSHOP_DUNDERS, WORKSHOP_IMPORTS, prelude, workshop_program
 from app.workshop.store import initialize_workshop_tables
 
@@ -21,7 +22,7 @@ OTHER = UserRecord(user_id="learner-2", participant_code="P5678", java_experienc
 UPLOAD = {"name": "dataset.csv", "size": DATASET_PATH.stat().st_size}
 
 
-def fake_run(cell_id, code, uploaded_filename):
+def fake_run(version, cell_id, code, uploaded_filename):
     return {"success": True, "stdout": f"ran {cell_id}", "stderr": "", "result": None, "table_preview": None,
             "plots": [], "duration_ms": 1, "engine": "test"}
 
@@ -102,12 +103,12 @@ class WorkshopApiTests(unittest.TestCase):
         return self.routes["complete"](stage.stage_id, user)
 
     def test_routes_are_registered(self):
-        self.assertEqual(set(self.routes), {"enter", "content", "state", "dataset", "run_cell", "answer", "complete"})
+        self.assertEqual(set(self.routes), {"versions", "enter", "content", "state", "dataset", "run_cell", "answer", "complete"})
         self.assertIn("/api/workshop/cells/{cell_id}/run", app.openapi()["paths"])
 
-    def enter(self, research_id):
+    def enter(self, research_id, version="primary"):
         response = Response()
-        body = self.routes["enter"](workshop_router.EnterRequest(research_id=research_id), response)
+        body = self.routes["enter"](workshop_router.EnterRequest(research_id=research_id, version=version), response)
         cookie = response.headers.get("set-cookie", "")
         token = cookie.split("leap_session=", 1)[1].split(";", 1)[0]
         return body, token
@@ -211,6 +212,69 @@ class WorkshopApiTests(unittest.TestCase):
         state = self.routes["complete"]("import_libraries", USER)
         self.assertEqual(state["current_stage"], "split_data")
         self.assertEqual(state["answers"]["q1_1"]["answer"], "edited later")
+
+    def test_new_research_id_must_choose_a_version(self):
+        with self.assertRaises(HTTPException) as raised:
+            self.enter("SJSU 0100", version=None)
+        self.assertEqual(raised.exception.status_code, 409)
+        self.assertTrue(raised.exception.detail["needs_version"])
+        self.assertEqual([item["version_id"] for item in raised.exception.detail["versions"]], ["primary", "analogy", "java"])
+        with self.assertRaises(HTTPException) as raised:
+            self.enter("SJSU 0100", version="klingon")
+        self.assertEqual(raised.exception.status_code, 422)
+
+    def test_version_choice_is_kept_and_serves_that_notebook(self):
+        body, token = self.enter("SJSU 0200", version="java")
+        self.assertEqual(body["workshop_version"]["version_id"], "java")
+        learner = user_for_token(token)
+        content = self.routes["content"](learner)
+        self.assertEqual(content["workshop_version"]["version_id"], "java")
+        self.assertIn("How This Notebook Connects to Java", json.dumps(content["stages"][0]["blocks"]))
+        # Returning (even asking for another version) keeps the first choice.
+        again, _ = self.enter("sjsu 0200", version="analogy")
+        self.assertEqual(again["workshop_version"]["version_id"], "java")
+        again, _ = self.enter("sjsu 0200", version=None)
+        self.assertEqual(again["workshop_version"]["version_id"], "java")
+        self.assertEqual(self.routes["state"](learner)["workshop_version"]["version_id"], "java")
+
+    def test_ids_from_before_versions_keep_the_original(self):
+        from app.workshop import store
+        body, _ = self.enter("SJSU 0300", version="analogy")
+        with connect() as connection:
+            connection.execute("DELETE FROM workshop_assignments WHERE user_id = ?", (body["user"]["user_id"],))
+        again, _ = self.enter("SJSU 0300", version=None)
+        self.assertEqual(again["workshop_version"]["version_id"], "primary")
+        self.assertEqual(store.version_for(body["user"]["user_id"]), "primary")
+
+
+class WorkshopVersionTests(unittest.TestCase):
+    def test_all_versions_share_stages_cells_questions_and_code(self):
+        self.assertEqual(set(VERSIONS), {"primary", "analogy", "java"})
+        for version in VERSIONS.values():
+            with self.subTest(version=version.version_id):
+                self.assertEqual(version.stage_ids, PRIMARY.stage_ids)
+                self.assertEqual([cell.cell_id for cell in version.cells], [cell.cell_id for cell in PRIMARY.cells])
+                self.assertEqual([cell.code for cell in version.cells], [cell.code for cell in PRIMARY.cells])
+                self.assertEqual([cell.kind for cell in version.cells], [cell.kind for cell in PRIMARY.cells])
+                self.assertEqual(list(version.questions_by_id), list(PRIMARY.questions_by_id))
+                for stage in version.stages:
+                    placed = [block["cell_id"] for block in stage.blocks if block["type"] == "cell"]
+                    self.assertEqual(placed, [cell.cell_id for cell in stage.cells])
+                    self.assertEqual(sum(block["type"] == "questions" for block in stage.blocks), 1 if stage.questions else 0)
+
+    def test_imported_versions_have_their_explanation_boxes_and_no_colab_steps(self):
+        expected = {"analogy": "Analogy – Step", "java": "Java connection – Step"}
+        for version_id, prefix in expected.items():
+            version = VERSIONS[version_id]
+            text = json.dumps([stage.public() for stage in version.stages], ensure_ascii=False)
+            with self.subTest(version=version_id):
+                for number in range(1, 7):
+                    self.assertIn(f"{prefix} {number}", text)
+                self.assertIn('"variant": "analogy"', text)
+                self.assertNotIn("Save a copy in Drive", text)
+                self.assertNotIn("Shift + Enter", text)
+                self.assertNotIn("research_id = ", text)
+                self.assertEqual(version.cells[1].label, "Cell 1")
 
 
 if __name__ == "__main__":

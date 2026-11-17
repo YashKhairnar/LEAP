@@ -7,6 +7,7 @@ assessment and collection tables:
 - workshop_cell_runs: every cell run, with the code and its output (append-only)
 - workshop_answers:   every saved answer to a Check-your-understanding question (append-only)
 - workshop_participants: research ID → workshop user, so learners enter with a research ID only
+- workshop_assignments: which version of the workshop each learner chose (fixed after the first choice)
 """
 
 from __future__ import annotations
@@ -21,10 +22,14 @@ from uuid import uuid4
 from ..auth import new_access_token, token_digest
 from ..database import IntegrityErrors, _user_record, connect, create_user
 from ..models import AuthResponse
-from .content import STAGE_IDS, WORKSHOP_VERSION
+from .content import DEFAULT_VERSION, STAGE_IDS, WORKSHOP_VERSION
 
 WORKSHOP_CONSENT_VERSION = "workshop-research-id-v1"
 SESSION_DAYS = 30
+
+
+class VersionChoiceNeeded(Exception):
+    """A new research ID must choose a workshop version before entering."""
 
 
 def _now() -> str:
@@ -87,6 +92,27 @@ def initialize_workshop_tables() -> None:
                 created_at TEXT NOT NULL,
                 last_entered_at TEXT NOT NULL)"""
         )
+        connection.execute(
+            """CREATE TABLE IF NOT EXISTS workshop_assignments (
+                user_id TEXT PRIMARY KEY,
+                version_id TEXT NOT NULL,
+                assigned_by TEXT NOT NULL,
+                assigned_at TEXT NOT NULL)"""
+        )
+
+
+def version_for(user_id: str) -> str | None:
+    with connect() as connection:
+        row = connection.execute("SELECT version_id FROM workshop_assignments WHERE user_id = ?", (user_id,)).fetchone()
+    return dict(row)["version_id"] if row is not None else None
+
+
+def _assign(connection: Any, user_id: str, version_id: str, assigned_by: str) -> None:
+    """Record a learner's version once; an existing choice is never changed."""
+    connection.execute(
+        "INSERT INTO workshop_assignments (user_id, version_id, assigned_by, assigned_at) VALUES (?, ?, ?, ?) "
+        "ON CONFLICT (user_id) DO NOTHING", (user_id, version_id, assigned_by, _now()),
+    )
 
 
 def normalize_research_id(research_id: str) -> tuple[str, str]:
@@ -102,9 +128,11 @@ def _participant(connection: Any, key: str) -> dict[str, Any] | None:
     return dict(row) if row is not None else None
 
 
-def enter_with_research_id(research_id: str) -> tuple[AuthResponse, str]:
+def enter_with_research_id(research_id: str, version_id: str | None = None) -> tuple[AuthResponse, str, str]:
     """Sign in with a research ID, creating the workshop user the first time it is used.
 
+    A new ID needs `version_id` (the learner's choice); a returning ID keeps the version it
+    chose first, whatever is passed. Returns the session, the ID as first typed, and the version.
     There is no password: anyone who types an ID enters as that participant.
     """
     display, key = normalize_research_id(research_id)
@@ -114,6 +142,8 @@ def enter_with_research_id(research_id: str) -> tuple[AuthResponse, str]:
     with connect() as connection:
         existing = _participant(connection, key)
     if existing is None:
+        if version_id is None:
+            raise VersionChoiceNeeded()
         # The random password is never shown; the research ID is the only way in.
         created = create_user(str(uuid4()), secrets.token_urlsafe(32), "unspecified", WORKSHOP_CONSENT_VERSION, "pure_ml")
         try:
@@ -122,7 +152,8 @@ def enter_with_research_id(research_id: str) -> tuple[AuthResponse, str]:
                     "INSERT INTO workshop_participants (research_id_key, research_id, user_id, created_at, last_entered_at) "
                     "VALUES (?, ?, ?, ?, ?)", (key, display, created.user.user_id, now, now),
                 )
-            return created, display
+                _assign(connection, created.user.user_id, version_id, "learner_choice")
+            return created, display, version_id
         except IntegrityErrors:
             # Someone entered the same ID at the same moment; use their record.
             with connect() as connection:
@@ -137,8 +168,11 @@ def enter_with_research_id(research_id: str) -> tuple[AuthResponse, str]:
             (token_digest(token), existing["user_id"], expires_at),
         )
         connection.execute("UPDATE workshop_participants SET last_entered_at = ? WHERE research_id_key = ?", (now, key))
+        # IDs created before versions existed did the original workshop.
+        _assign(connection, existing["user_id"], DEFAULT_VERSION, "before_versions")
         user = connection.execute("SELECT * FROM users WHERE user_id = ?", (existing["user_id"],)).fetchone()
-    return AuthResponse(access_token=token, user=_user_record(user)), existing["research_id"]
+    return (AuthResponse(access_token=token, user=_user_record(user)), existing["research_id"],
+            version_for(existing["user_id"]) or DEFAULT_VERSION)
 
 
 def research_id_for(user_id: str) -> str | None:

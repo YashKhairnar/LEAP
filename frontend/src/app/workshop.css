@@ -31,6 +31,12 @@
 .ws-box-warning { border-color: #f1d0cc; border-left-color: var(--error); background: var(--error-soft); }
 .ws-box-warning h4 { color: #a13c32; }
 .ws-box-plain { background: var(--canvas); border-left-color: #9aa8bb; }
+/* Analogy and Java-connection boxes, purple as in the notebooks. */
+.ws-box-analogy { border-color: #e3d2f5; border-left-color: #8430ce; background: #f8f1fe; }
+.ws-box-analogy h4 { color: #681da8; }
+.ws-box-code { margin: 8px 0; padding: 10px 12px; overflow-x: auto; border: 1px solid var(--line); border-radius: 6px; background: #fff; color: var(--ink); font: 12.5px/1.6 var(--font-mono); white-space: pre; }
+.ws-box-code + .ws-box-code { margin-top: -2px; }
+.ws-box p { white-space: pre-wrap; }
 .ws-box-output { margin: 6px 0 0; padding: 6px 10px; border-radius: 6px; background: #fff; border: 1px solid var(--line); color: var(--ink); font: 12.5px/1.6 var(--font-mono); white-space: pre-wrap; overflow-wrap: anywhere; }
 
 .ws-table-wrap { overflow-x: auto; }

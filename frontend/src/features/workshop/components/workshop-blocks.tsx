@@ -34,9 +34,11 @@ function Block({ block, context }: { block: WorkshopBlock; context: Context }) {
       const title = block.title ?? BOX_TITLES[block.variant];
       return <section className={`ws-box ws-box-${block.variant}`}>
         {title && <h4>{title}</h4>}
-        {block.items.map((item) => item.startsWith("pre:")
-          ? <pre className="ws-box-output" key={item}>{item.slice(4)}</pre>
-          : <p key={item}><RichText text={item} /></p>)}
+        {block.items.map((item, index) => item.startsWith("pre:")
+          ? <pre className="ws-box-output" key={`${index}.${item}`}>{item.slice(4)}</pre>
+          : item.startsWith("code:")
+            ? <pre className="ws-box-code" key={`${index}.${item}`}><code>{item.slice(5)}</code></pre>
+            : <p key={`${index}.${item}`}><RichText text={item} /></p>)}
       </section>;
     }
     case "table":

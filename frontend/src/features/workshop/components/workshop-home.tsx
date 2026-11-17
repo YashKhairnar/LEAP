@@ -40,7 +40,7 @@ export default function WorkshopHome({ onResearchId }: { onResearchId?: (researc
           </div>
           <h3 id="workshop-path-title">Classifying restaurant reviews</h3>
           <p>Load 10,000 real reviews, split them, turn text into numbers, train a LinearSVC model and test it on reviews it has never seen.</p>
-          <p className="simple-path-meta">Beginner · about 1–2 hours</p>
+          <p className="simple-path-meta">Beginner · about 1–2 hours{state ? ` · ${state.workshop_version.label}` : ""}</p>
           <div className="path-card-progress" role="progressbar" aria-label="Workshop progress" aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent}><span style={{ width: `${percent}%` }} /></div>
           <span className="path-stage-count">{done} of {PARTS} parts</span>
           <Link className="path-link" href={WORKSHOP_HREF}>{state?.workshop_complete ? "Review" : started ? "Continue" : "Start"} <span aria-hidden="true">→</span></Link>

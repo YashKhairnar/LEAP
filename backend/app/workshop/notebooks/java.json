@@ -1,0 +1,1409 @@
+{
+ "version_id": "java",
+ "source": "Colab notebook export (.ipynb)",
+ "stages": [
+  {
+   "stage_id": "start",
+   "nav_label": "Start here",
+   "short_label": "Before you start",
+   "title": "Before You Start",
+   "blocks": [
+    {
+     "type": "banner",
+     "title": "Machine Learning Workshop: Classifying Restaurant Reviews",
+     "items": [
+      "**Research project by:** SJSU Computer Science Education Research Lab",
+      "**Purpose:** to investigate how undergraduate students transfer knowledge from imperative programming to artificial intelligence and machine learning concepts."
+     ],
+     "note": "This material is based upon work supported by the U.S. National Science Foundation under Grant No. 2451781."
+    },
+    {
+     "type": "paragraph",
+     "text": "In this workshop you will build a machine learning model that reads a restaurant review and decides whether it is **positive** or **negative**, even for reviews it has never seen. You will build it yourself, one small piece of code at a time."
+    },
+    {
+     "type": "paragraph",
+     "text": "Each section explains an idea first. Then it gives you a short piece of code, called a **cell**, to copy and run."
+    },
+    {
+     "type": "heading",
+     "text": "Your work is saved as you go",
+     "level": 3
+    },
+    {
+     "type": "box",
+     "variant": "plain",
+     "title": null,
+     "items": [
+      "Every cell you run and every answer you type is saved under your research ID.",
+      "You can close this page and come back later: enter the same research ID and you will continue where you left off."
+     ]
+    },
+    {
+     "type": "heading",
+     "text": "How to run each cell",
+     "level": 3
+    },
+    {
+     "type": "box",
+     "variant": "plain",
+     "title": null,
+     "items": [
+      "Every time you see a green **YOUR TURN** box, do these three things:",
+      "**1. Copy** the code in the grey box (select it, then `Ctrl + C`, or `Cmd + C` on a Mac).",
+      "**2. Paste** it into the empty code cell underneath, the one that says **Paste the code here** (`Ctrl + V`, or `Cmd + V` on a Mac).",
+      "**3. Run:** click the **▶ Run** button under that cell.",
+      "The result appears under the cell. Compare it with the blue **What you should see** box."
+     ]
+    },
+    {
+     "type": "heading",
+     "text": "Try it now: a practice cell",
+     "level": 3
+    },
+    {
+     "type": "cell",
+     "cell_id": "practice"
+    },
+    {
+     "type": "box",
+     "variant": "see",
+     "title": "What you should see",
+     "items": [
+      "This message printed under the cell:",
+      "`Hello there, Welcome to our machine learning research workshop!`",
+      "A number like `[1]` on the left: the order in which cells were run."
+     ]
+    },
+    {
+     "type": "box",
+     "variant": "plain",
+     "title": "Three rules that save you trouble",
+     "items": [
+      "**1. One cell at a time, in order.** Each cell's ▶ Run button unlocks once the cell above it has run.",
+      "**2. Read before you run.** Knowing what a cell does is the point.",
+      "**3. Came back later?** Your earlier cells are remembered, so carry on from where you stopped.",
+      "Each step ends with **Check your understanding**: answer in your own words before moving on."
+     ]
+    },
+    {
+     "type": "paragraph",
+     "text": "*Explanations follow Müller & Guido, **Introduction to Machine Learning with Python** (O'Reilly, 2017), Ch. 1 and 7, applied to our review data.*"
+    },
+    {
+     "type": "heading",
+     "text": "What Is Machine Learning?",
+     "level": 2
+    },
+    {
+     "type": "paragraph",
+     "text": "*\"Machine learning is about extracting knowledge from data.\"* (Müller & Guido, p. 1)"
+    },
+    {
+     "type": "paragraph",
+     "text": "You already use it every day: film and music recommendations, spam filters and phone cameras that recognise faces all rely on machine learning."
+    },
+    {
+     "type": "heading",
+     "text": "Writing rules by hand",
+     "level": 3
+    },
+    {
+     "type": "paragraph",
+     "text": "Before machine learning, \"intelligent\" programs were built from hand-written `if` and `else` rules (p. 1). For our task, a rule-based program might say:"
+    },
+    {
+     "type": "box",
+     "variant": "plain",
+     "title": null,
+     "items": [
+      "if a review contains \"love\" or \"delicious\" → **positive**",
+      "if a review contains \"hate\" or \"cold\" → **negative**"
+     ]
+    },
+    {
+     "type": "box",
+     "variant": "warning",
+     "title": "Why hand-written rules fail",
+     "items": [
+      "**1. They only fit one task.** Change the task slightly, and you may rewrite everything.",
+      "**2. You must already know how to decide.** Someone has to spell out every rule.",
+      "*(Müller & Guido, p. 2)*",
+      "*\"I didn't love it.\"* contains \"love\", but it is **not** positive.",
+      "*\"Friendly staff, would return.\"* matches **none** of the rules."
+     ]
+    },
+    {
+     "type": "heading",
+     "text": "Learning from examples instead",
+     "level": 3
+    },
+    {
+     "type": "paragraph",
+     "text": "Machine learning takes a different approach. Instead of writing the rules, we give the computer many reviews **together with the correct answer** for each one, and it works out the rules itself."
+    },
+    {
+     "type": "paragraph",
+     "text": "Müller and Guido call this **supervised learning**: the algorithm learns from pairs of inputs and correct outputs, and can then produce an output *\"for an input it has never seen before without any help from a human\"* (p. 2). It is called *supervised* because the correct answers act like a teacher."
+    },
+    {
+     "type": "heading",
+     "text": "Key words you will meet",
+     "level": 3
+    },
+    {
+     "type": "table",
+     "columns": [
+      "Word",
+      "Meaning in our workshop"
+     ],
+     "rows": [
+      [
+       "Sample",
+       "One review: one row of our data"
+      ],
+      [
+       "Label",
+       "The correct answer: positive or negative"
+      ],
+      [
+       "Feature",
+       "Information the model uses about a review (later: each word's importance)"
+      ],
+      [
+       "Training",
+       "The model learns from labelled reviews"
+      ],
+      [
+       "Prediction",
+       "The model's best guess for a new review; it can be wrong"
+      ],
+      [
+       "Generalisation",
+       "Doing well on new reviews, not just the ones it learned from"
+      ]
+     ]
+    },
+    {
+     "type": "heading",
+     "text": "What we will build, step by step",
+     "level": 3
+    },
+    {
+     "type": "box",
+     "variant": "plain",
+     "title": null,
+     "items": [
+      "**Step 1. Import the libraries** – bring in ready-made tools",
+      "**Step 2. Load and look at the data** – read the reviews into a table",
+      "**Step 3. Split the data** – keep some reviews aside for testing",
+      "**Step 4. Turn text into numbers** – so a model can use the reviews",
+      "**Step 5. Train the model** – it learns from the training reviews",
+      "**Step 6. Evaluate the model** – how often is it right on new reviews?"
+     ]
+    },
+    {
+     "type": "heading",
+     "text": "How This Notebook Connects to Java",
+     "level": 2
+    },
+    {
+     "type": "paragraph",
+     "text": "In this workshop you will build a machine learning model in **Python**. All the code you copy and run is Python."
+    },
+    {
+     "type": "paragraph",
+     "text": "You already know some **Java** from your programming class. Many machine learning ideas are like things you have already done in Java: storing data in arrays, writing loops, creating objects, and testing methods. So each step compares the new Python idea with Java you already know."
+    },
+    {
+     "type": "box",
+     "variant": "analogy",
+     "title": "How to read each step",
+     "items": [
+      "**1. Java connection** (purple box): a short piece of Java you already know.",
+      "You only **read** this Java. You don't copy it, type it, or run it.",
+      "**2. The concept:** the new machine learning idea, explained for our restaurant reviews.",
+      "**3. YOUR TURN** (green box): the Python code you copy and run.",
+      "**4. Looking back** (purple box): how the Java and the Python you ran match up.",
+      "**5. Check your understanding** (orange box): questions to answer in your own words.",
+      "The goal is to learn machine learning, not new Java.",
+      "The Java is there to help you connect the new ideas to what you already know."
+     ]
+    }
+   ],
+   "cells": [
+    {
+     "cell_id": "practice",
+     "stage_id": "start",
+     "label": "Practice cell",
+     "title": "Try it now",
+     "code": "print(\"Hello there, Welcome to our machine learning research workshop!\")",
+     "kind": "standard",
+     "instructions": [
+      "1. Copy the code below → 2. Paste it into the empty code cell underneath → 3. Click ▶ Run to run it"
+     ]
+    }
+   ],
+   "questions": []
+  },
+  {
+   "stage_id": "import_libraries",
+   "nav_label": "Step 1",
+   "short_label": "Import the libraries",
+   "title": "Step 1: Import the Libraries",
+   "blocks": [
+    {
+     "type": "box",
+     "variant": "analogy",
+     "title": "Java connection – Step 1: import",
+     "items": [
+      "*Java you already know, as a comparison. You won't write Java: the code you run is Python.*",
+      "In Java, you already use code that someone else wrote and tested.",
+      "To read a review typed by the user, you don't write your own reader. You import one:",
+      "code:import java.util.Scanner;\n\nScanner in = new Scanner(System.in);\nString review = in.nextLine(); // e.g. \"The soup was cold.\"",
+      "The `import` line makes `Scanner` available. Then you can use its methods.",
+      "Python has `import` too, and it works in the same way:",
+      "code:import pandas as pd"
+     ]
+    },
+    {
+     "type": "heading",
+     "text": "Back to machine learning: the concept",
+     "level": 3
+    },
+    {
+     "type": "paragraph",
+     "text": "Just like you import `Scanner` in Java instead of writing your own input code, we start by bringing in ready-made tools that we will use in every later step: to load the data, split it, turn it into numbers, train the model and evaluate it. A **library** is ready-made code that someone else wrote and tested. An `import` statement makes a library available in your program, so you can use its tools without writing them yourself."
+    },
+    {
+     "type": "box",
+     "variant": "see",
+     "title": "The three libraries we use",
+     "items": [
+      "**pandas** (nickname `pd`): loads the review file as a table, called a **DataFrame**",
+      "**NumPy** (nickname `np`): stores data as fast **arrays**, the form scikit-learn needs",
+      "**scikit-learn** (nickname `sklearn`): the ML library to split data, train and measure"
+     ]
+    },
+    {
+     "type": "cell",
+     "cell_id": "imports"
+    },
+    {
+     "type": "box",
+     "variant": "see",
+     "title": "What you should see",
+     "items": [
+      "Nothing. No output and no error means the imports worked."
+     ]
+    },
+    {
+     "type": "list",
+     "ordered": false,
+     "items": [
+      "`as np` and `as pd` give the libraries short nicknames, so later we can write `pd.read_csv(...)` instead of `pandas.read_csv(...)`. Almost all machine learning code uses these nicknames.",
+      "`io` is a small library built into Python. We need it in Step 2 to read the file you upload."
+     ]
+    },
+    {
+     "type": "cell",
+     "cell_id": "versions"
+    },
+    {
+     "type": "box",
+     "variant": "see",
+     "title": "What you should see",
+     "items": [
+      "Three lines: the version numbers of NumPy, pandas and scikit-learn.",
+      "The exact numbers do not matter."
+     ]
+    },
+    {
+     "type": "paragraph",
+     "text": "Importing does none of the task's work yet: it does not load data or train a model. It only makes the tools available."
+    },
+    {
+     "type": "box",
+     "variant": "analogy",
+     "title": "Looking back: connecting Java to our code (Step 1)",
+     "items": [
+      "Each Python `import` is like a Java `import`: it makes ready-made code available.",
+      "We imported three Python libraries that we use for machine learning:",
+      "**pandas** is like `Scanner`: it reads reviews in. `pd.read_csv()` reads the whole review file.",
+      "**NumPy** is like Java arrays: it stores the reviews and labels as arrays, such as `X[0]`.",
+      "**scikit-learn** is the machine learning library itself, full of ready-made classes.",
+      "In Step 5 you create a model object from one of its classes, like using `new` in Java.",
+      "`as pd` and `as np` give short nicknames. Java has no nicknames: you write `Scanner`.",
+      "Like importing `Scanner`, importing does no work yet.",
+      "Nothing happens until you call a method."
+     ]
+    },
+    {
+     "type": "questions"
+    }
+   ],
+   "cells": [
+    {
+     "cell_id": "imports",
+     "stage_id": "import_libraries",
+     "label": "Cell 1",
+     "title": "Import the libraries",
+     "code": "import io\nimport numpy as np\nimport pandas as pd\nimport sklearn",
+     "kind": "standard",
+     "instructions": [
+      "1. Copy the code below → 2. Paste it into the empty code cell underneath → 3. Click ▶ Run to run it"
+     ]
+    },
+    {
+     "cell_id": "versions",
+     "stage_id": "import_libraries",
+     "label": "Cell 2",
+     "title": "Check the versions",
+     "code": "print(\"NumPy version:\", np.__version__)\nprint(\"pandas version:\", pd.__version__)\nprint(\"scikit-learn version:\", sklearn.__version__)",
+     "kind": "standard",
+     "instructions": [
+      "1. Copy the code below → 2. Paste it into the empty code cell underneath → 3. Click ▶ Run to run it"
+     ]
+    }
+   ],
+   "questions": [
+    {
+     "question_id": "q1_1",
+     "stage_id": "import_libraries",
+     "prompt": "We imported three Python libraries for machine learning: pandas, NumPy and scikit-learn. In your own words, what does each one do in this task?"
+    }
+   ]
+  },
+  {
+   "stage_id": "load_data",
+   "nav_label": "Step 2",
+   "short_label": "Load and look at the data",
+   "title": "Step 2: Load and Look at the Data",
+   "blocks": [
+    {
+     "type": "box",
+     "variant": "analogy",
+     "title": "Java connection – Step 2: Storing data in a 2D array",
+     "items": [
+      "*Java you already know, as a comparison. You won't write Java: the code you run is Python.*",
+      "In Java, you could store the reviews in a 2D array. Each row holds one review and its label:",
+      "code:String[][] reviews = {\n    {\"The food was delicious and the staff were friendly.\", \"positive\"},\n    {\"Waited an hour and the soup was cold.\", \"negative\"}\n};",
+      "`reviews[1][0]` is the review *\"Waited an hour and the soup was cold.\"*",
+      "`reviews[1][1]` is its label: `\"negative\"`.",
+      "Our real file has many reviews, so we load them from the file instead of typing them in."
+     ]
+    },
+    {
+     "type": "heading",
+     "text": "Back to machine learning: the concept",
+     "level": 3
+    },
+    {
+     "type": "paragraph",
+     "text": "Just like a Java program needs its data in an array before it can work with it, our first job is to get the data into the notebook to prepare the model for training: many restaurant reviews, each with its correct label (positive or negative). The model can only learn from the data we give it, so every later step (splitting, training and evaluating) depends on this data."
+    },
+    {
+     "type": "paragraph",
+     "text": "In this step we upload the file, read it into a table, and look at the first few rows to check it loaded correctly."
+    },
+    {
+     "type": "heading",
+     "text": "2.1 Upload the review file",
+     "level": 3
+    },
+    {
+     "type": "paragraph",
+     "text": "Go to our lab website: [csed-research-lab.org/projects](https://csed-research-lab.org/projects). Find this workshop and click **[Dataset CSV]** to download the restaurant review file. Save it somewhere easy to find, such as your **Downloads** folder."
+    },
+    {
+     "type": "dataset_download"
+    },
+    {
+     "type": "paragraph",
+     "text": "The file is in **CSV** format: plain text where each line is one row, and commas separate the columns."
+    },
+    {
+     "type": "cell",
+     "cell_id": "upload"
+    },
+    {
+     "type": "box",
+     "variant": "see",
+     "title": "What you should see",
+     "items": [
+      "1. A **Choose Files** button appears under the cell.",
+      "2. Click it and select **dataset.csv**, the file you downloaded from our website.",
+      "3. When the upload finishes, it looks like this:",
+      "code:dataset.csv(text/csv) - 1366043 bytes, last modified: n/a - 100% done\nSaving dataset.csv to dataset.csv",
+      "**100% done** means the whole file arrived. The cell is finished when the ▶ button returns."
+     ]
+    },
+    {
+     "type": "cell",
+     "cell_id": "keep_contents"
+    },
+    {
+     "type": "box",
+     "variant": "see",
+     "title": "What you should see",
+     "items": [
+      "`File uploaded:` followed by your file's name.",
+      "The variable `dataset_csv` now holds the file's contents."
+     ]
+    },
+    {
+     "type": "heading",
+     "text": "2.2 Read the file into a table",
+     "level": 3
+    },
+    {
+     "type": "box",
+     "variant": "analogy",
+     "title": null,
+     "items": [
+      "**Java connection:** a DataFrame is like a 2D array whose columns have names."
+     ]
+    },
+    {
+     "type": "paragraph",
+     "text": "`pd.read_csv()` reads the CSV contents and turns them into a **DataFrame**: a table that Python can search, inspect and change. We call our table `df` (short for *DataFrame*)."
+    },
+    {
+     "type": "cell",
+     "cell_id": "read_data"
+    },
+    {
+     "type": "box",
+     "variant": "see",
+     "title": "What you should see",
+     "items": [
+      "`Data loaded.` The reviews are now in the table `df`.",
+      "We have not looked at them yet: that is the next cell."
+     ]
+    },
+    {
+     "type": "heading",
+     "text": "2.3 View the data",
+     "level": 3
+    },
+    {
+     "type": "paragraph",
+     "text": "Now look at the reviews you just loaded. `df.head()` shows the first five rows of the table."
+    },
+    {
+     "type": "cell",
+     "cell_id": "view_data"
+    },
+    {
+     "type": "box",
+     "variant": "see",
+     "title": "What you should see",
+     "items": [
+      "A table of five reviews with two columns: `text` and `sentiment`.",
+      "Numbers 0 to 4 on the left: each row's position (its **index**)."
+     ]
+    },
+    {
+     "type": "heading",
+     "text": "How to read the table",
+     "level": 3
+    },
+    {
+     "type": "list",
+     "ordered": false,
+     "items": [
+      "**Each row is one sample:** a single review.",
+      "**`text` is the input:** what the model will read.",
+      "**`sentiment` is the label:** the correct answer the model learns from. A model can only learn what is in the data: if labels are wrong, it learns the wrong thing."
+     ]
+    },
+    {
+     "type": "paragraph",
+     "text": "Remember: loading and looking at the data does **not** train the model. The model has not seen anything yet."
+    },
+    {
+     "type": "box",
+     "variant": "analogy",
+     "title": "Looking back: connecting Java to our code (Step 2)",
+     "items": [
+      "The table `df` is like the 2D array `reviews`: each row is one review and its label.",
+      "In Java, you pick a column by number: `reviews[1][0]` is the text, `reviews[1][1]` the label.",
+      "In `df`, the columns have names instead: `text` and `sentiment`.",
+      "`df.head()` is like a loop that prints the first five rows:",
+      "code:for (int i = 0; i < 5; i++) {\n    System.out.println(reviews[i][0] + \" | \" + reviews[i][1]);\n}"
+     ]
+    },
+    {
+     "type": "questions"
+    }
+   ],
+   "cells": [
+    {
+     "cell_id": "upload",
+     "stage_id": "load_data",
+     "label": "Cell 3",
+     "title": "Upload the file",
+     "code": "from google.colab import files\n\nuploaded = files.upload()",
+     "kind": "upload",
+     "instructions": [
+      "1. Copy the code below → 2. Paste it into the empty code cell underneath → 3. Click ▶ Run to run it"
+     ]
+    },
+    {
+     "cell_id": "keep_contents",
+     "stage_id": "load_data",
+     "label": "Cell 4",
+     "title": "Keep the file's contents",
+     "code": "file_name = list(uploaded.keys())[0]\ndataset_csv = uploaded[file_name]\nprint(\"File uploaded:\", file_name)",
+     "kind": "standard",
+     "instructions": [
+      "1. Copy the code below → 2. Paste it into the empty code cell underneath → 3. Click ▶ Run to run it"
+     ]
+    },
+    {
+     "cell_id": "read_data",
+     "stage_id": "load_data",
+     "label": "Cell 5",
+     "title": "Read the data",
+     "code": "df = pd.read_csv(io.BytesIO(dataset_csv))\nprint(\"Data loaded.\")",
+     "kind": "standard",
+     "instructions": [
+      "1. Copy the code below → 2. Paste it into the empty code cell underneath → 3. Click ▶ Run to run it"
+     ]
+    },
+    {
+     "cell_id": "view_data",
+     "stage_id": "load_data",
+     "label": "Cell 6",
+     "title": "View the data",
+     "code": "df.head()",
+     "kind": "standard",
+     "instructions": [
+      "1. Copy the code below → 2. Paste it into the empty code cell underneath → 3. Click ▶ Run to run it"
+     ]
+    }
+   ],
+   "questions": [
+    {
+     "question_id": "q2_1",
+     "stage_id": "load_data",
+     "prompt": "Look at the table you printed with df.head(). What does each row of the table represent?"
+    },
+    {
+     "question_id": "q2_2",
+     "stage_id": "load_data",
+     "prompt": "Which column is the input, and which is the label?"
+    }
+   ]
+  },
+  {
+   "stage_id": "split_data",
+   "nav_label": "Step 3",
+   "short_label": "Split the data",
+   "title": "Step 3: Split the Data into Training and Testing Sets",
+   "blocks": [
+    {
+     "type": "box",
+     "variant": "analogy",
+     "title": "Java connection – Step 3: Testing on new cases",
+     "items": [
+      "*Java you already know, as a comparison. You won't write Java: the code you run is Python.*",
+      "Imagine you wrote this Java method while looking at two reviews:",
+      "*\"The soup was cold.\"* (negative) and *\"The food was delicious.\"* (positive).",
+      "code:public static String label(String review) {\n    if (review.contains(\"cold\")) return \"negative\";\n    if (review.contains(\"delicious\")) return \"positive\";\n    return \"positive\";\n}",
+      "**Test 1:** a review you used while writing the code.",
+      "code:System.out.println(label(\"The soup was cold.\")); // prints \"negative\"",
+      "It passes, but that tells you little: the code was built around this exact review.",
+      "**Test 2:** a **new** review the code was not built around.",
+      "code:System.out.println(label(\"The waiter was rude and we left hungry.\"));\n// prints \"positive\", but the correct label is \"negative\"",
+      "Only the new review shows that the method does not really work.",
+      "Machine learning works the same way.",
+      "Before training, we keep some reviews aside as new test cases."
+     ]
+    },
+    {
+     "type": "heading",
+     "text": "Back to machine learning: the concept",
+     "level": 3
+    },
+    {
+     "type": "paragraph",
+     "text": "Just like you keep some test cases aside to check your Java code, we set aside 20% of our labelled reviews to save them for testing the model in Step 6. The model will train on the other 80% in Step 5. For example, if our file has 1,000 reviews, about 800 go to training and about 200 are kept aside for testing."
+    },
+    {
+     "type": "paragraph",
+     "text": "Why? Imagine the model learned from the review *\"The food was delicious and the staff were friendly.\"* If we then tested it on that same review, getting it right would tell us very little. It has already seen it. We want to know whether it works on reviews it has **never seen**."
+    },
+    {
+     "type": "box",
+     "variant": "plain",
+     "title": null,
+     "items": [
+      "**Training set:** reviews the model learns from (about 800 of 1,000)",
+      "**Test set:** reviews hidden during training, used only to check the model (about 200)"
+     ]
+    },
+    {
+     "type": "heading",
+     "text": "3.1 Separate the inputs from the labels",
+     "level": 3
+    },
+    {
+     "type": "box",
+     "variant": "analogy",
+     "title": null,
+     "items": [
+      "**Java connection:** like storing reviews and labels in two 1D arrays with the same slot numbers."
+     ]
+    },
+    {
+     "type": "paragraph",
+     "text": "Just like you can store the reviews and their labels in two separate arrays in Java, in Python we take the two columns of our table and store them separately. Remember the table you saw with `df.head()`:"
+    },
+    {
+     "type": "box",
+     "variant": "plain",
+     "title": null,
+     "items": [
+      "**Row 0:** text = *\"The food was delicious and the staff were friendly.\"*",
+      "           sentiment = `positive`",
+      "**Row 1:** text = *\"Waited an hour and the soup was cold.\"*",
+      "           sentiment = `negative`",
+      "**Row 2:** text = *\"Great atmosphere, I will definitely come back!\"*",
+      "           sentiment = `positive`",
+      "… and so on for every review."
+     ]
+    },
+    {
+     "type": "paragraph",
+     "text": "In Python, the `text` column becomes `X`, a list of all the reviews. The `sentiment` column becomes `y`, a list of all the labels:"
+    },
+    {
+     "type": "box",
+     "variant": "plain",
+     "title": "In Python:",
+     "items": [
+      "code:X[0] = \"The food was delicious and the staff were friendly.\"\ny[0] = \"positive\"\nX[1] = \"Waited an hour and the soup was cold.\"\ny[1] = \"negative\""
+     ]
+    },
+    {
+     "type": "box",
+     "variant": "analogy",
+     "title": "Java connection: the same thing with Java arrays",
+     "items": [
+      "In Java, you would create two 1D arrays: one for the reviews, one for the labels.",
+      "code:String[] X = new String[1000]; // 1,000 slots: one per review\nString[] y = new String[1000]; // 1,000 slots: one per label",
+      "Each review goes into a slot of `X`, and its label into the **same** slot of `y`:",
+      "code:X[0] = \"The food was delicious and the staff were friendly.\";\ny[0] = \"positive\";\nX[1] = \"Waited an hour and the soup was cold.\";\ny[1] = \"negative\";\n// ... and so on, up to X[999] and y[999]",
+      "In Python, `X = np.asarray(df[\"text\"])` does the same: it fills `X` with every review.",
+      "In both languages, `X[1]` and `y[1]` belong together: same slot number, same review."
+     ]
+    },
+    {
+     "type": "paragraph",
+     "text": "**Back to our reviews in Python.** We separate them because the model uses them differently: it reads the reviews in `X` and learns to give the correct labels in `y`. The names come from mathematics, where **f(x) = y**: x is the input and y is the output. `X` (capital) holds the **inputs**; `y` (lowercase) holds the **labels**."
+    },
+    {
+     "type": "cell",
+     "cell_id": "make_xy"
+    },
+    {
+     "type": "box",
+     "variant": "see",
+     "title": "What you should see",
+     "items": [
+      "The first review and its label, then two numbers that are **the same**.",
+      "They match because every review has exactly one label.",
+      "**What the code did, piece by piece**",
+      "`df[\"text\"]` picked one column from the table, by its name: all the reviews.",
+      "`np.asarray(...)` turned it into a NumPy **array**: a plain list of values, the form scikit-learn expects.",
+      "`X = ...` stored the reviews in X; the next line did the same for the labels, in y.",
+      "X and y keep the same order: `X[0]` goes with `y[0]`, `X[1]` with `y[1]`, and so on."
+     ]
+    },
+    {
+     "type": "heading",
+     "text": "3.2 Split into training and testing sets",
+     "level": 3
+    },
+    {
+     "type": "box",
+     "variant": "analogy",
+     "title": null,
+     "items": [
+      "**Java connection:** like copying the first 80% of an array into one array, and the rest into another."
+     ]
+    },
+    {
+     "type": "paragraph",
+     "text": "scikit-learn has a function that does the split for us: `train_test_split()`. It shuffles the reviews, then cuts them into a training set and a test set, keeping every review with its label."
+    },
+    {
+     "type": "cell",
+     "cell_id": "split"
+    },
+    {
+     "type": "box",
+     "variant": "see",
+     "title": "What you should see",
+     "items": [
+      "Nothing. The data is now split into four parts:",
+      "`X_train`: reviews the model will learn from",
+      "`y_train`: the correct labels for those reviews",
+      "`X_test`: reviews hidden from the model until the end",
+      "`y_test`: the correct labels for the hidden reviews",
+      "**What the settings mean**",
+      "`test_size=0.2`: 20% of the reviews go to testing, 80% to training (20–30% is common).",
+      "`random_state=42`: shuffles the reviews the same way every time, so everyone gets the same split.",
+      "`stratify=y`: keeps the same mix of positive and negative reviews in both sets."
+     ]
+    },
+    {
+     "type": "paragraph",
+     "text": "**Why shuffle?** If our file listed all the positive reviews first, taking the last part as the test set would give a test set with only one kind of review. Shuffling first prevents this."
+    },
+    {
+     "type": "paragraph",
+     "text": "Now let's look at what the split made."
+    },
+    {
+     "type": "cell",
+     "cell_id": "four_parts"
+    },
+    {
+     "type": "box",
+     "variant": "see",
+     "title": "What you should see",
+     "items": [
+      "Two lines with sizes: in each line the two numbers match, one label per review.",
+      "The training set is about four times the size of the test set.",
+      "Then one training review with its label, and one testing review with its label.",
+      "Notice: `X_train[0]` goes with `y_train[0]`. The split kept each review with its label."
+     ]
+    },
+    {
+     "type": "paragraph",
+     "text": "The reviews are still text. Nothing has been turned into numbers yet: that is Step 4."
+    },
+    {
+     "type": "box",
+     "variant": "analogy",
+     "title": "Looking back: connecting Java to our code (Step 3)",
+     "items": [
+      "**3.1:** In Python, `X` and `y` are like these two Java arrays, one slot per review:",
+      "code:String[] X = new String[1000]; // all 1,000 reviews\nString[] y = new String[1000]; // their 1,000 labels",
+      "**3.2:** In Python, `train_test_split()` is like making four new Java arrays:",
+      "code:String[] X_train = new String[800]; // 800 reviews to learn from\nString[] y_train = new String[800]; // their labels\nString[] X_test = new String[200]; // 200 reviews kept aside\nString[] y_test = new String[200]; // their labels",
+      "Each review moves into training or testing **together with its label**, for example:",
+      "code:X_train[0] = \"The food was delicious and the staff were friendly.\";\ny_train[0] = \"positive\";\nX_test[0] = \"Great atmosphere, I will definitely come back!\";\ny_test[0] = \"positive\";",
+      "In Python, `train_test_split()` also shuffles the reviews first,",
+      "and keeps the same mix of positive and negative reviews in both sets.",
+      "`X_test` and `y_test` are like the new test cases you keep aside for the end."
+     ]
+    },
+    {
+     "type": "questions"
+    }
+   ],
+   "cells": [
+    {
+     "cell_id": "make_xy",
+     "stage_id": "split_data",
+     "label": "Cell 7",
+     "title": "Create X and y, and look at them",
+     "code": "X = np.asarray(df[\"text\"])          # inputs: the reviews\ny = np.asarray(df[\"sentiment\"])     # labels: the correct answers\n\nprint(\"First review:\", X[0])\nprint(\"Its label:\", y[0])\nprint(\"Number of reviews:\", len(X))\nprint(\"Number of labels:\", len(y))",
+     "kind": "standard",
+     "instructions": [
+      "1. Copy the code below → 2. Paste it into the empty code cell underneath → 3. Click ▶ Run to run it"
+     ]
+    },
+    {
+     "cell_id": "split",
+     "stage_id": "split_data",
+     "label": "Cell 8",
+     "title": "Split the data",
+     "code": "from sklearn.model_selection import train_test_split\n\nX_train, X_test, y_train, y_test = train_test_split(\n    X, y, test_size=0.2, random_state=42, stratify=y)",
+     "kind": "standard",
+     "instructions": [
+      "1. Copy the code below → 2. Paste it into the empty code cell underneath → 3. Click ▶ Run to run it"
+     ]
+    },
+    {
+     "cell_id": "four_parts",
+     "stage_id": "split_data",
+     "label": "Cell 9",
+     "title": "Look at the four parts",
+     "code": "print(\"Training reviews:\", len(X_train), \"| Training labels:\", len(y_train))\nprint(\"Testing reviews:\", len(X_test), \"| Testing labels:\", len(y_test))\n\nprint()\nprint(\"First training review (X_train[0]):\", X_train[0])\nprint(\"Its label (y_train[0]):\", y_train[0])\nprint()\nprint(\"First testing review (X_test[0]):\", X_test[0])\nprint(\"Its label (y_test[0]):\", y_test[0])",
+     "kind": "standard",
+     "instructions": [
+      "1. Copy the code below → 2. Paste it into the empty code cell underneath → 3. Click ▶ Run to run it"
+     ]
+    }
+   ],
+   "questions": [
+    {
+     "question_id": "q3_1",
+     "stage_id": "split_data",
+     "prompt": "Why can't we test the model on the same reviews it learned from?"
+    },
+    {
+     "question_id": "q3_2",
+     "stage_id": "split_data",
+     "prompt": "What would go wrong if the reviews and their labels were shuffled separately?"
+    }
+   ]
+  },
+  {
+   "stage_id": "text_to_numbers",
+   "nav_label": "Step 4",
+   "short_label": "Turn text into numbers",
+   "title": "Step 4: Turn Text into Numbers",
+   "blocks": [
+    {
+     "type": "box",
+     "variant": "analogy",
+     "title": "Java connection – Step 4: Converting text to numbers",
+     "items": [
+      "*Java you already know, as a comparison. You won't write Java: the code you run is Python.*",
+      "In Java, you cannot calculate with a String: `\"delicious\" * 2` does not even compile.",
+      "To turn a review into numbers, you could count which vocabulary words it contains:",
+      "code:String[] vocab = {\"cold\", \"delicious\", \"food\", \"soup\"};\nString[] words = \"the food was delicious\".split(\" \");\nint[] row = new int[vocab.length];\nfor (int i = 0; i < words.length; i++) {\n    for (int j = 0; j < vocab.length; j++) {\n        if (words[i].equals(vocab[j])) row[j]++;\n    }\n}\n// row is now {0, 1, 1, 0}",
+      "Now the review is a row of numbers: a 1 means that vocabulary word is in the review.",
+      "A model can only calculate with numbers, so every review needs a row like this."
+     ]
+    },
+    {
+     "type": "heading",
+     "text": "Back to machine learning: the concept",
+     "level": 3
+    },
+    {
+     "type": "paragraph",
+     "text": "Just like counting a review's words into an `int[]` in Java, we turn every review into **numbers**. A machine learning model can only calculate with numbers, and calculating is how it works: in **Step 5** it learns by adjusting numbers, and in **Step 6** it predicts by adding numbers up. For example, the review *\"The food was delicious\"* will become a row of numbers like `[0 1 1 0 0 0 1 1]`. You will see how in Cell 10."
+    },
+    {
+     "type": "paragraph",
+     "text": "The test reviews must be converted **the same way** as the training reviews, so the model sees them in the same form it learned from."
+    },
+    {
+     "type": "paragraph",
+     "text": "The simplest way to turn text into numbers is called **bag of words**: it ignores word order and counts how often each word appears in each review. We try it on three tiny reviews first. It has three steps:"
+    },
+    {
+     "type": "box",
+     "variant": "plain",
+     "title": null,
+     "items": [
+      "**1. Split:** break each review into words, called **tokens**.",
+      "**2. Build a vocabulary:** list every word that appears in any review.",
+      "**3. Count:** for each review, count how often each vocabulary word appears."
+     ]
+    },
+    {
+     "type": "cell",
+     "cell_id": "bag_of_words"
+    },
+    {
+     "type": "box",
+     "variant": "see",
+     "title": "What you should see",
+     "items": [
+      "code:Vocabulary: ['cold' 'delicious' 'food' 'friendly' 'soup' 'staff' 'the' 'was']\n[[0 1 1 0 0 0 1 1]\n [1 0 0 0 1 0 1 1]\n [0 1 0 1 1 1 0 0]]",
+      "Read it like a table: each **row is a review**, each **column is a vocabulary word**.",
+      "Row 1, \"The food was delicious\", has a 1 under *delicious*, *food*, *the* and *was*.",
+      "Row 2, *\"The soup was cold\"*, has a 1 under *cold*, *soup*, *the* and *was*.",
+      "Capitals and the comma are gone: words are made lowercase, and only words are kept."
+     ]
+    },
+    {
+     "type": "paragraph",
+     "text": "That is the whole idea: **one review becomes one row of numbers, one column per word**. With real reviews the vocabulary has thousands of words, so each row is long and mostly zeros."
+    },
+    {
+     "type": "heading",
+     "text": "TF‑IDF: giving informative words more weight",
+     "level": 3
+    },
+    {
+     "type": "paragraph",
+     "text": "Counting treats every word the same, but words like \"the\" and \"was\" appear in almost every review and say nothing about sentiment. **TF‑IDF** fixes this: it gives more weight to words that appear in only a few reviews. In our tiny reviews, *friendly* and *staff* (in one review only) would get a higher weight than *delicious* and *soup* (in two reviews)."
+    },
+    {
+     "type": "box",
+     "variant": "analogy",
+     "title": null,
+     "items": [
+      "**Java connection:** the tiny example was like a small `int[][]`. Now we build one for every real review."
+     ]
+    },
+    {
+     "type": "paragraph",
+     "text": "Now we use TF‑IDF on our real reviews. One rule matters: the vocabulary is learned from the **training reviews only**, about 800 in our example. The test reviews, about 200, stay unseen, so we only convert them, using the vocabulary already learned."
+    },
+    {
+     "type": "cell",
+     "cell_id": "tfidf"
+    },
+    {
+     "type": "box",
+     "variant": "see",
+     "title": "What you should see",
+     "items": [
+      "The vocabulary size: the number of different words in the training reviews.",
+      "Two shapes, written as (rows, columns): rows are reviews, columns are vocabulary words.",
+      "For example, with 1,000 reviews: about 800 rows for training and about 200 rows for testing.",
+      "Both shapes have the **same number of columns**, because both use the same vocabulary.",
+      "**What the code did**",
+      "`fit_transform`: learned the vocabulary from the training reviews **and** converted them.",
+      "`transform`: converted the test reviews only, using the vocabulary already learned."
+     ]
+    },
+    {
+     "type": "box",
+     "variant": "analogy",
+     "title": "Looking back: connecting Java to our code (Step 4)",
+     "items": [
+      "`fit_transform` and `transform` are like the word-counting loop: review in, row of numbers out.",
+      "The result is like a 2D array of numbers. The tiny example from Cell 10 would be:",
+      "code:int[][] counts = { {0, 1, 1, 0, 0, 0, 1, 1},\n                   {1, 0, 0, 0, 1, 0, 1, 1},\n                   {0, 1, 0, 1, 1, 1, 0, 0} };",
+      "Each row is one review. Each column is one vocabulary word.",
+      "`counts[0][1]` is 1: review 0 contains *delicious*, the word in column 1.",
+      "`X_train_tfidf` is like a `double[][]`: about 800 rows, one column per word.",
+      "Train and test use the **same** vocabulary, so column 1 always means *delicious*."
+     ]
+    },
+    {
+     "type": "questions"
+    }
+   ],
+   "cells": [
+    {
+     "cell_id": "bag_of_words",
+     "stage_id": "text_to_numbers",
+     "label": "Cell 10",
+     "title": "Bag of words on three tiny reviews",
+     "code": "from sklearn.feature_extraction.text import CountVectorizer\n\ntiny_reviews = [\"The food was delicious\",\n                \"The soup was cold\",\n                \"Delicious soup, friendly staff\"]\n\ncounter = CountVectorizer()\ncounter.fit(tiny_reviews)                              # steps 1 and 2: split, build vocabulary\nprint(\"Vocabulary:\", counter.get_feature_names_out())\nprint(counter.transform(tiny_reviews).toarray())       # step 3: count",
+     "kind": "standard",
+     "instructions": [
+      "1. Copy the code below → 2. Paste it into the empty code cell underneath → 3. Click ▶ Run to run it"
+     ]
+    },
+    {
+     "cell_id": "tfidf",
+     "stage_id": "text_to_numbers",
+     "label": "Cell 11",
+     "title": "Turn the real reviews into numbers",
+     "code": "from sklearn.feature_extraction.text import TfidfVectorizer\n\nvectorizer = TfidfVectorizer()\nX_train_tfidf = vectorizer.fit_transform(X_train)    # learn the vocabulary AND convert\nX_test_tfidf = vectorizer.transform(X_test)           # convert only, same vocabulary\n\nprint(\"Vocabulary size:\", len(vectorizer.get_feature_names_out()))\nprint(\"Training data shape:\", X_train_tfidf.shape)\nprint(\"Test data shape:\", X_test_tfidf.shape)",
+     "kind": "standard",
+     "instructions": [
+      "1. Copy the code below → 2. Paste it into the empty code cell underneath → 3. Click ▶ Run to run it"
+     ]
+    }
+   ],
+   "questions": [
+    {
+     "question_id": "q4_1",
+     "stage_id": "text_to_numbers",
+     "prompt": "What does one row of `X_train_tfidf` represent? What does one column represent?"
+    },
+    {
+     "question_id": "q4_2",
+     "stage_id": "text_to_numbers",
+     "prompt": "Why do we use `fit_transform` on the training reviews, but only `transform` on the test reviews?"
+    }
+   ]
+  },
+  {
+   "stage_id": "train_model",
+   "nav_label": "Step 5",
+   "short_label": "Train the model",
+   "title": "Step 5: Train the Model",
+   "blocks": [
+    {
+     "type": "box",
+     "variant": "analogy",
+     "title": "Java connection – Step 5: An object that learns from reviews",
+     "items": [
+      "*Java you already know, as a comparison. You won't write Java: the code you run is Python.*",
+      "Imagine a Java class that learns from labelled reviews. It has one field and two methods:",
+      "code:public class ReviewChecker {\n    private String[] vocab = {\"delicious\", \"friendly\", \"cold\", \"hour\"};\n    private int[] points = new int[4]; // one number per word, starts at 0\n \n    public void learn(String[] reviews, String[] labels) {\n        // for each word in a positive review: add 1 to its points\n        // for each word in a negative review: subtract 1\n    }\n \n    public String predict(String review) {\n        // add up the points of the words in this review\n        // total above 0: return \"positive\"; otherwise \"negative\"\n    }\n}",
+      "You create the object, then call `learn()` with the training reviews and their labels:",
+      "code:ReviewChecker checker = new ReviewChecker();\nchecker.learn(X_train, y_train); // the training arrays from Step 3",
+      "For example, if `X_train` held our two example reviews, `points` would become `{1, 1, -1, -1}`:",
+      "*delicious* and *friendly* were in a positive review; *cold* and *hour* in a negative one.",
+      "Then `predict(\"The soup was cold.\")` adds -1 for *cold*, so it returns negative.",
+      "After `learn()`, the object keeps the `points` array, not the training reviews."
+     ]
+    },
+    {
+     "type": "heading",
+     "text": "Back to machine learning: the concept",
+     "level": 3
+    },
+    {
+     "type": "paragraph",
+     "text": "Just like `checker.learn()` fills the field `points` from labelled reviews, the model is **trained** on the training reviews to learn the numbers it will use in Step 6 to label reviews it has never seen. Training is where the model learns from the labelled training reviews."
+    },
+    {
+     "type": "paragraph",
+     "text": "In scikit-learn, every model is a **class**, so we first create a model object, then train it. We use **LinearSVC**, a model that looks for the best **boundary** between positive and negative reviews. Linear models like this work well for text data."
+    },
+    {
+     "type": "cell",
+     "cell_id": "train"
+    },
+    {
+     "type": "box",
+     "variant": "see",
+     "title": "What you should see",
+     "items": [
+      "`LinearSVC()`. Training takes only a second or two.",
+      "**What the code did**",
+      "`clf = LinearSVC()` created a model object called `clf` (short for *classifier*).",
+      "`clf.fit(...)` trained it on the training reviews and their labels."
+     ]
+    },
+    {
+     "type": "heading",
+     "text": "What is inside the trained model?",
+     "level": 3
+    },
+    {
+     "type": "box",
+     "variant": "analogy",
+     "title": null,
+     "items": [
+      "**Java connection:** like looking at the field `points` after calling `learn()`."
+     ]
+    },
+    {
+     "type": "paragraph",
+     "text": "Just like `checker` keeps `points` in a field, the model object holds what it learned from the training data after training. For LinearSVC, you can look at two attributes:"
+    },
+    {
+     "type": "box",
+     "variant": "plain",
+     "title": null,
+     "items": [
+      "`clf.coef_`: the model's **weights**, one for each word in the vocabulary",
+      "`clf.intercept_`: one extra number, the starting point of the boundary",
+      "The **underscore** at the end marks values learned during training, not set by you."
+     ]
+    },
+    {
+     "type": "cell",
+     "cell_id": "inside_model"
+    },
+    {
+     "type": "box",
+     "variant": "see",
+     "title": "What you should see",
+     "items": [
+      "The two classes: `['negative' 'positive']`.",
+      "The number of weights, then the first five weights: small positive and negative decimals.",
+      "One intercept number."
+     ]
+    },
+    {
+     "type": "paragraph",
+     "text": "**How LinearSVC makes a prediction:** it combines its weights with the words in a review, adds the intercept, and gets one score. A score above zero means **positive**; below zero, **negative**."
+    },
+    {
+     "type": "box",
+     "variant": "analogy",
+     "title": "Looking back: connecting Java to our code (Step 5)",
+     "items": [
+      "`clf = LinearSVC()` is like `new ReviewChecker()`: an object that has not learned anything yet.",
+      "`clf.fit(X_train_tfidf, y_train)` is like `checker.learn(X_train, y_train)`.",
+      "Both look at the training reviews with their correct labels and set the object's numbers.",
+      "`coef_` is like the field `points`: one number per word, set by learning, not typed by you.",
+      "`intercept_` is like a starting total. `ReviewChecker` always starts its total at 0.",
+      "Like `predict()`, LinearSVC adds up the numbers for a review's words: above zero is positive."
+     ]
+    },
+    {
+     "type": "questions"
+    }
+   ],
+   "cells": [
+    {
+     "cell_id": "train",
+     "stage_id": "train_model",
+     "label": "Cell 12",
+     "title": "Create and train the model",
+     "code": "from sklearn.svm import LinearSVC\n\nclf = LinearSVC()                    # create the model object (nothing learned yet)\nclf.fit(X_train_tfidf, y_train)      # train it on the training reviews and their labels",
+     "kind": "standard",
+     "instructions": [
+      "1. Copy the code below → 2. Paste it into the empty code cell underneath → 3. Click ▶ Run to run it"
+     ]
+    },
+    {
+     "cell_id": "inside_model",
+     "stage_id": "train_model",
+     "label": "Cell 13",
+     "title": "Look inside the model",
+     "code": "print(\"Classes:\", clf.classes_)\nprint(\"Number of weights:\", clf.coef_.shape[1])\nprint(\"First five weights:\", clf.coef_[0][:5].round(2))\nprint(\"Intercept:\", clf.intercept_.round(2))",
+     "kind": "standard",
+     "instructions": [
+      "1. Copy the code below → 2. Paste it into the empty code cell underneath → 3. Click ▶ Run to run it"
+     ]
+    }
+   ],
+   "questions": [
+    {
+     "question_id": "q5_1",
+     "stage_id": "train_model",
+     "prompt": "In your own words, what is stored inside `clf` after training?"
+    },
+    {
+     "question_id": "q5_2",
+     "stage_id": "train_model",
+     "prompt": "What does `clf.fit(...)` do?"
+    }
+   ]
+  },
+  {
+   "stage_id": "evaluate_model",
+   "nav_label": "Step 6",
+   "short_label": "Evaluate the model",
+   "title": "Step 6: Evaluate the Model",
+   "blocks": [
+    {
+     "type": "box",
+     "variant": "analogy",
+     "title": "Java connection – Step 6: Running the tests",
+     "items": [
+      "*Java you already know, as a comparison. You won't write Java: the code you run is Python.*",
+      "Remember the test cases we kept aside in Step 3? Now we use them.",
+      "In Java, you check a method with test cases where you already know the right result:",
+      "code:assertEquals(\"positive\",\n             checker.predict(\"Delicious food and friendly staff!\"));\nassertEquals(\"negative\",\n             checker.predict(\"The soup was cold.\"));",
+      "Each test compares what the method returns with the expected result.",
+      "Then you count how many tests passed. For example, 18 of 20 passing is 90%.",
+      "If a test fails, you look at that case to see what went wrong."
+     ]
+    },
+    {
+     "type": "heading",
+     "text": "Back to machine learning: the concept",
+     "level": 3
+    },
+    {
+     "type": "paragraph",
+     "text": "Just like you run test cases with known results to see how well your Java code works, we test the trained model on the 20% of reviews we set aside in Step 3, to find out how well it works on reviews it has never seen. We know the correct label for each one, so we let the model predict a label for every test review and count how often it is right."
+    },
+    {
+     "type": "cell",
+     "cell_id": "accuracy"
+    },
+    {
+     "type": "box",
+     "variant": "see",
+     "title": "What you should see",
+     "items": [
+      "The model's labels for ten test reviews, above the ten correct labels.",
+      "Where the two match, the model was right.",
+      "Then the **test accuracy**: a number between 0 and 1.",
+      "**What the code did**",
+      "`clf.predict(...)` gave a label to every test review and stored them in `y_pred`.",
+      "`accuracy_score` compared `y_pred` with `y_test`: 0.85 means 85% correct."
+     ]
+    },
+    {
+     "type": "box",
+     "variant": "analogy",
+     "title": null,
+     "items": [
+      "**Java connection:** like reading the failed tests to see what went wrong."
+     ]
+    },
+    {
+     "type": "paragraph",
+     "text": "The accuracy tells us how often the model is right. Next, let's look at the reviews it got wrong."
+    },
+    {
+     "type": "cell",
+     "cell_id": "mistakes"
+    },
+    {
+     "type": "box",
+     "variant": "see",
+     "title": "What you should see",
+     "items": [
+      "The number of mistakes, then up to three reviews the model got wrong.",
+      "Read them carefully. What do you notice about these reviews?",
+      "If there are 0 mistakes, no reviews are shown: the model got every test review right."
+     ]
+    },
+    {
+     "type": "box",
+     "variant": "analogy",
+     "title": null,
+     "items": [
+      "**Java connection:** like calling `checker.predict()` on a new review you write yourself."
+     ]
+    },
+    {
+     "type": "paragraph",
+     "text": "The real goal is **generalisation**: labelling reviews nobody has seen before. New reviews are turned into numbers the same way as in Step 4, then the model predicts."
+    },
+    {
+     "type": "cell",
+     "cell_id": "own_reviews"
+    },
+    {
+     "type": "box",
+     "variant": "see",
+     "title": "What you should see",
+     "items": [
+      "One line for each of your three reviews: the model's label, an arrow, then your review.",
+      "For example:",
+      "code:positive -> The pizza was hot and the waiter was so kind\nnegative -> We waited forever and the fries were soggy",
+      "Did the model agree with you? Change a review and click ▶ again to try another.",
+      "**What the code did**",
+      "`my_reviews = [...]` stored your three reviews in a list.",
+      "`vectorizer.transform(...)` turned them into numbers, using the vocabulary from Step 4.",
+      "`clf.predict(...)` gave each review a label: positive or negative.",
+      "`zip(...)` paired each review with its label, and the `for` loop printed each pair.",
+      "**Got an error?** Each review must stay inside its own `\"quotes\"`,",
+      "with a comma between reviews. Don't use `\"` inside your review text."
+     ]
+    },
+    {
+     "type": "box",
+     "variant": "analogy",
+     "title": "Looking back: connecting Java to our code (Step 6)",
+     "items": [
+      "`clf.predict(X_test_tfidf)` is like calling `checker.predict()` on every test case.",
+      "`y_test` holds the expected results, like the first value in each `assertEquals`.",
+      "`accuracy_score(y_test, y_pred)` is like counting passed tests: 0.90 means 90% passed.",
+      "One difference: when Java tests fail, you usually fix the code.",
+      "When a model gets many reviews wrong, the fix is usually the data,",
+      "such as more or better labelled reviews."
+     ]
+    },
+    {
+     "type": "questions"
+    },
+    {
+     "type": "box",
+     "variant": "analogy",
+     "title": "Where the Java connection stops",
+     "items": [
+      "In `ReviewChecker`, you chose the four words and the simple +1 / −1 rule yourself.",
+      "LinearSVC uses every word in the vocabulary and works out better numbers on its own.",
+      "And the model does not understand words: it adds up the numbers for a review",
+      "and checks whether the total is above zero."
+     ]
+    }
+   ],
+   "cells": [
+    {
+     "cell_id": "accuracy",
+     "stage_id": "evaluate_model",
+     "label": "Cell 14",
+     "title": "Predict and measure accuracy",
+     "code": "from sklearn.metrics import accuracy_score\n\ny_pred = clf.predict(X_test_tfidf)        # the model's label for every test review\n\nprint(\"Model's labels:  \", y_pred[:10])\nprint(\"Correct labels:  \", y_test[:10])\nprint(\"Test accuracy: {:.2f}\".format(accuracy_score(y_test, y_pred)))",
+     "kind": "standard",
+     "instructions": [
+      "1. Copy the code below → 2. Paste it into the empty code cell underneath → 3. Click ▶ Run to run it"
+     ]
+    },
+    {
+     "cell_id": "mistakes",
+     "stage_id": "evaluate_model",
+     "label": "Cell 15",
+     "title": "Look at the mistakes",
+     "code": "wrong = np.where(y_pred != y_test)[0]      # positions of the test reviews labelled wrongly\nprint(\"Number of mistakes:\", len(wrong))\nprint()\n\nfor i in wrong[:3]:                          # show up to three of them\n    print(\"Review:\", X_test[i])\n    print(\"Correct:\", y_test[i], \"| Model said:\", y_pred[i])\n    print()",
+     "kind": "standard",
+     "instructions": [
+      "1. Copy the code below → 2. Paste it into the empty code cell underneath → 3. Click ▶ Run to run it"
+     ]
+    },
+    {
+     "cell_id": "own_reviews",
+     "stage_id": "evaluate_model",
+     "label": "Cell 16",
+     "title": "Write your own reviews",
+     "code": "my_reviews = [\"Write a positive review here\",\n              \"Write a negative review here\",\n              \"Write a tricky review here\"]\n\nmy_reviews_tfidf = vectorizer.transform(my_reviews)    # turn the new reviews into numbers, as in Step 4\nfor review, label in zip(my_reviews, clf.predict(my_reviews_tfidf)):\n    print(label, \"->\", review)",
+     "kind": "own_reviews",
+     "instructions": [
+      "1. Copy the code below → 2. Paste it into the empty code cell underneath",
+      "3. Replace each **\"Write ... here\"** with your own restaurant review → 4. Click ▶ Run to run it",
+      "**For example, replace this positive placeholder:**",
+      "`\"Write a positive review here\"`  →  `\"The pizza was hot and the waiter was so kind\"`",
+      "**And this negative placeholder:**",
+      "`\"Write a negative review here\"`  →  `\"We waited forever and the fries were soggy\"`",
+      "**The tricky one is up to you:** write a review you think might fool the model.",
+      "Only change the words **between the quotes**. Keep the `\"` marks and the commas.",
+      "Please write your own reviews; don't copy the examples above."
+     ]
+    }
+   ],
+   "questions": [
+    {
+     "question_id": "q6_1",
+     "stage_id": "evaluate_model",
+     "prompt": "Why do we measure accuracy on the test reviews, not the training reviews?"
+    },
+    {
+     "question_id": "q6_2",
+     "stage_id": "evaluate_model",
+     "prompt": "If the model labelled many reviews wrongly, what would you do to improve it? Why?"
+    }
+   ]
+  },
+  {
+   "stage_id": "finish",
+   "nav_label": "Finish",
+   "short_label": "Workshop complete",
+   "title": "You Did It: Workshop Complete",
+   "blocks": [
+    {
+     "type": "paragraph",
+     "text": "Congratulations! You built a machine learning model that reads restaurant reviews and labels them as positive or negative, including reviews it had never seen. You loaded and looked at real data, split it, turned text into numbers, trained a model, and evaluated it."
+    },
+    {
+     "type": "paragraph",
+     "text": "To finish, please complete the steps below."
+    },
+    {
+     "type": "post_survey"
+    },
+    {
+     "type": "checklist",
+     "title": "Your gift card: completion checklist",
+     "intro": "You will receive your gift card once you have completed **all** of these:",
+     "items": [
+      {
+       "text": "1. Completed the **pre-survey** before the workshop",
+       "auto": null
+      },
+      {
+       "text": "2. Ran **all 16 cells** in this workshop (Steps 1 to 6)",
+       "auto": "cells"
+      },
+      {
+       "text": "3. Answered every **Check your understanding** question (q1_1 to q6_2)",
+       "auto": "answers"
+      },
+      {
+       "text": "4. Completed the **post-survey** with the same research ID (Finish)",
+       "auto": null
+      }
+     ],
+     "note": "Questions? Ask a facilitator before you leave the room."
+    },
+    {
+     "type": "paragraph",
+     "text": "Thank you for taking part in our research. We hope you enjoyed building your first machine learning model!"
+    },
+    {
+     "type": "aside",
+     "text": "*SJSU Computer Science Education Research Lab. This material is based upon work supported by the U.S. National Science Foundation under Grant No. 2451781.*"
+    }
+   ],
+   "cells": [],
+   "questions": []
+  }
+ ]
+}

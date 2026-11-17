@@ -26,7 +26,7 @@ from ..execution.cells import (
     validate_code,
 )
 from ..paths import BACKEND_ROOT
-from .content import DATASET_FILENAME, RUNTIME_DATASET_FILENAME, cells_before
+from .content import DATASET_FILENAME, PRIMARY, RUNTIME_DATASET_FILENAME, WorkshopVersion
 
 DATASET_PATH = BACKEND_ROOT / "datasets" / DATASET_FILENAME
 WORKSHOP_IMPORTS = frozenset(ALLOWED_IMPORTS | {"io", "google"})
@@ -61,10 +61,10 @@ def prelude(uploaded_filename: str | None) -> str:
     return _PRELUDE.format(name=json.dumps(name), dataset=json.dumps(RUNTIME_DATASET_FILENAME))
 
 
-def workshop_program(cell_id: str, code: str, uploaded_filename: str | None) -> str:
+def workshop_program(cell_id: str, code: str, uploaded_filename: str | None, version: WorkshopVersion = PRIMARY) -> str:
     """Validate learner code and build the full program for one cell run."""
     validate_code(code, WORKSHOP_IMPORTS, WORKSHOP_DUNDERS)
-    earlier = [previous.code for previous in cells_before(cell_id)]
+    earlier = [previous.code for previous in version.cells_before(cell_id)]
     for previous in earlier:
         validate_code(previous, WORKSHOP_IMPORTS, WORKSHOP_DUNDERS)
     return instrumented_program([prelude(uploaded_filename), *earlier], code)
@@ -81,10 +81,10 @@ def _execute(program: str) -> dict[str, Any]:
     return call_codapi(files)
 
 
-def run_workshop_cell(cell_id: str, code: str, uploaded_filename: str | None) -> dict[str, Any]:
+def run_workshop_cell(version: WorkshopVersion, cell_id: str, code: str, uploaded_filename: str | None) -> dict[str, Any]:
     engine = os.getenv("CODE_EXECUTION_ENGINE", "docker")
     try:
-        program = workshop_program(cell_id, code, uploaded_filename)
+        program = workshop_program(cell_id, code, uploaded_filename, version)
     except UnsafeCode as error:
         return {"success": False, "stdout": "", "stderr": str(error), "result": None,
                 "table_preview": None, "plots": [], "duration_ms": 0, "engine": engine}

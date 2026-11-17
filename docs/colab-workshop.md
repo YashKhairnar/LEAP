@@ -13,6 +13,33 @@ learner's work. Any non-empty ID up to 64 characters is accepted for now, and th
 who types an ID enters as that participant. The research ID replaces the participant code on the dashboard
 and finish page. Route: `POST /api/workshop/enter`.
 
+## Versions
+
+There are three versions of the notebook, with the same code, cells, questions and steps:
+
+| Version | Shown to learners as | Source |
+|---|---|---|
+| `primary` | Machine learning only | Hand-transcribed from the first PDF, in `backend/app/workshop/content.py` |
+| `analogy` | Everyday analogies (exam analogy) | `notebooks/source/analogy.ipynb` → `notebooks/analogy.json` |
+| `java` | Java connections | `notebooks/source/java.ipynb` → `notebooks/java.json` |
+
+A new research ID chooses its version once, right after typing the ID; returning IDs go straight in
+with their first choice (stored in `workshop_assignments`, with `assigned_by` = `learner_choice`).
+IDs that entered before versions existed are recorded as `primary` (`before_versions`).
+
+To update the analogy or Java version, export the notebook from Colab (File → Download → .ipynb),
+replace the file in `backend/app/workshop/notebooks/source/`, and run from `backend`:
+
+```bash
+.venv/bin/python scripts/import_workshop_notebook.py analogy app/workshop/notebooks/source/analogy.ipynb
+```
+
+The importer copies the notebook's text and boxes as written (purple boxes become analogy / Java
+boxes) and replaces only the Colab-specific parts with the adapted ones below. It stops if a cell's code
+differs from the original version, because every version must run the same code. One notebook cell is
+skipped on purpose (listed in `SKIPPED_CELLS` in the script): analogy cell 59, an earlier copy of cell 62
+placed after Cell 12.
+
 ## What learners see
 
 `Before you start` → Steps 1–6 → `Finish`, in the same order and wording as the notebook. There are
@@ -50,12 +77,13 @@ Outputs match the notebook: 10,000 reviews, 8,000/2,000 split, 10,788 words, acc
 
 ## Data
 
-Four new tables, created on startup next to the existing ones:
+Five new tables, created on startup next to the existing ones:
 
 - `workshop_progress`: one row per learner (current stage, completed stages, uploaded file name, start/finish times)
 - `workshop_cell_runs`: every run (code, output, success, duration, run number); append-only
 - `workshop_answers`: every saved answer; append-only, the latest per question is the current one
 - `workshop_participants`: research ID → workshop user (first and last entry times)
+- `workshop_assignments`: the version each learner uses, who assigned it and when
 
 ## Configuration
 

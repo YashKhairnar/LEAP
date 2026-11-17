@@ -12,7 +12,9 @@ A box item starting with "pre:" is shown as a line of program output.
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any
 
 WORKSHOP_ID = "colab_ml_workshop"
@@ -403,7 +405,7 @@ tiny_reviews = ["The food was delicious",
                 "Delicious soup, friendly staff"]
 
 counter = CountVectorizer()
-counter.fit(tiny_reviews)                               # steps 1 and 2: split and build the vocabulary
+counter.fit(tiny_reviews)                              # steps 1 and 2: split, build vocabulary
 print("Vocabulary:", counter.get_feature_names_out())
 print(counter.transform(tiny_reviews).toarray())       # step 3: count
 """),
@@ -411,7 +413,7 @@ print(counter.transform(tiny_reviews).toarray())       # step 3: count
 from sklearn.feature_extraction.text import TfidfVectorizer
 
 vectorizer = TfidfVectorizer()
-X_train_tfidf = vectorizer.fit_transform(X_train)    # learn the vocabulary and convert
+X_train_tfidf = vectorizer.fit_transform(X_train)    # learn the vocabulary AND convert
 X_test_tfidf = vectorizer.transform(X_test)           # convert only, same vocabulary
 
 print("Vocabulary size:", len(vectorizer.get_feature_names_out()))
@@ -521,11 +523,11 @@ print("Correct labels:  ", y_test[:10])
 print("Test accuracy: {:.2f}".format(accuracy_score(y_test, y_pred)))
 """),
     _cell("evaluate_model", "mistakes", "Cell 15", "Look at the mistakes", """
-wrong = np.where(y_pred != y_test)[0]      # positions of the test reviews the model got wrong
+wrong = np.where(y_pred != y_test)[0]      # positions of the test reviews labelled wrongly
 print("Number of mistakes:", len(wrong))
 print()
 
-for i in wrong[:3]:                           # show up to three of them
+for i in wrong[:3]:                          # show up to three of them
     print("Review:", X_test[i])
     print("Correct:", y_test[i], "| Model said:", y_pred[i])
     print()
@@ -535,7 +537,7 @@ my_reviews = ["Write a positive review here",
               "Write a negative review here",
               "Write a tricky review here"]
 
-my_reviews_tfidf = vectorizer.transform(my_reviews)    # turn the new reviews into numbers
+my_reviews_tfidf = vectorizer.transform(my_reviews)    # turn the new reviews into numbers, as in Step 4
 for review, label in zip(my_reviews, clf.predict(my_reviews_tfidf)):
     print(label, "->", review)
 """, kind="own_reviews", instructions=(
@@ -626,40 +628,110 @@ FINISH = WorkshopStage(
     ),
 )
 
-STAGES: tuple[WorkshopStage, ...] = (START, STEP1, STEP2, STEP3, STEP4, STEP5, STEP6, FINISH)
-# Stages a learner completes; "finish" is the closing page shown after the last one.
-LEARNING_STAGES: tuple[WorkshopStage, ...] = STAGES[:-1]
-STAGE_IDS = tuple(stage.stage_id for stage in STAGES)
-CELLS: tuple[WorkshopCell, ...] = tuple(cell for stage in STAGES for cell in stage.cells)
-CELLS_BY_ID = {cell.cell_id: cell for cell in CELLS}
-QUESTIONS: tuple[WorkshopQuestion, ...] = tuple(question for stage in STAGES for question in stage.questions)
-QUESTIONS_BY_ID = {question.question_id: question for question in QUESTIONS}
-STAGES_BY_ID = {stage.stage_id: stage for stage in STAGES}
+PRIMARY_STAGES: tuple[WorkshopStage, ...] = (START, STEP1, STEP2, STEP3, STEP4, STEP5, STEP6, FINISH)
 
 
-def stage(stage_id: str) -> WorkshopStage:
-    try:
-        return STAGES_BY_ID[stage_id]
-    except KeyError:
-        raise ValueError(f"unknown workshop stage: {stage_id}") from None
+class WorkshopVersion:
+    """One version of the workshop notebook (the original, everyday analogies, or Java connections).
+
+    Every version has the same stage, cell and question IDs, so progress, runs and answers are
+    stored the same way; the text around them, and the cell labels, differ.
+    """
+
+    def __init__(self, version_id: str, label: str, description: str, stages: tuple[WorkshopStage, ...]):
+        self.version_id = version_id
+        self.label = label
+        self.description = description
+        self.stages = tuple(stages)
+        # Stages a learner completes; "finish" is the closing page shown after the last one.
+        self.learning_stages = self.stages[:-1]
+        self.stage_ids = tuple(item.stage_id for item in self.stages)
+        self.cells = tuple(item for stage_ in self.stages for item in stage_.cells)
+        self.cells_by_id = {item.cell_id: item for item in self.cells}
+        self.questions = tuple(item for stage_ in self.stages for item in stage_.questions)
+        self.questions_by_id = {item.question_id: item for item in self.questions}
+        self.stages_by_id = {item.stage_id: item for item in self.stages}
+
+    def public(self) -> dict[str, str]:
+        return {"version_id": self.version_id, "label": self.label, "description": self.description}
+
+    def stage(self, stage_id: str) -> WorkshopStage:
+        try:
+            return self.stages_by_id[stage_id]
+        except KeyError:
+            raise ValueError(f"unknown workshop stage: {stage_id}") from None
+
+    def cell(self, cell_id: str) -> WorkshopCell:
+        try:
+            return self.cells_by_id[cell_id]
+        except KeyError:
+            raise ValueError(f"unknown workshop cell: {cell_id}") from None
+
+    def cells_before(self, cell_id: str) -> list[WorkshopCell]:
+        """Every cell that runs before this one, in notebook order."""
+        return list(self.cells[: self.cells.index(self.cell(cell_id))])
+
+    def next_stage_id(self, stage_id: str) -> str:
+        index = self.stage_ids.index(self.stage(stage_id).stage_id)
+        return self.stage_ids[min(index + 1, len(self.stage_ids) - 1)]
 
 
-def cell(cell_id: str) -> WorkshopCell:
-    try:
-        return CELLS_BY_ID[cell_id]
-    except KeyError:
-        raise ValueError(f"unknown workshop cell: {cell_id}") from None
+PRIMARY = WorkshopVersion(
+    "primary", "Machine learning only",
+    "Learn each idea directly, with short quotes from the textbook.", PRIMARY_STAGES,
+)
+
+# Imported notebook versions: backend/scripts/import_workshop_notebook.py writes these files
+# from the lab's .ipynb exports, kept next to them in notebooks/.
+NOTEBOOK_DIR = Path(__file__).with_name("notebooks")
+IMPORTED_VERSIONS = {
+    "analogy": ("Everyday analogies", "Each step compares the idea to preparing a student for an exam."),
+    "java": ("Java connections", "Each step connects the idea to Java you already know."),
+}
 
 
-def cells_before(cell_id: str) -> list[WorkshopCell]:
-    """Every workshop cell that runs before this one, in notebook order."""
-    index = CELLS.index(cell(cell_id))
-    return list(CELLS[:index])
+def stage_from_json(data: dict[str, Any]) -> WorkshopStage:
+    return WorkshopStage(
+        stage_id=data["stage_id"], nav_label=data["nav_label"], short_label=data["short_label"], title=data["title"],
+        blocks=tuple(data["blocks"]),
+        cells=tuple(WorkshopCell(
+            cell_id=item["cell_id"], stage_id=item["stage_id"], label=item["label"], title=item["title"],
+            code=item["code"], kind=item["kind"], instructions=tuple(item["instructions"]),
+        ) for item in data["cells"]),
+        questions=tuple(WorkshopQuestion(item["question_id"], item["stage_id"], item["prompt"]) for item in data["questions"]),
+    )
 
 
-def next_stage_id(stage_id: str) -> str:
-    index = STAGE_IDS.index(stage(stage_id).stage_id)
-    return STAGE_IDS[min(index + 1, len(STAGE_IDS) - 1)]
+def _load_imported(version_id: str) -> WorkshopVersion | None:
+    path = NOTEBOOK_DIR / f"{version_id}.json"
+    if not path.exists():
+        return None
+    label, description = IMPORTED_VERSIONS[version_id]
+    stages = tuple(stage_from_json(item) for item in json.loads(path.read_text(encoding="utf-8"))["stages"])
+    imported = WorkshopVersion(version_id, label, description, stages)
+    if imported.stage_ids != PRIMARY.stage_ids or set(imported.questions_by_id) != set(PRIMARY.questions_by_id):
+        raise ValueError(f"{path.name} must use the same stages and questions as the original workshop")
+    return imported
+
+
+VERSIONS: dict[str, WorkshopVersion] = {"primary": PRIMARY}
+for _version_id in IMPORTED_VERSIONS:
+    _loaded = _load_imported(_version_id)
+    if _loaded is not None:
+        VERSIONS[_version_id] = _loaded
+DEFAULT_VERSION = "primary"
+
+
+def version(version_id: str | None) -> WorkshopVersion:
+    return VERSIONS.get(version_id or DEFAULT_VERSION, PRIMARY)
+
+
+# The original workshop, under the names the rest of the package used before versions existed.
+STAGES = PRIMARY.stages
+LEARNING_STAGES = PRIMARY.learning_stages
+STAGE_IDS = PRIMARY.stage_ids
+CELLS = PRIMARY.cells
+QUESTIONS = PRIMARY.questions
 
 
 def own_reviews_written(code: str) -> bool:

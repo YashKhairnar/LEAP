@@ -13,27 +13,36 @@ export function rememberResearchId(researchId: string | null): void {
   } catch { /* display convenience only */ }
 }
 
+export type WorkshopVersionInfo = { version_id: string; label: string; description: string };
+
+/** A new research ID has to pick a version before entering. */
+export class VersionChoiceNeeded extends Error {
+  constructor(readonly versions: WorkshopVersionInfo[]) { super("Choose a version of the workshop."); }
+}
+
 /** Enter the workshop with a research ID only; the server sets the session cookie. */
-export async function enterWorkshop(researchId: string): Promise<{ user: AuthUser; research_id: string }> {
+export async function enterWorkshop(researchId: string, version?: string): Promise<{ user: AuthUser; research_id: string; workshop_version: WorkshopVersionInfo }> {
   let response: Response;
   try {
     response = await fetch(`${API_URL}/api/workshop/enter`, {
       method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ research_id: researchId }),
+      body: JSON.stringify({ research_id: researchId, version: version ?? null }),
     });
   } catch {
     throw new Error("We couldn’t reach the workshop. Check your connection and try again.");
   }
-  const body = await response.json().catch(() => ({})) as { user?: AuthUser; research_id?: string; detail?: unknown };
-  if (!response.ok || !body.user || !body.research_id) {
+  const body = await response.json().catch(() => ({})) as { user?: AuthUser; research_id?: string; workshop_version?: WorkshopVersionInfo; detail?: unknown };
+  const detail = body.detail as { needs_version?: boolean; versions?: WorkshopVersionInfo[] } | string | undefined;
+  if (response.status === 409 && detail && typeof detail === "object" && detail.needs_version) throw new VersionChoiceNeeded(detail.versions ?? []);
+  if (!response.ok || !body.user || !body.research_id || !body.workshop_version) {
     throw new Error(typeof body.detail === "string" ? body.detail : "We couldn’t sign you in. Check your research ID and try again.");
   }
   setAuth({ user: body.user });
   rememberResearchId(body.research_id);
-  return { user: body.user, research_id: body.research_id };
+  return { user: body.user, research_id: body.research_id, workshop_version: body.workshop_version };
 }
 
-export type BoxVariant = "see" | "did" | "check" | "warning" | "plain";
+export type BoxVariant = "see" | "did" | "check" | "warning" | "plain" | "analogy";
 export type WorkshopBlock =
   | { type: "paragraph"; text: string }
   | { type: "heading"; text: string; level: 2 | 3 }
@@ -53,12 +62,13 @@ export type WorkshopBlock =
 export type WorkshopCell = { cell_id: string; stage_id: string; label: string; title: string; code: string; kind: "standard" | "upload" | "own_reviews"; instructions: string[]; paste_placeholder: string };
 export type WorkshopQuestion = { question_id: string; stage_id: string; prompt: string };
 export type WorkshopStage = { stage_id: string; nav_label: string; short_label: string; title: string; blocks: WorkshopBlock[]; cells: WorkshopCell[]; questions: WorkshopQuestion[] };
-export type WorkshopContent = { workshop_id: string; version: string; title: string; dataset: { filename: string; bytes: number; header: string }; post_survey_url: string | null; stages: WorkshopStage[] };
+export type WorkshopContent = { workshop_id: string; version: string; workshop_version: WorkshopVersionInfo; title: string; dataset: { filename: string; bytes: number; header: string }; post_survey_url: string | null; stages: WorkshopStage[] };
 
 export type TablePreview = { columns: string[]; rows: Record<string, unknown>[] };
 export type CellRun = { run_id: string; cell_id: string; execution_count: number; code: string; success: boolean; stdout: string; stderr: string; result: unknown; table_preview: TablePreview | null; plots: string[]; duration_ms: number; created_at: string };
 export type WorkshopState = {
   research_id: string | null;
+  workshop_version: WorkshopVersionInfo;
   current_stage: string;
   completed_stages: string[];
   uploaded_filename: string | null;

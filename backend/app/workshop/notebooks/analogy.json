@@ -1,0 +1,1337 @@
+{
+ "version_id": "analogy",
+ "source": "Colab notebook export (.ipynb)",
+ "stages": [
+  {
+   "stage_id": "start",
+   "nav_label": "Start here",
+   "short_label": "Before you start",
+   "title": "Before You Start",
+   "blocks": [
+    {
+     "type": "banner",
+     "title": "Machine Learning Workshop: Classifying Restaurant Reviews",
+     "items": [
+      "**Research project by:** SJSU Computer Science Education Research Lab",
+      "**Purpose:** to investigate how undergraduate students transfer knowledge from imperative programming to artificial intelligence and machine learning concepts."
+     ],
+     "note": "This material is based upon work supported by the U.S. National Science Foundation under Grant No. 2451781."
+    },
+    {
+     "type": "paragraph",
+     "text": "In this workshop you will build a machine learning model that reads a restaurant review and decides whether it is **positive** or **negative**, even for reviews it has never seen. You will build it yourself, one small piece of code at a time."
+    },
+    {
+     "type": "paragraph",
+     "text": "Each section explains an idea first. Then it gives you a short piece of code, called a **cell**, to copy and run."
+    },
+    {
+     "type": "heading",
+     "text": "Your work is saved as you go",
+     "level": 3
+    },
+    {
+     "type": "box",
+     "variant": "plain",
+     "title": null,
+     "items": [
+      "Every cell you run and every answer you type is saved under your research ID.",
+      "You can close this page and come back later: enter the same research ID and you will continue where you left off."
+     ]
+    },
+    {
+     "type": "heading",
+     "text": "How to run each cell",
+     "level": 3
+    },
+    {
+     "type": "box",
+     "variant": "plain",
+     "title": null,
+     "items": [
+      "Every time you see a green **YOUR TURN** box, do these three things:",
+      "**1. Copy** the code in the grey box (select it, then `Ctrl + C`, or `Cmd + C` on a Mac).",
+      "**2. Paste** it into the empty code cell underneath, the one that says **Paste the code here** (`Ctrl + V`, or `Cmd + V` on a Mac).",
+      "**3. Run:** click the **▶ Run** button under that cell.",
+      "The result appears under the cell. Compare it with the blue **What you should see** box."
+     ]
+    },
+    {
+     "type": "heading",
+     "text": "Try it now: a practice cell",
+     "level": 3
+    },
+    {
+     "type": "cell",
+     "cell_id": "practice"
+    },
+    {
+     "type": "box",
+     "variant": "see",
+     "title": "What you should see",
+     "items": [
+      "This message printed under the cell:",
+      "`Hello there, Welcome to our machine learning research workshop!`",
+      "A number like `[1]` on the left: the order in which cells were run."
+     ]
+    },
+    {
+     "type": "box",
+     "variant": "plain",
+     "title": "Three rules that save you trouble",
+     "items": [
+      "**1. One cell at a time, in order.** Each cell's ▶ Run button unlocks once the cell above it has run.",
+      "**2. Read before you run.** Knowing what a cell does is the point.",
+      "**3. Came back later?** Your earlier cells are remembered, so carry on from where you stopped.",
+      "Each step ends with **Check your understanding**: answer in your own words before moving on."
+     ]
+    },
+    {
+     "type": "paragraph",
+     "text": "*Explanations follow Müller & Guido, **Introduction to Machine Learning with Python** (O'Reilly, 2017), Ch. 1 and 7, applied to our review data.*"
+    },
+    {
+     "type": "heading",
+     "text": "What Is Machine Learning?",
+     "level": 2
+    },
+    {
+     "type": "paragraph",
+     "text": "*\"Machine learning is about extracting knowledge from data.\"* (Müller & Guido, p. 1)"
+    },
+    {
+     "type": "paragraph",
+     "text": "You already use it every day: film and music recommendations, spam filters and phone cameras that recognise faces all rely on machine learning."
+    },
+    {
+     "type": "heading",
+     "text": "Writing rules by hand",
+     "level": 3
+    },
+    {
+     "type": "paragraph",
+     "text": "Before machine learning, \"intelligent\" programs were built from hand-written `if` and `else` rules (p. 1). For our task, a rule-based program might say:"
+    },
+    {
+     "type": "box",
+     "variant": "plain",
+     "title": null,
+     "items": [
+      "if a review contains \"love\" or \"delicious\" → **positive**",
+      "if a review contains \"hate\" or \"cold\" → **negative**"
+     ]
+    },
+    {
+     "type": "box",
+     "variant": "warning",
+     "title": "Why hand-written rules fail",
+     "items": [
+      "**1. They only fit one task.** Change the task slightly, and you may rewrite everything.",
+      "**2. You must already know how to decide.** Someone has to spell out every rule.",
+      "*(Müller & Guido, p. 2)*",
+      "*\"I didn't love it.\"* contains \"love\", but it is **not** positive.",
+      "*\"Friendly staff, would return.\"* matches **none** of the rules."
+     ]
+    },
+    {
+     "type": "heading",
+     "text": "Learning from examples instead",
+     "level": 3
+    },
+    {
+     "type": "paragraph",
+     "text": "Machine learning takes a different approach. Instead of writing the rules, we give the computer many reviews **together with the correct answer** for each one, and it works out the rules itself."
+    },
+    {
+     "type": "paragraph",
+     "text": "Müller and Guido call this **supervised learning**: the algorithm learns from pairs of inputs and correct outputs, and can then produce an output *\"for an input it has never seen before without any help from a human\"* (p. 2). It is called *supervised* because the correct answers act like a teacher."
+    },
+    {
+     "type": "heading",
+     "text": "Key words you will meet",
+     "level": 3
+    },
+    {
+     "type": "table",
+     "columns": [
+      "Word",
+      "Meaning in our workshop"
+     ],
+     "rows": [
+      [
+       "Sample",
+       "One review: one row of our data"
+      ],
+      [
+       "Label",
+       "The correct answer: positive or negative"
+      ],
+      [
+       "Feature",
+       "Information the model uses about a review (later: each word's importance)"
+      ],
+      [
+       "Training",
+       "The model learns from labelled reviews"
+      ],
+      [
+       "Prediction",
+       "The model's best guess for a new review; it can be wrong"
+      ],
+      [
+       "Generalisation",
+       "Doing well on new reviews, not just the ones it learned from"
+      ]
+     ]
+    },
+    {
+     "type": "heading",
+     "text": "What we will build, step by step",
+     "level": 3
+    },
+    {
+     "type": "box",
+     "variant": "plain",
+     "title": null,
+     "items": [
+      "**Step 1. Import the libraries** – bring in ready-made tools",
+      "**Step 2. Load and look at the data** – read the reviews into a table",
+      "**Step 3. Split the data** – keep some reviews aside for testing",
+      "**Step 4. Turn text into numbers** – so a model can use the reviews",
+      "**Step 5. Train the model** – it learns from the training reviews",
+      "**Step 6. Evaluate the model** – how often is it right on new reviews?"
+     ]
+    },
+    {
+     "type": "heading",
+     "text": "How we will think about it",
+     "level": 3
+    },
+    {
+     "type": "box",
+     "variant": "analogy",
+     "title": "Analogy for this workshop: studying for an exam",
+     "items": [
+      "Throughout this workshop, we will compare building a model to preparing a student for an exam.",
+      "**You, the programmer, are like the instructor:** you collect the questions, decide what the student studies, and mark the exam.",
+      "**The model is like the student:** it learns only from what you give it to study.",
+      "Each step starts with a purple **Analogy** box showing where we are in the exam story, followed by the concept and the code."
+     ]
+    }
+   ],
+   "cells": [
+    {
+     "cell_id": "practice",
+     "stage_id": "start",
+     "label": "Practice cell",
+     "title": "Try it now",
+     "code": "print(\"Hello there, Welcome to our machine learning research workshop!\")",
+     "kind": "standard",
+     "instructions": [
+      "1. Copy the code below → 2. Paste it into the empty code cell underneath → 3. Click ▶ Run to run it"
+     ]
+    }
+   ],
+   "questions": []
+  },
+  {
+   "stage_id": "import_libraries",
+   "nav_label": "Step 1",
+   "short_label": "Import the libraries",
+   "title": "Step 1: Import the Libraries",
+   "blocks": [
+    {
+     "type": "box",
+     "variant": "analogy",
+     "title": "Analogy – Step 1: Gathering your tools",
+     "items": [
+      "Before preparing an exam, an instructor gathers ready-made tools: a calculator, a stapler, a folder for the questions.",
+      "Nobody builds their own calculator first; they use one that already works."
+     ]
+    },
+    {
+     "type": "heading",
+     "text": "The concept",
+     "level": 3
+    },
+    {
+     "type": "paragraph",
+     "text": "Just like the instructor gathers ready-made tools before preparing an exam, we start by bringing in ready-made tools that we will use in every later step: to load the data, split it, turn it into numbers, train the model and evaluate it. A **library** is ready-made code that someone else wrote and tested. An `import` statement makes a library available in your program, so you can use its tools without writing them yourself."
+    },
+    {
+     "type": "box",
+     "variant": "see",
+     "title": "The three libraries we use",
+     "items": [
+      "**pandas** (nickname `pd`): loads the review file as a table, called a **DataFrame**",
+      "**NumPy** (nickname `np`): stores data as fast **arrays**, the form scikit-learn needs",
+      "**scikit-learn** (nickname `sklearn`): the ML library to split data, train and measure"
+     ]
+    },
+    {
+     "type": "cell",
+     "cell_id": "imports"
+    },
+    {
+     "type": "box",
+     "variant": "see",
+     "title": "What you should see",
+     "items": [
+      "Nothing. No output and no error means the imports worked."
+     ]
+    },
+    {
+     "type": "list",
+     "ordered": false,
+     "items": [
+      "`as np` and `as pd` give the libraries short nicknames, so later we can write `pd.read_csv(...)` instead of `pandas.read_csv(...)`. Almost all machine learning code uses these nicknames.",
+      "`io` is a small library built into Python. We need it in Step 2 to read the file you upload."
+     ]
+    },
+    {
+     "type": "cell",
+     "cell_id": "versions"
+    },
+    {
+     "type": "box",
+     "variant": "see",
+     "title": "What you should see",
+     "items": [
+      "Three lines, each with a version number.",
+      "The exact numbers do not matter."
+     ]
+    },
+    {
+     "type": "paragraph",
+     "text": "Importing does none of the task's work yet: it does not load data or train a model. It only makes the tools available."
+    },
+    {
+     "type": "box",
+     "variant": "analogy",
+     "title": "Looking back: connecting the analogy to our code (Step 1)",
+     "items": [
+      "Importing libraries is **like** gathering these tools: each library is ready-made code that someone else built and tested.",
+      "**pandas** is like the folder: it will keep our questions and their answers organised.",
+      "**NumPy** is like the calculator: it works with numbers quickly.",
+      "**scikit-learn** is like a toolkit that contains the student (the model), plus tools for setting and marking the exam.",
+      "Just like tools on a desk, importing does no work yet. It only makes the tools ready to use."
+     ]
+    },
+    {
+     "type": "questions"
+    }
+   ],
+   "cells": [
+    {
+     "cell_id": "imports",
+     "stage_id": "import_libraries",
+     "label": "Cell 1",
+     "title": "Import the libraries",
+     "code": "import io\nimport numpy as np\nimport pandas as pd\nimport sklearn",
+     "kind": "standard",
+     "instructions": [
+      "1. Copy the code below → 2. Paste it into the empty code cell underneath → 3. Click ▶ Run to run it"
+     ]
+    },
+    {
+     "cell_id": "versions",
+     "stage_id": "import_libraries",
+     "label": "Cell 2",
+     "title": "Check the versions",
+     "code": "print(\"NumPy version:\", np.__version__)\nprint(\"pandas version:\", pd.__version__)\nprint(\"scikit-learn version:\", sklearn.__version__)",
+     "kind": "standard",
+     "instructions": [
+      "1. Copy the code below → 2. Paste it into the empty code cell underneath → 3. Click ▶ Run to run it"
+     ]
+    }
+   ],
+   "questions": [
+    {
+     "question_id": "q1_1",
+     "stage_id": "import_libraries",
+     "prompt": "In your own words, what does each of the three libraries do in this task?"
+    }
+   ]
+  },
+  {
+   "stage_id": "load_data",
+   "nav_label": "Step 2",
+   "short_label": "Load and look at the data",
+   "title": "Step 2: Load and Look at the Data",
+   "blocks": [
+    {
+     "type": "box",
+     "variant": "analogy",
+     "title": "Analogy – Step 2: Collecting the question bank",
+     "items": [
+      "The instructor collects a **question bank**: a large set of questions.",
+      "Each question is linked to its **correct answer**. Together, the correct answers form the **answer key**.",
+      "To keep things organised, the instructor writes the bank as a **list**: one line per question, with its correct answer written next to it."
+     ]
+    },
+    {
+     "type": "heading",
+     "text": "The concept",
+     "level": 3
+    },
+    {
+     "type": "paragraph",
+     "text": "Just like the instructor collects a question bank to prepare the student for studying, our first job is to get the data into the notebook to prepare the model for training: many restaurant reviews, each with its correct label (positive or negative). The model can only learn from the data we give it, so every later step (splitting, training and evaluating) depends on this data."
+    },
+    {
+     "type": "paragraph",
+     "text": "In this step we upload the file, read it into a table, and look at the first few rows to check it loaded correctly."
+    },
+    {
+     "type": "heading",
+     "text": "2.1 Upload the review file",
+     "level": 3
+    },
+    {
+     "type": "paragraph",
+     "text": "Go to our lab website: [csed-research-lab.org/projects](https://csed-research-lab.org/projects). Find this workshop and click **[Dataset CSV]** to download the restaurant review file. Save it somewhere easy to find, such as your **Downloads** folder."
+    },
+    {
+     "type": "dataset_download"
+    },
+    {
+     "type": "paragraph",
+     "text": "The file is in **CSV** format: plain text where each line is one row, and commas separate the columns."
+    },
+    {
+     "type": "cell",
+     "cell_id": "upload"
+    },
+    {
+     "type": "box",
+     "variant": "see",
+     "title": "What you should see",
+     "items": [
+      "1. A **Choose Files** button appears under the cell.",
+      "2. Click it and select **dataset.csv**, the file you downloaded from our website.",
+      "3. When the upload finishes, it looks like this:",
+      "code:dataset.csv(text/csv) - 1366043 bytes, last modified: n/a - 100% done\nSaving dataset.csv to dataset.csv",
+      "**100% done** means the whole file arrived. The cell is finished when the ▶ button returns."
+     ]
+    },
+    {
+     "type": "cell",
+     "cell_id": "keep_contents"
+    },
+    {
+     "type": "box",
+     "variant": "see",
+     "title": "What you should see",
+     "items": [
+      "`File uploaded:` followed by your file's name.",
+      "The variable `dataset_csv` now holds the file's contents."
+     ]
+    },
+    {
+     "type": "heading",
+     "text": "2.2 Read the file into a table",
+     "level": 3
+    },
+    {
+     "type": "paragraph",
+     "text": "`pd.read_csv()` reads the CSV contents and turns them into a **DataFrame**: a table that Python can search, inspect and change. We call our table `df` (short for *DataFrame*)."
+    },
+    {
+     "type": "cell",
+     "cell_id": "read_data"
+    },
+    {
+     "type": "box",
+     "variant": "see",
+     "title": "What you should see",
+     "items": [
+      "`Data loaded.` The reviews are now in the table `df`.",
+      "We have not looked at them yet: that is the next cell."
+     ]
+    },
+    {
+     "type": "heading",
+     "text": "2.3 View the data",
+     "level": 3
+    },
+    {
+     "type": "paragraph",
+     "text": "Now look at the reviews you just loaded. `df.head()` shows the first five rows of the table."
+    },
+    {
+     "type": "cell",
+     "cell_id": "view_data"
+    },
+    {
+     "type": "box",
+     "variant": "see",
+     "title": "What you should see",
+     "items": [
+      "A table of five reviews with two columns: `text` and `sentiment`.",
+      "Numbers 0 to 4 on the left: each row's position (its **index**)."
+     ]
+    },
+    {
+     "type": "heading",
+     "text": "How to read the table",
+     "level": 3
+    },
+    {
+     "type": "list",
+     "ordered": false,
+     "items": [
+      "**Each row is one sample:** a single review.",
+      "**`text` is the input:** what the model will read.",
+      "**`sentiment` is the label:** the correct answer the model learns from. A model can only learn what is in the data: if labels are wrong, it learns the wrong thing."
+     ]
+    },
+    {
+     "type": "paragraph",
+     "text": "Remember: loading and looking at the data does **not** train the model. The model has not seen anything yet."
+    },
+    {
+     "type": "box",
+     "variant": "analogy",
+     "title": "Looking back: connecting the analogy to our code (Step 2)",
+     "items": [
+      "Our review file is **like** the question bank, and the table `df` is **like** the instructor's list.",
+      "Each **row** of the table is like one line of the list: one question, here a restaurant review in the `text` column.",
+      "The `sentiment` column is like the answer key: it holds each question's correct answer, `positive` or `negative`.",
+      "Like an answer key, it does not say \"right\" or \"wrong\"; it gives the correct answer. Marking comes later."
+     ]
+    },
+    {
+     "type": "questions"
+    }
+   ],
+   "cells": [
+    {
+     "cell_id": "upload",
+     "stage_id": "load_data",
+     "label": "Cell 3",
+     "title": "Upload the file",
+     "code": "from google.colab import files\n\nuploaded = files.upload()",
+     "kind": "upload",
+     "instructions": [
+      "1. Copy the code below → 2. Paste it into the empty code cell underneath → 3. Click ▶ Run to run it"
+     ]
+    },
+    {
+     "cell_id": "keep_contents",
+     "stage_id": "load_data",
+     "label": "Cell 4",
+     "title": "Keep the file's contents",
+     "code": "file_name = list(uploaded.keys())[0]\ndataset_csv = uploaded[file_name]\nprint(\"File uploaded:\", file_name)",
+     "kind": "standard",
+     "instructions": [
+      "1. Copy the code below → 2. Paste it into the empty code cell underneath → 3. Click ▶ Run to run it"
+     ]
+    },
+    {
+     "cell_id": "read_data",
+     "stage_id": "load_data",
+     "label": "Cell 5",
+     "title": "Read the data",
+     "code": "df = pd.read_csv(io.BytesIO(dataset_csv))\nprint(\"Data loaded.\")",
+     "kind": "standard",
+     "instructions": [
+      "1. Copy the code below → 2. Paste it into the empty code cell underneath → 3. Click ▶ Run to run it"
+     ]
+    },
+    {
+     "cell_id": "view_data",
+     "stage_id": "load_data",
+     "label": "Cell 6",
+     "title": "View the data",
+     "code": "df.head()",
+     "kind": "standard",
+     "instructions": [
+      "1. Copy the code below → 2. Paste it into the empty code cell underneath → 3. Click ▶ Run to run it"
+     ]
+    }
+   ],
+   "questions": [
+    {
+     "question_id": "q2_1",
+     "stage_id": "load_data",
+     "prompt": "Look at the table you printed with df.head(). What does each row of the table represent?"
+    },
+    {
+     "question_id": "q2_2",
+     "stage_id": "load_data",
+     "prompt": "Which column is the input, and which is the label?"
+    }
+   ]
+  },
+  {
+   "stage_id": "split_data",
+   "nav_label": "Step 3",
+   "short_label": "Split the data",
+   "title": "Step 3: Split the Data into Training and Testing Sets",
+   "blocks": [
+    {
+     "type": "box",
+     "variant": "analogy",
+     "title": "Analogy – Step 3: Setting the exam aside",
+     "items": [
+      "Think of the question bank as a spreadsheet with two columns.",
+      "One column holds the questions; the other holds their correct answers.",
+      "First, the instructor copies each column into its own **separate list**:",
+      "a list of questions, and a list of correct answers.",
+      "Both lists keep the same order, so each answer still matches its question.",
+      "Then the instructor randomly picks **20%** of the questions, with their answers, for the exam.",
+      "These are kept hidden. The student gets the other **80%**, with their answers, to study.",
+      "Why? If the exam used questions the student had already practised,",
+      "a good grade would not show whether they could answer **new** questions."
+     ]
+    },
+    {
+     "type": "heading",
+     "text": "The concept",
+     "level": 3
+    },
+    {
+     "type": "paragraph",
+     "text": "Just like the instructor hides 20% of the questions to save them for the exam, we set aside 20% of our labelled reviews to save them for testing the model in Step 6. The model will train on the other 80% in Step 5. For example, if our file has 1,000 reviews, about 800 go to training and about 200 are kept aside for testing."
+    },
+    {
+     "type": "paragraph",
+     "text": "Why? Imagine the model learned from the review *\"The food was delicious and the staff were friendly.\"* If we then tested it on that same review, getting it right would tell us very little. It has already seen it. We want to know whether it works on reviews it has **never seen**."
+    },
+    {
+     "type": "box",
+     "variant": "plain",
+     "title": null,
+     "items": [
+      "**Training set:** reviews the model learns from (about 800 of 1,000)",
+      "**Test set:** reviews hidden during training, used only to check the model (about 200)"
+     ]
+    },
+    {
+     "type": "heading",
+     "text": "3.1 Separate the inputs from the labels",
+     "level": 3
+    },
+    {
+     "type": "box",
+     "variant": "analogy",
+     "title": null,
+     "items": [
+      "**Exam analogy:** like the instructor copying each column into its own separate list."
+     ]
+    },
+    {
+     "type": "paragraph",
+     "text": "Just like the instructor copies each column into its own list, we take the two columns of our table and store them separately. Remember the table you saw with `df.head()`:"
+    },
+    {
+     "type": "box",
+     "variant": "plain",
+     "title": null,
+     "items": [
+      "**Row 0:** text = *\"The food was delicious and the staff were friendly.\"*",
+      "           sentiment = `positive`",
+      "**Row 1:** text = *\"Waited an hour and the soup was cold.\"*",
+      "           sentiment = `negative`",
+      "**Row 2:** text = *\"Great atmosphere, I will definitely come back!\"*",
+      "           sentiment = `positive`",
+      "… and so on for every review."
+     ]
+    },
+    {
+     "type": "box",
+     "variant": "analogy",
+     "title": "Exam analogy: the instructor's spreadsheet",
+     "items": [
+      "For example, a biology instructor's spreadsheet might look like this:",
+      "**Row 0:** question = *\"Which organ pumps blood around the body?\"*",
+      "           answer = *\"The heart\"*",
+      "**Row 1:** question = *\"What do plants use sunlight to make?\"*",
+      "           answer = *\"Their own food\"*",
+      "Each **row** (a question with its answer) is like a row in our table (a review with its label).",
+      "The **question** column is like our **text** column.",
+      "The **answer** column is like our **sentiment** column."
+     ]
+    },
+    {
+     "type": "paragraph",
+     "text": "The `text` column becomes `X`, a list of all the reviews. The `sentiment` column becomes `y`, a list of all the labels:"
+    },
+    {
+     "type": "box",
+     "variant": "plain",
+     "title": null,
+     "items": [
+      "code:X[0] = \"The food was delicious and the staff were friendly.\"\ny[0] = \"positive\"\nX[1] = \"Waited an hour and the soup was cold.\"\ny[1] = \"negative\""
+     ]
+    },
+    {
+     "type": "box",
+     "variant": "analogy",
+     "title": "Exam analogy: the instructor's two lists",
+     "items": [
+      "The biology instructor copies each column into its own list:",
+      "code:questions[0] = \"Which organ pumps blood around the body?\"\nanswers[0] = \"The heart\"\nquestions[1] = \"What do plants use sunlight to make?\"\nanswers[1] = \"Their own food\"",
+      "The **questions** list is like `X`, our list of reviews (the inputs).",
+      "The **answers** list is like `y`, our list of labels.",
+      "`answers[0]` goes with `questions[0]`, like `y[0]` goes with `X[0]`."
+     ]
+    },
+    {
+     "type": "paragraph",
+     "text": "**Back to our reviews.** We separate them because the model uses them differently: it reads the reviews in `X` and learns to give the correct labels in `y`. The names come from mathematics, where **f(x) = y**: x is the input and y is the output. `X` (capital) holds the **inputs**; `y` (lowercase) holds the **labels**."
+    },
+    {
+     "type": "cell",
+     "cell_id": "make_xy"
+    },
+    {
+     "type": "box",
+     "variant": "see",
+     "title": "What you should see",
+     "items": [
+      "The first review and its label, then two numbers that are **the same**.",
+      "They match because every review has exactly one label.",
+      "**What the code did, piece by piece**",
+      "`df[\"text\"]` picked one column from the table, by its name: all the reviews.",
+      "`np.asarray(...)` turned it into a NumPy **array**: a plain list of values, the form scikit-learn expects.",
+      "`X = ...` stored the reviews in X; the next line did the same for the labels, in y.",
+      "X and y keep the same order: `X[0]` goes with `y[0]`, `X[1]` with `y[1]`, and so on."
+     ]
+    },
+    {
+     "type": "box",
+     "variant": "analogy",
+     "title": null,
+     "items": [
+      "**Exam analogy:** like the instructor now setting 20% of the questions aside as the hidden exam."
+     ]
+    },
+    {
+     "type": "heading",
+     "text": "3.2 Split into training and testing sets",
+     "level": 3
+    },
+    {
+     "type": "paragraph",
+     "text": "scikit-learn has a function that does the split for us: `train_test_split()`. It shuffles the reviews, then cuts them into a training set and a test set, keeping every review with its label."
+    },
+    {
+     "type": "cell",
+     "cell_id": "split"
+    },
+    {
+     "type": "box",
+     "variant": "see",
+     "title": "What you should see",
+     "items": [
+      "Nothing. The data is now split into four parts:",
+      "`X_train`: reviews the model will learn from",
+      "`y_train`: the correct labels for those reviews",
+      "`X_test`: reviews hidden from the model until the end",
+      "`y_test`: the correct labels for the hidden reviews",
+      "**What the settings mean**",
+      "`test_size=0.2`: 20% of the reviews go to testing, 80% to training (20–30% is common).",
+      "`random_state=42`: shuffles the reviews the same way every time, so everyone gets the same split.",
+      "`stratify=y`: keeps the same mix of positive and negative reviews in both sets."
+     ]
+    },
+    {
+     "type": "paragraph",
+     "text": "**Why shuffle?** If our file listed all the positive reviews first, taking the last part as the test set would give a test set with only one kind of review. Shuffling first prevents this."
+    },
+    {
+     "type": "paragraph",
+     "text": "Now let's look at what the split made."
+    },
+    {
+     "type": "cell",
+     "cell_id": "four_parts"
+    },
+    {
+     "type": "box",
+     "variant": "see",
+     "title": "What you should see",
+     "items": [
+      "Two lines with sizes: in each line the two numbers match, one label per review.",
+      "The training set is about four times the size of the test set.",
+      "Then one training review with its label, and one testing review with its label.",
+      "Notice: `X_train[0]` goes with `y_train[0]`. The split kept each review with its label."
+     ]
+    },
+    {
+     "type": "paragraph",
+     "text": "The reviews are still text. Nothing has been turned into numbers yet: that is Step 4."
+    },
+    {
+     "type": "box",
+     "variant": "analogy",
+     "title": "Looking back: connecting the analogy to our code (Step 3)",
+     "items": [
+      "`X` is like the list of questions (all the reviews); `y` is like the list of correct answers (all the labels).",
+      "`train_test_split()` is like the instructor setting the exam aside. It makes four piles:",
+      "`X_train`, `y_train`: like the study questions and their correct answers, given to the student.",
+      "`X_test`, `y_test`: like the exam questions and their correct answers, hidden and kept for marking.",
+      "`test_size=0.2` sets the 20%. Shuffling is like picking the exam questions at random."
+     ]
+    },
+    {
+     "type": "questions"
+    }
+   ],
+   "cells": [
+    {
+     "cell_id": "make_xy",
+     "stage_id": "split_data",
+     "label": "Cell 7",
+     "title": "Create X and y, and look at them",
+     "code": "X = np.asarray(df[\"text\"])          # inputs: the reviews\ny = np.asarray(df[\"sentiment\"])     # labels: the correct answers\n\nprint(\"First review:\", X[0])\nprint(\"Its label:\", y[0])\nprint(\"Number of reviews:\", len(X))\nprint(\"Number of labels:\", len(y))",
+     "kind": "standard",
+     "instructions": [
+      "1. Copy the code below → 2. Paste it into the empty code cell underneath → 3. Click ▶ Run to run it"
+     ]
+    },
+    {
+     "cell_id": "split",
+     "stage_id": "split_data",
+     "label": "Cell 8",
+     "title": "Split the data",
+     "code": "from sklearn.model_selection import train_test_split\n\nX_train, X_test, y_train, y_test = train_test_split(\n    X, y, test_size=0.2, random_state=42, stratify=y)",
+     "kind": "standard",
+     "instructions": [
+      "1. Copy the code below → 2. Paste it into the empty code cell underneath → 3. Click ▶ Run to run it"
+     ]
+    },
+    {
+     "cell_id": "four_parts",
+     "stage_id": "split_data",
+     "label": "Cell 9",
+     "title": "Look at the four parts",
+     "code": "print(\"Training reviews:\", len(X_train), \"| Training labels:\", len(y_train))\nprint(\"Testing reviews:\", len(X_test), \"| Testing labels:\", len(y_test))\n\nprint()\nprint(\"First training review (X_train[0]):\", X_train[0])\nprint(\"Its label (y_train[0]):\", y_train[0])\nprint()\nprint(\"First testing review (X_test[0]):\", X_test[0])\nprint(\"Its label (y_test[0]):\", y_test[0])",
+     "kind": "standard",
+     "instructions": [
+      "1. Copy the code below → 2. Paste it into the empty code cell underneath → 3. Click ▶ Run to run it"
+     ]
+    }
+   ],
+   "questions": [
+    {
+     "question_id": "q3_1",
+     "stage_id": "split_data",
+     "prompt": "Why can't we test the model on the same reviews it learned from?"
+    },
+    {
+     "question_id": "q3_2",
+     "stage_id": "split_data",
+     "prompt": "What would go wrong if the reviews and their labels were shuffled separately?"
+    }
+   ]
+  },
+  {
+   "stage_id": "text_to_numbers",
+   "nav_label": "Step 4",
+   "short_label": "Turn text into numbers",
+   "title": "Step 4: Turn Text into Numbers",
+   "blocks": [
+    {
+     "type": "box",
+     "variant": "analogy",
+     "title": "Analogy – Step 4: Translating the questions",
+     "items": [
+      "Imagine a student who reads only their **native language**, such as Spanish.",
+      "But the questions are written in another language, such as English.",
+      "So the instructor must **translate** every question into the student's native language.",
+      "For example, *\"Which organ pumps blood around the body?\"*",
+      "becomes *\"¿Qué órgano bombea la sangre por el cuerpo?\"*",
+      "The instructor builds a **dictionary** from the study questions and uses it to translate them.",
+      "For example, the dictionary says *organ → órgano* and *blood → sangre*.",
+      "Later, the exam questions are translated with **the same dictionary**.",
+      "That way, the student sees them in the same form they studied.",
+      "Without translation, the student could neither study nor answer the exam."
+     ]
+    },
+    {
+     "type": "heading",
+     "text": "The concept",
+     "level": 3
+    },
+    {
+     "type": "paragraph",
+     "text": "Just like the instructor translates the questions into the student's native language, we translate every review into **numbers**, the native language of computers. A machine learning model can only calculate with numbers, and calculating is how it works: in **Step 5** it learns by adjusting numbers, and in **Step 6** it predicts by adding numbers up. For example, the review *\"The food was delicious\"* will become a row of numbers like `[0 1 1 0 0 0 1 1]`. You will see how in Cell 10."
+    },
+    {
+     "type": "paragraph",
+     "text": "The test reviews must be translated **the same way** as the training reviews, so the model sees them in the same form it learned from."
+    },
+    {
+     "type": "paragraph",
+     "text": "The simplest way to translate text into numbers is called **bag of words**: it ignores word order and counts how often each word appears in each review. We try it on three tiny reviews first. It has three steps:"
+    },
+    {
+     "type": "box",
+     "variant": "plain",
+     "title": null,
+     "items": [
+      "**1. Split:** break each review into words, called **tokens**.",
+      "**2. Build a vocabulary:** list every word that appears in any review.",
+      "**3. Count:** for each review, count how often each vocabulary word appears."
+     ]
+    },
+    {
+     "type": "cell",
+     "cell_id": "bag_of_words"
+    },
+    {
+     "type": "box",
+     "variant": "see",
+     "title": "What you should see",
+     "items": [
+      "code:Vocabulary: ['cold' 'delicious' 'food' 'friendly' 'soup' 'staff' 'the' 'was']\n[[0 1 1 0 0 0 1 1]\n [1 0 0 0 1 0 1 1]\n [0 1 0 1 1 1 0 0]]",
+      "Read it like a table: each **row is a review**, each **column is a vocabulary word**.",
+      "Row 1, \"The food was delicious\", has a 1 under *delicious*, *food*, *the* and *was*.",
+      "Capitals and the comma are gone: words are made lowercase, and only words are kept."
+     ]
+    },
+    {
+     "type": "paragraph",
+     "text": "That is the whole idea: **one review becomes one row of numbers, one column per word**. With real reviews the vocabulary has thousands of words, so each row is long and mostly zeros."
+    },
+    {
+     "type": "heading",
+     "text": "TF‑IDF: giving informative words more weight",
+     "level": 3
+    },
+    {
+     "type": "paragraph",
+     "text": "Counting treats every word the same, but words like \"the\" and \"was\" appear in almost every review and say nothing about sentiment. **TF‑IDF** fixes this: it gives more weight to words that appear in only a few reviews. In our tiny reviews, *friendly* and *staff* (in one review only) would get a higher weight than *delicious* and *soup* (in two reviews)."
+    },
+    {
+     "type": "box",
+     "variant": "analogy",
+     "title": null,
+     "items": [
+      "**Exam analogy:** the tiny example was like practice. Now the instructor translates every real question."
+     ]
+    },
+    {
+     "type": "paragraph",
+     "text": "Now we use TF‑IDF on our real reviews. One rule matters: the vocabulary is learned from the **training reviews only**. The test reviews stay unseen, so we only convert them, using the vocabulary already learned."
+    },
+    {
+     "type": "cell",
+     "cell_id": "tfidf"
+    },
+    {
+     "type": "box",
+     "variant": "see",
+     "title": "What you should see",
+     "items": [
+      "The vocabulary size: the number of different words in the training reviews.",
+      "Two shapes, written as (rows, columns): rows are reviews, columns are vocabulary words.",
+      "Both shapes have the **same number of columns**, because both use the same vocabulary.",
+      "**What the code did**",
+      "`fit_transform`: learned the vocabulary from the training reviews **and** converted them.",
+      "`transform`: converted the test reviews only, using the vocabulary already learned."
+     ]
+    },
+    {
+     "type": "box",
+     "variant": "analogy",
+     "title": "Looking back: connecting the analogy to our code (Step 4)",
+     "items": [
+      "Our model is like that student, and its native language is **numbers**. It can only calculate with numbers, so every review must be translated from words into numbers before training (Step 5) and predicting (Step 6).",
+      "The vectorizer is like the instructor's dictionary.",
+      "`fit_transform(X_train)` is like building the dictionary from the study questions **and** translating them (`X_train_tfidf`).",
+      "`transform(X_test)` is like translating the exam questions with the **same** dictionary (`X_test_tfidf`)."
+     ]
+    },
+    {
+     "type": "questions"
+    }
+   ],
+   "cells": [
+    {
+     "cell_id": "bag_of_words",
+     "stage_id": "text_to_numbers",
+     "label": "Cell 10",
+     "title": "Bag of words on three tiny reviews",
+     "code": "from sklearn.feature_extraction.text import CountVectorizer\n\ntiny_reviews = [\"The food was delicious\",\n                \"The soup was cold\",\n                \"Delicious soup, friendly staff\"]\n\ncounter = CountVectorizer()\ncounter.fit(tiny_reviews)                              # steps 1 and 2: split, build vocabulary\nprint(\"Vocabulary:\", counter.get_feature_names_out())\nprint(counter.transform(tiny_reviews).toarray())       # step 3: count",
+     "kind": "standard",
+     "instructions": [
+      "1. Copy the code below → 2. Paste it into the empty code cell underneath → 3. Click ▶ Run to run it"
+     ]
+    },
+    {
+     "cell_id": "tfidf",
+     "stage_id": "text_to_numbers",
+     "label": "Cell 11",
+     "title": "Turn the real reviews into numbers",
+     "code": "from sklearn.feature_extraction.text import TfidfVectorizer\n\nvectorizer = TfidfVectorizer()\nX_train_tfidf = vectorizer.fit_transform(X_train)    # learn the vocabulary AND convert\nX_test_tfidf = vectorizer.transform(X_test)           # convert only, same vocabulary\n\nprint(\"Vocabulary size:\", len(vectorizer.get_feature_names_out()))\nprint(\"Training data shape:\", X_train_tfidf.shape)\nprint(\"Test data shape:\", X_test_tfidf.shape)",
+     "kind": "standard",
+     "instructions": [
+      "1. Copy the code below → 2. Paste it into the empty code cell underneath → 3. Click ▶ Run to run it"
+     ]
+    }
+   ],
+   "questions": [
+    {
+     "question_id": "q4_1",
+     "stage_id": "text_to_numbers",
+     "prompt": "What does one row of `X_train_tfidf` represent? What does one column represent?"
+    },
+    {
+     "question_id": "q4_2",
+     "stage_id": "text_to_numbers",
+     "prompt": "Why do we use `fit_transform` on the training reviews, but only `transform` on the test reviews?"
+    }
+   ]
+  },
+  {
+   "stage_id": "train_model",
+   "nav_label": "Step 5",
+   "short_label": "Train the model",
+   "title": "Step 5: Train the Model",
+   "blocks": [
+    {
+     "type": "box",
+     "variant": "analogy",
+     "title": "Analogy – Step 5: Studying",
+     "items": [
+      "The student works through the study questions, one at a time.",
+      "They answer each one, then check it against the correct answer.",
+      "When they get one wrong, they fix their thinking and try the next one.",
+      "Over time, they notice **patterns** that help them answer.",
+      "For example, questions that mention *pumping blood* usually have the answer *the heart*.",
+      "They also learn which clues matter **more** and which matter **less**.",
+      "The exam is **closed-book**: the student takes in what they learned, not the study questions."
+     ]
+    },
+    {
+     "type": "heading",
+     "text": "The concept",
+     "level": 3
+    },
+    {
+     "type": "paragraph",
+     "text": "Just like the student studies the practice questions to learn patterns for the exam, the model is **trained** on the training reviews to learn the numbers it will use in Step 6 to label reviews it has never seen. Training is where the model learns from the labelled training reviews."
+    },
+    {
+     "type": "paragraph",
+     "text": "In scikit-learn, every model is a **class**, so we first create a model object, then train it. We use **LinearSVC**, a model that looks for the best **boundary** between positive and negative reviews. Linear models like this work well for text data."
+    },
+    {
+     "type": "cell",
+     "cell_id": "train"
+    },
+    {
+     "type": "cell",
+     "cell_id": "inside_model"
+    },
+    {
+     "type": "box",
+     "variant": "see",
+     "title": "What you should see",
+     "items": [
+      "The two classes: `['negative' 'positive']`.",
+      "The number of weights, then the first five weights: small positive and negative decimals.",
+      "One intercept number."
+     ]
+    },
+    {
+     "type": "paragraph",
+     "text": "**How LinearSVC makes a prediction:** it combines its weights with the words in a review, adds the intercept, and gets one score. A score above zero means **positive**; below zero, **negative**."
+    },
+    {
+     "type": "box",
+     "variant": "analogy",
+     "title": "Looking back: connecting the analogy to our code (Step 5)",
+     "items": [
+      "`clf = LinearSVC()` is like a new student arriving, who has not studied anything yet.",
+      "`clf.fit(X_train_tfidf, y_train)` is like the studying: the model works through the translated study questions and their correct answers, adjusting until its answers match as closely as possible.",
+      "The model's weights are like the rules of thumb: `coef_` has one **weight** per word, and `intercept_` is like the student's starting point before looking at any words."
+     ]
+    },
+    {
+     "type": "questions"
+    }
+   ],
+   "cells": [
+    {
+     "cell_id": "train",
+     "stage_id": "train_model",
+     "label": "Cell 12",
+     "title": "Create and train the model",
+     "code": "from sklearn.svm import LinearSVC\n\nclf = LinearSVC()                    # create the model object (nothing learned yet)\nclf.fit(X_train_tfidf, y_train)      # train it on the training reviews and their labels",
+     "kind": "standard",
+     "instructions": [
+      "1. Copy the code below → 2. Paste it into the empty code cell underneath → 3. Click ▶ Run to run it"
+     ]
+    },
+    {
+     "cell_id": "inside_model",
+     "stage_id": "train_model",
+     "label": "Cell 13",
+     "title": "Look inside the model",
+     "code": "print(\"Classes:\", clf.classes_)\nprint(\"Number of weights:\", clf.coef_.shape[1])\nprint(\"First five weights:\", clf.coef_[0][:5].round(2))\nprint(\"Intercept:\", clf.intercept_.round(2))",
+     "kind": "standard",
+     "instructions": [
+      "1. Copy the code below → 2. Paste it into the empty code cell underneath → 3. Click ▶ Run to run it"
+     ]
+    }
+   ],
+   "questions": [
+    {
+     "question_id": "q5_1",
+     "stage_id": "train_model",
+     "prompt": "In your own words, what is stored inside `clf` after training?"
+    },
+    {
+     "question_id": "q5_2",
+     "stage_id": "train_model",
+     "prompt": "What does `clf.fit(...)` do?"
+    }
+   ]
+  },
+  {
+   "stage_id": "evaluate_model",
+   "nav_label": "Step 6",
+   "short_label": "Evaluate the model",
+   "title": "Step 6: Evaluate the Model",
+   "blocks": [
+    {
+     "type": "box",
+     "variant": "analogy",
+     "title": "Analogy – Step 6: Sitting and marking the exam",
+     "items": [
+      "Remember the **20%** of questions the instructor hid in Step 3? They now become the exam.",
+      "For example, if the question bank had 100 questions, the exam has the 20 hidden ones.",
+      "The student has never seen these questions.",
+      "The questions are translated with the **same dictionary** the student studied with.",
+      "The exam is **closed-book**: the student answers using only the patterns they learned.",
+      "For example, one exam question asks: *\"Which organ pumps blood to the lungs?\"*",
+      "The student has never seen it, but the pattern *pumping blood* leads them to *the heart*.",
+      "The instructor marks each answer against the exam's correct answers.",
+      "The **grade** is the share answered correctly: for example, 18 of the 20 right is 90%.",
+      "Then the instructor goes over the questions the student got wrong.",
+      "If the grade is low, the student usually needs more or better questions to study."
+     ]
+    },
+    {
+     "type": "heading",
+     "text": "The concept",
+     "level": 3
+    },
+    {
+     "type": "paragraph",
+     "text": "Just like the instructor gives the hidden exam to find out how well the student really learned, we test the trained model on the 20% of reviews we set aside in Step 3, to find out how well it works on reviews it has never seen. We know the correct label for each one, so we let the model predict a label for every test review and count how often it is right."
+    },
+    {
+     "type": "cell",
+     "cell_id": "accuracy"
+    },
+    {
+     "type": "box",
+     "variant": "see",
+     "title": "What you should see",
+     "items": [
+      "The model's labels for ten test reviews, above the ten correct labels.",
+      "Where the two match, the model was right.",
+      "Then the **test accuracy**: a number between 0 and 1.",
+      "**What the code did**",
+      "`clf.predict(...)` gave a label to every test review and stored them in `y_pred`.",
+      "`accuracy_score` compared `y_pred` with `y_test`: 0.85 means 85% correct."
+     ]
+    },
+    {
+     "type": "box",
+     "variant": "analogy",
+     "title": null,
+     "items": [
+      "**Exam analogy:** like the instructor going over the questions the student got wrong."
+     ]
+    },
+    {
+     "type": "paragraph",
+     "text": "The accuracy tells us how often the model is right. Next, let's look at the reviews it got wrong."
+    },
+    {
+     "type": "cell",
+     "cell_id": "mistakes"
+    },
+    {
+     "type": "box",
+     "variant": "see",
+     "title": "What you should see",
+     "items": [
+      "The number of mistakes, then up to three reviews the model got wrong.",
+      "Read them carefully. What do you notice about these reviews?",
+      "If there are 0 mistakes, no reviews are shown: the model got every test review right."
+     ]
+    },
+    {
+     "type": "box",
+     "variant": "analogy",
+     "title": null,
+     "items": [
+      "**Exam analogy:** like giving the student brand-new questions from outside the bank, to see how well their rules of thumb work."
+     ]
+    },
+    {
+     "type": "paragraph",
+     "text": "The real goal is **generalisation**: labelling reviews nobody has seen before. New reviews are turned into numbers the same way as in Step 4, then the model predicts."
+    },
+    {
+     "type": "cell",
+     "cell_id": "own_reviews"
+    },
+    {
+     "type": "box",
+     "variant": "see",
+     "title": "What you should see",
+     "items": [
+      "One line for each of your three reviews: the model's label, an arrow, then your review.",
+      "For example:",
+      "code:positive -> The pizza was hot and the waiter was so kind\nnegative -> We waited forever and the fries were soggy",
+      "Did the model agree with you? Change a review and click ▶ again to try another.",
+      "**What the code did**",
+      "`my_reviews = [...]` stored your three reviews in a list.",
+      "`vectorizer.transform(...)` turned them into numbers, using the vocabulary from Step 4.",
+      "`clf.predict(...)` gave each review a label: positive or negative.",
+      "`zip(...)` paired each review with its label, and the `for` loop printed each pair.",
+      "**Got an error?** Each review must stay inside its own `\"quotes\"`,",
+      "with a comma between reviews. Don't use `\"` inside your review text."
+     ]
+    },
+    {
+     "type": "box",
+     "variant": "analogy",
+     "title": "Looking back: connecting the analogy to our code (Step 6)",
+     "items": [
+      "`clf.predict(X_test_tfidf)` is like the student sitting the exam: for each translated question, the model multiplies each word's number by its weight, adds everything up, adds the starting point, and answers **positive** if the total is above zero, **negative** if below. The answers go into `y_pred`.",
+      "`accuracy_score(y_test, y_pred)` is like the instructor marking the exam; the result is like the grade."
+     ]
+    },
+    {
+     "type": "questions"
+    },
+    {
+     "type": "box",
+     "variant": "analogy",
+     "title": "Where the analogy stops",
+     "items": [
+      "A real student understands the reviews. The model does not understand words at all.",
+      "It only keeps a number for each word, adds up the numbers for a new review, and checks whether the total is above zero."
+     ]
+    }
+   ],
+   "cells": [
+    {
+     "cell_id": "accuracy",
+     "stage_id": "evaluate_model",
+     "label": "Cell 14",
+     "title": "Predict and measure accuracy",
+     "code": "from sklearn.metrics import accuracy_score\n\ny_pred = clf.predict(X_test_tfidf)        # the model's label for every test review\n\nprint(\"Model's labels:  \", y_pred[:10])\nprint(\"Correct labels:  \", y_test[:10])\nprint(\"Test accuracy: {:.2f}\".format(accuracy_score(y_test, y_pred)))",
+     "kind": "standard",
+     "instructions": [
+      "1. Copy the code below → 2. Paste it into the empty code cell underneath → 3. Click ▶ Run to run it"
+     ]
+    },
+    {
+     "cell_id": "mistakes",
+     "stage_id": "evaluate_model",
+     "label": "Cell 15",
+     "title": "Look at the mistakes",
+     "code": "wrong = np.where(y_pred != y_test)[0]      # positions of the test reviews labelled wrongly\nprint(\"Number of mistakes:\", len(wrong))\nprint()\n\nfor i in wrong[:3]:                          # show up to three of them\n    print(\"Review:\", X_test[i])\n    print(\"Correct:\", y_test[i], \"| Model said:\", y_pred[i])\n    print()",
+     "kind": "standard",
+     "instructions": [
+      "1. Copy the code below → 2. Paste it into the empty code cell underneath → 3. Click ▶ Run to run it"
+     ]
+    },
+    {
+     "cell_id": "own_reviews",
+     "stage_id": "evaluate_model",
+     "label": "Cell 16",
+     "title": "Write your own reviews",
+     "code": "my_reviews = [\"Write a positive review here\",\n              \"Write a negative review here\",\n              \"Write a tricky review here\"]\n\nmy_reviews_tfidf = vectorizer.transform(my_reviews)    # turn the new reviews into numbers, as in Step 4\nfor review, label in zip(my_reviews, clf.predict(my_reviews_tfidf)):\n    print(label, \"->\", review)",
+     "kind": "own_reviews",
+     "instructions": [
+      "1. Copy the code below → 2. Paste it into the empty code cell underneath",
+      "3. Replace each **\"Write ... here\"** with your own restaurant review → 4. Click ▶ Run to run it",
+      "**For example, replace this positive placeholder:**",
+      "`\"Write a positive review here\"`  →  `\"The pizza was hot and the waiter was so kind\"`",
+      "**And this negative placeholder:**",
+      "`\"Write a negative review here\"`  →  `\"We waited forever and the fries were soggy\"`",
+      "**The tricky one is up to you:** write a review you think might fool the model.",
+      "Only change the words **between the quotes**. Keep the `\"` marks and the commas.",
+      "Please write your own reviews; don't copy the examples above."
+     ]
+    }
+   ],
+   "questions": [
+    {
+     "question_id": "q6_1",
+     "stage_id": "evaluate_model",
+     "prompt": "Why do we measure accuracy on the test reviews, not the training reviews?"
+    },
+    {
+     "question_id": "q6_2",
+     "stage_id": "evaluate_model",
+     "prompt": "If the model labelled many reviews wrongly, what would you do to improve it? Why?"
+    }
+   ]
+  },
+  {
+   "stage_id": "finish",
+   "nav_label": "Finish",
+   "short_label": "Workshop complete",
+   "title": "You Did It: Workshop Complete",
+   "blocks": [
+    {
+     "type": "paragraph",
+     "text": "Congratulations! You built a machine learning model that reads restaurant reviews and labels them as positive or negative, including reviews it had never seen. You loaded and looked at real data, split it, turned text into numbers, trained a model, and evaluated it."
+    },
+    {
+     "type": "paragraph",
+     "text": "To finish, please complete the steps below."
+    },
+    {
+     "type": "post_survey"
+    },
+    {
+     "type": "checklist",
+     "title": "Your gift card: completion checklist",
+     "intro": "You will receive your gift card once you have completed **all** of these:",
+     "items": [
+      {
+       "text": "1. Completed the **pre-survey** before the workshop",
+       "auto": null
+      },
+      {
+       "text": "2. Ran **all 16 cells** in this workshop (Steps 1 to 6)",
+       "auto": "cells"
+      },
+      {
+       "text": "3. Answered every **Check your understanding** question (q1_1 to q6_2)",
+       "auto": "answers"
+      },
+      {
+       "text": "4. Completed the **post-survey** with the same research ID (Finish)",
+       "auto": null
+      }
+     ],
+     "note": "Questions? Ask a facilitator before you leave the room."
+    },
+    {
+     "type": "paragraph",
+     "text": "Thank you for taking part in our research. We hope you enjoyed building your first machine learning model!"
+    },
+    {
+     "type": "aside",
+     "text": "*SJSU Computer Science Education Research Lab. This material is based upon work supported by the U.S. National Science Foundation under Grant No. 2451781.*"
+    }
+   ],
+   "cells": [],
+   "questions": []
+  }
+ ]
+}

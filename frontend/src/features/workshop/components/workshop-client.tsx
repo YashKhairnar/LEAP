@@ -117,7 +117,7 @@ export default function WorkshopClient() {
 
   const navigator = <aside className="progress-section" aria-labelledby="path-title" id="learning-path-panel">
     <div className="progress-heading">
-      <div><p className="eyebrow">Your workshop</p><h1 id="path-title">Classify restaurant reviews</h1></div>
+      <div><p className="eyebrow">Your workshop · {content.workshop_version.label}</p><h1 id="path-title">Classify restaurant reviews</h1></div>
       <p className="path-count">{completedCount} of {learningStages.length} parts done</p>
     </div>
     <ol className="stage-track">
