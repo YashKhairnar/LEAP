@@ -15,6 +15,12 @@ const tasks = [
   { id: "cnn", title: "Handwritten digits", description: "Teach a neural network to recognize digits in images.", level: "Intermediate", time: "3–4 hours", href: "/learn/cnn" },
 ];
 
+const surveyLinks = [
+  { title: "Pre-survey: Java", href: "https://forms.gle/giDg9FbH5kUETstr7" },
+  { title: "Pre-survey: Machine Learning", href: "https://forms.gle/4AAWwyeP1ZL3sPQn9" },
+  { title: "Post-survey: Machine Learning", href: "https://forms.gle/pebJ45HhdKnKCGki7" },
+];
+
 export default function Dashboard() {
   const router = useRouter();
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -56,6 +62,17 @@ export default function Dashboard() {
         <button className="logout-button" disabled={loggingOut} onClick={signOut}>{loggingOut ? "Signing out…" : "Log out"}</button>
       </div>
     </header>
+    <section className="survey-links" aria-labelledby="survey-links-title">
+      <div className="path-section-heading">
+        <h2 id="survey-links-title">Surveys</h2>
+      </div>
+      <div className="survey-links-list">
+        {surveyLinks.map((survey) => <a className="survey-link" href={survey.href} key={survey.href} target="_blank" rel="noreferrer">
+          <span>{survey.title}</span>
+          <span aria-hidden="true">↗</span>
+        </a>)}
+      </div>
+    </section>
     {!showLessonPaths ? <WorkshopHome onResearchId={setResearchId} /> : <section className="simple-dashboard-content" aria-labelledby="paths-title">
       {resume ? <>
         <header className="simple-page-heading">

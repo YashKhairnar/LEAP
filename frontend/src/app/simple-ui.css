@@ -517,6 +517,12 @@ body { background: var(--canvas); }
 .how-paths-work h2 { margin: 0 0 6px; color: var(--blue); font-size: 15px; font-weight: 600; }
 .how-paths-work ol { margin: 4px 0 8px; padding-left: 22px; }
 .how-paths-work p { margin: 0; color: var(--muted); }
+.survey-links { max-width: 1120px; margin: 0 auto; padding: 18px 32px 0; }
+.survey-links-list { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 10px; }
+.survey-link { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 52px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--blue); font-size: 15px; font-weight: 600; text-decoration: none; }
+.survey-link:hover { border-color: #b9c9e5; background: #f7f9ff; }
+.survey-link > span:last-child { flex: none; font-size: 18px; }
+@media (max-width: 720px) { .survey-links { padding-inline: 20px; } .survey-links-list { grid-template-columns: 1fr; } }
 /* Idea step: lead paragraph, goals, then one card per kind of explanation. */
 .idea-sections { display: flex; flex-direction: column; gap: 20px; }
 .idea-lead { margin: 0; color: #253244; font-size: 19px; line-height: 1.65; }
